@@ -5,11 +5,20 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/doron-cohen/argus/backend/api"
+	"github.com/doron-cohen/argus/backend/internal/health"
+	"github.com/go-chi/chi/v5"
 )
 
 func StartServer() (stop func(), err error) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", HealthHandler)
+	mux := chi.NewRouter()
+
+	// Mount healthz
+	mux.Get("/healthz", health.HealthHandler)
+
+	// Mount OpenAPI-generated handlers under /api
+	mux.Mount("/api", api.Handler(api.NewAPIServer()))
 
 	srv := &http.Server{
 		Addr:    ":8080",
