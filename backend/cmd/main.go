@@ -6,11 +6,17 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/doron-cohen/argus/backend/internal/config"
 	"github.com/doron-cohen/argus/backend/internal/server"
 )
 
 func main() {
-	stop, err := server.StartServer()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
+	stop, err := server.Start(cfg)
 	if err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}

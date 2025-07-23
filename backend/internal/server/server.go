@@ -7,18 +7,28 @@ import (
 	"time"
 
 	"github.com/doron-cohen/argus/backend/api"
+	"github.com/doron-cohen/argus/backend/internal/config"
 	"github.com/doron-cohen/argus/backend/internal/health"
+	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
-func StartServer() (stop func(), err error) {
+func Start(cfg config.Config) (stop func(), err error) {
 	mux := chi.NewRouter()
 
 	// Mount healthz
 	mux.Get("/healthz", health.HealthHandler)
 
+	// Connect to PostgreSQL using storage.ConnectAndMigrate
+	dsn := cfg.Storage.DSN()
+	repo, dberr := storage.ConnectAndMigrate(context.Background(), dsn)
+	if dberr != nil {
+		slog.Error("Failed to connect or migrate database", "error", dberr)
+		return nil, dberr
+	}
+
 	// Mount OpenAPI-generated handlers under /api
-	mux.Mount("/api", api.Handler(api.NewAPIServer()))
+	mux.Mount("/api", api.Handler(api.NewAPIServer(repo)))
 
 	srv := &http.Server{
 		Addr:    ":8080",

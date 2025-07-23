@@ -11,7 +11,7 @@ import (
 )
 
 func TestHealthzIntegration(t *testing.T) {
-	stop, err := server.StartServer()
+	stop, err := server.Start(TestConfig)
 	require.NoError(t, err)
 	defer stop()
 

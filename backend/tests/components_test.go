@@ -7,12 +7,15 @@ import (
 	"time"
 
 	"github.com/doron-cohen/argus/backend/api/client"
+	"github.com/doron-cohen/argus/backend/internal/config"
 	"github.com/doron-cohen/argus/backend/internal/server"
 	"github.com/stretchr/testify/require"
 )
 
+var TestConfig config.Config
+
 func TestGetComponentsIntegration(t *testing.T) {
-	stop, err := server.StartServer()
+	stop, err := server.Start(TestConfig)
 	require.NoError(t, err)
 	defer stop()
 

@@ -3,18 +3,37 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/doron-cohen/argus/backend/internal/storage"
 )
 
-// APIServer implements ServerInterface
-// (Component type is generated in api.gen.go)
-type APIServer struct{}
+type APIServer struct {
+	Repo *storage.Repository
+}
 
-func NewAPIServer() ServerInterface {
-	return &APIServer{}
+func NewAPIServer(repo *storage.Repository) ServerInterface {
+	return &APIServer{Repo: repo}
 }
 
 func (s *APIServer) GetComponents(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	components, err := s.Repo.GetComponents(ctx)
+	if err != nil {
+		http.Error(w, "failed to fetch components", http.StatusInternalServerError)
+		return
+	}
+
+	var apiComponents []Component
+	for _, c := range components {
+		id := c.ID.String()
+		name := c.Name
+		apiComponents = append(apiComponents, Component{
+			Id:   &id,
+			Name: &name,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode([]Component{})
+	json.NewEncoder(w).Encode(apiComponents)
 }
