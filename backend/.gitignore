@@ -1,0 +1,30 @@
+# Binaries
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+*.out
+
+# Go modules
+/go.sum
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+
+# Test cache
+*.test
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# Coverage
+coverage.out
