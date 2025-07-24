@@ -1,0 +1,4 @@
+# Authentication Service Manifest
+# This service handles user authentication and authorization
+
+name: "auth-service"

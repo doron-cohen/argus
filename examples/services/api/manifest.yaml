@@ -1,0 +1,4 @@
+# API Gateway Service Manifest
+# Main API gateway that routes requests to backend services
+
+name: "api-gateway"
