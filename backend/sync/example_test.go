@@ -73,7 +73,7 @@ func (m *IntegrationMockRepository) CreateComponent(ctx context.Context, compone
 	return args.Error(0)
 }
 
-func TestIntegration_SyncFromRealRepository(t *testing.T) {
+func TestExample_SyncFromRealRepository(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -142,7 +142,7 @@ func TestIntegration_SyncFromRealRepository(t *testing.T) {
 	assert.Contains(t, componentNames, "platform-infrastructure")
 }
 
-func TestIntegration_SyncWithBasePath_ServicesOnly(t *testing.T) {
+func TestExample_SyncWithBasePath_ServicesOnly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -201,7 +201,7 @@ func TestIntegration_SyncWithBasePath_ServicesOnly(t *testing.T) {
 	assert.NotContains(t, componentNames, "platform-infrastructure", "Platform component should not be found with services-only BasePath")
 }
 
-func TestIntegration_SyncWithBasePath_PlatformOnly(t *testing.T) {
+func TestExample_SyncWithBasePath_PlatformOnly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -242,7 +242,7 @@ func TestIntegration_SyncWithBasePath_PlatformOnly(t *testing.T) {
 	assert.Equal(t, "platform-infrastructure", mockRepo.createdComponents[0].Name)
 }
 
-func TestIntegration_GitClient_RealRepository(t *testing.T) {
+func TestExample_GitClient_RealRepository(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -304,7 +304,7 @@ func TestIntegration_GitClient_RealRepository(t *testing.T) {
 	})
 }
 
-func TestIntegration_ManifestValidation(t *testing.T) {
+func TestExample_ManifestValidation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -355,7 +355,7 @@ func TestIntegration_ManifestValidation(t *testing.T) {
 }
 
 // Helper function to run integration tests
-func TestIntegration_FullEndToEnd(t *testing.T) {
+func TestExample_FullEndToEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}

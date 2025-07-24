@@ -1,6 +1,6 @@
-# Integration Testing Guide
+# Example Testing Guide
 
-This document explains how to run integration tests for the Argus sync module against a real Git repository with example manifests.
+This document explains how to run example tests for the Argus sync module against a real Git repository with the pushed example manifests.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ This document explains how to run integration tests for the Argus sync module ag
 
 ## Test Structure
 
-The integration tests validate:
+The example tests validate:
 - **Real Git Operations**: Actual cloning and fetching from repositories
 - **Manifest Discovery**: Finding `.yaml` and `.yml` files in examples
 - **BasePath Optimization**: Testing sparse checkout functionality  
@@ -26,9 +26,9 @@ Set the `ARGUS_TEST_REPO_URL` environment variable to your repository:
 # Replace with your repository URL
 export ARGUS_TEST_REPO_URL="https://github.com/YOUR-USERNAME/argus"
 
-# Run integration tests
+# Run example tests
 cd backend
-go test ./sync -run TestIntegration -v
+go test ./sync -run TestExample -v
 ```
 
 ### 2. Quick Test (Skip if Repository Not Accessible)
@@ -37,14 +37,14 @@ The tests will automatically skip if the repository is not accessible:
 
 ```bash
 cd backend
-go test ./sync -run TestIntegration -v
+go test ./sync -run TestExample -v
 ```
 
 **Output if repository not accessible:**
 ```
-=== RUN   TestIntegration_SyncFromRealRepository
---- SKIP: TestIntegration_SyncFromRealRepository (0.15s)
-    integration_test.go:XX: Repository https://github.com/doron-cohen/argus not accessible 
+=== RUN   TestExample_SyncFromRealRepository
+--- SKIP: TestExample_SyncFromRealRepository (0.15s)
+    example_test.go:XX: Repository https://github.com/doron-cohen/argus not accessible 
     (you may need to set ARGUS_TEST_REPO_URL env var to your fork): authentication required
 ```
 
@@ -52,42 +52,42 @@ go test ./sync -run TestIntegration -v
 
 ```bash
 # Test only manifest discovery
-go test ./sync -run TestIntegration_GitClient_RealRepository -v
+go test ./sync -run TestExample_GitClient_RealRepository -v
 
 # Test only BasePath optimization  
-go test ./sync -run TestIntegration_SyncWithBasePath -v
+go test ./sync -run TestExample_SyncWithBasePath -v
 
 # Test complete end-to-end flow
-go test ./sync -run TestIntegration_FullEndToEnd -v
+go test ./sync -run TestExample_FullEndToEnd -v
 ```
 
 ## Test Scenarios
 
 ### 1. **Full Repository Sync**
-- **Test**: `TestIntegration_SyncFromRealRepository`
+- **Test**: `TestExample_SyncFromRealRepository`
 - **BasePath**: `examples`
 - **Expected**: Finds all 4 components (auth, api, user, infrastructure)
 
 ### 2. **Services-Only Sync** 
-- **Test**: `TestIntegration_SyncWithBasePath_ServicesOnly`
+- **Test**: `TestExample_SyncWithBasePath_ServicesOnly`
 - **BasePath**: `examples/services`
 - **Expected**: Finds only 3 service components (excludes infrastructure)
 
 ### 3. **Platform-Only Sync**
-- **Test**: `TestIntegration_SyncWithBasePath_PlatformOnly` 
+- **Test**: `TestExample_SyncWithBasePath_PlatformOnly` 
 - **BasePath**: `examples/platform`
 - **Expected**: Finds only 1 platform component (infrastructure)
 
 ### 4. **Git Client Operations**
-- **Test**: `TestIntegration_GitClient_RealRepository`
+- **Test**: `TestExample_GitClient_RealRepository`
 - **Validates**: Repository access, manifest discovery, file reading, commit retrieval
 
 ### 5. **Manifest Validation**
-- **Test**: `TestIntegration_ManifestValidation`
+- **Test**: `TestExample_ManifestValidation`
 - **Validates**: All example manifests parse correctly and contain expected component names
 
 ### 6. **End-to-End Pipeline**
-- **Test**: `TestIntegration_FullEndToEnd`
+- **Test**: `TestExample_FullEndToEnd`
 - **Validates**: Complete flow from Git fetch to component creation
 
 ## Expected Repository Structure
@@ -137,35 +137,35 @@ Error: failed to clone repository: context deadline exceeded
 
 ## Performance Testing
 
-Integration tests also validate BasePath optimization:
+Example tests also validate BasePath optimization:
 
 ```bash
 # Time the difference between full repo vs BasePath
-time go test ./sync -run TestIntegration_SyncFromRealRepository -v
-time go test ./sync -run TestIntegration_SyncWithBasePath_ServicesOnly -v
+time go test ./sync -run TestExample_SyncFromRealRepository -v
+time go test ./sync -run TestExample_SyncWithBasePath_ServicesOnly -v
 ```
 
 **Expected Results**: BasePath tests should be significantly faster for large repositories due to sparse checkout optimization.
 
 ## Continuous Integration
 
-For CI environments, set the repository URL and run integration tests:
+For CI environments, set the repository URL and run example tests:
 
 ```bash
 #!/bin/bash
 export ARGUS_TEST_REPO_URL="https://github.com/your-org/argus"
 cd backend
-go test ./sync -run TestIntegration -v -timeout 5m
+go test ./sync -run TestExample -v -timeout 5m
 ```
 
 The tests will automatically skip if the repository is not accessible, preventing CI failures due to network issues.
 
 ## Test Data Validation
 
-All integration tests use mock repositories for database operations, so:
+All example tests use mock repositories for database operations, so:
 - ✅ **No real database required**
 - ✅ **Tests are isolated and repeatable**  
 - ✅ **Only Git operations use real network resources**
 - ✅ **Component creation is mocked and verified**
 
-This ensures tests are fast, reliable, and don't require complex setup while still validating the complete sync pipeline against real Git repositories. 
+This ensures tests are fast, reliable, and don't require complex setup while still validating the complete sync pipeline against real Git repositories with the pushed example manifests. 
