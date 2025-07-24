@@ -1,0 +1,38 @@
+# Example Argus Configuration
+# Copy this file to config.yaml and modify as needed
+
+storage:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: argus
+  sslmode: disable
+
+# VCS Sync Configuration
+# Remove or leave empty to disable sync (warning will be logged)
+sync:
+  sources:
+    # Example Git repository source
+    - type: git
+      url: "https://github.com/your-org/platform-services"
+      branch: "main"
+      interval: "5m"
+
+    # Monorepo with specific base path to save bandwidth
+    # Only syncs the "services" subdirectory instead of entire repo
+    - type: git
+      url: "https://github.com/your-org/monorepo"
+      branch: "main"
+      interval: "10m"
+      base_path: "services"
+
+    # Another example with deeper base path
+    - type: git
+      url: "https://github.com/your-org/large-repo"
+      branch: "develop"
+      interval: "15m"
+      base_path: "microservices/backend"
+# No sync sources configuration (sync will be disabled with warning):
+# sync:
+#   sources: []

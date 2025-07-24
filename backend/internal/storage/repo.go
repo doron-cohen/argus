@@ -2,11 +2,15 @@ package storage
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// ErrComponentNotFound is returned when a component is not found
+var ErrComponentNotFound = errors.New("component not found")
 
 type Component struct {
 	ID   uuid.UUID `gorm:"type:uuid;primaryKey"`
@@ -43,4 +47,22 @@ func (r *Repository) GetComponents(ctx context.Context) ([]Component, error) {
 	var components []Component
 	err := r.DB.WithContext(ctx).Find(&components).Error
 	return components, err
+}
+
+// GetComponentByName returns a component by name
+func (r *Repository) GetComponentByName(ctx context.Context, name string) (*Component, error) {
+	var component Component
+	err := r.DB.WithContext(ctx).Where("name = ?", name).First(&component).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrComponentNotFound
+		}
+		return nil, err
+	}
+	return &component, nil
+}
+
+// CreateComponent creates a new component
+func (r *Repository) CreateComponent(ctx context.Context, component Component) error {
+	return r.DB.WithContext(ctx).Create(&component).Error
 }

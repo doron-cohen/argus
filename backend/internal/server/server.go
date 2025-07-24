@@ -10,6 +10,7 @@ import (
 	"github.com/doron-cohen/argus/backend/internal/config"
 	"github.com/doron-cohen/argus/backend/internal/health"
 	"github.com/doron-cohen/argus/backend/internal/storage"
+	"github.com/doron-cohen/argus/backend/sync"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -30,6 +31,14 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Mount OpenAPI-generated handlers under /api
 	mux.Mount("/api", api.Handler(api.NewAPIServer(repo)))
 
+	// Initialize sync service (always create, but may not start if no sources configured)
+	// Cast to sync.Repository interface since storage.Repository implements it
+	syncService := sync.NewService(repo, cfg.Sync)
+	syncCtx, syncCancel := context.WithCancel(context.Background())
+
+	// Start sync service (will log warning and return if no sources configured)
+	go syncService.StartPeriodicSync(syncCtx)
+
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
@@ -43,6 +52,7 @@ func Start(cfg config.Config) (stop func(), err error) {
 	}()
 
 	stop = func() {
+		syncCancel() // Stop sync goroutines
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {

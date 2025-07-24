@@ -1,0 +1,13 @@
+# Example Component Manifest
+# Place this file as "manifest.yaml" or "manifest.yml" anywhere in your repository
+# The sync service will automatically discover and process these files
+#
+# Examples of valid locations:
+# - manifest.yaml (root level)
+# - services/auth/manifest.yaml (in subdirectory)
+# - backend/microservices/api/manifest.yml (deeply nested)
+#
+# When using base_path in sync configuration, only manifests within
+# that path will be discovered and processed.
+
+name: "user-service"
