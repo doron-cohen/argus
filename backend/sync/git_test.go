@@ -53,26 +53,25 @@ func TestGitClient_sanitizeURL(t *testing.T) {
 	}
 }
 
-func TestGitClient_findFiles(t *testing.T) {
-	client := NewGitClient()
+func TestManifestClient_findFiles(t *testing.T) {
+	manifestClient := NewManifestClient()
 
 	// Test with current directory (should find our test files)
-	files, err := client.findFiles(".", "git_test.go")
+	files, err := manifestClient.findFiles(".", "git_test.go")
 
 	require.NoError(t, err)
 	assert.Contains(t, files, "git_test.go")
 }
 
-func TestSourceConfig_BasePath(t *testing.T) {
+func TestGitSourceConfig_BasePath(t *testing.T) {
 	tests := []struct {
 		name     string
-		config   SourceConfig
+		config   GitSourceConfig
 		expected string
 	}{
 		{
 			name: "no base path",
-			config: SourceConfig{
-				Type:   "git",
+			config: GitSourceConfig{
 				URL:    "https://github.com/user/repo",
 				Branch: "main",
 			},
@@ -80,8 +79,7 @@ func TestSourceConfig_BasePath(t *testing.T) {
 		},
 		{
 			name: "with base path",
-			config: SourceConfig{
-				Type:     "git",
+			config: GitSourceConfig{
 				URL:      "https://github.com/user/monorepo",
 				Branch:   "main",
 				BasePath: "services/api",
@@ -90,8 +88,7 @@ func TestSourceConfig_BasePath(t *testing.T) {
 		},
 		{
 			name: "base path with leading slash",
-			config: SourceConfig{
-				Type:     "git",
+			config: GitSourceConfig{
 				URL:      "https://github.com/user/monorepo",
 				Branch:   "main",
 				BasePath: "/microservices/auth",
@@ -107,38 +104,84 @@ func TestSourceConfig_BasePath(t *testing.T) {
 	}
 }
 
+func TestSourceConfig_GitConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		source      SourceConfig
+		expectError bool
+		expected    GitSourceConfig
+	}{
+		{
+			name: "valid git config",
+			source: SourceConfig{
+				Type: "git",
+				URL:  "https://github.com/user/repo",
+			},
+			expectError: false,
+			expected: GitSourceConfig{
+				URL:    "https://github.com/user/repo",
+				Branch: "main", // default
+			},
+		},
+		{
+			name: "git config with custom branch",
+			source: SourceConfig{
+				Type:   "git",
+				URL:    "https://github.com/user/repo",
+				Branch: "develop",
+			},
+			expectError: false,
+			expected: GitSourceConfig{
+				URL:    "https://github.com/user/repo",
+				Branch: "develop",
+			},
+		},
+		{
+			name: "wrong type",
+			source: SourceConfig{
+				Type: "filesystem",
+				Path: "/some/path",
+			},
+			expectError: true,
+		},
+		{
+			name: "missing URL",
+			source: SourceConfig{
+				Type: "git",
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gitConfig, err := tt.source.GitConfig()
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, gitConfig)
+			}
+		})
+	}
+}
+
 func TestGitClient_FindManifests_WithBasePath(t *testing.T) {
 	client := NewGitClient()
 	ctx := context.Background()
 
 	// Test with a non-existent base path - should return error
-	sourceWithBasePath := SourceConfig{
-		Type:     "git",
+	gitConfig := GitSourceConfig{
 		URL:      "invalid-url",
 		Branch:   "main",
 		BasePath: "non-existent-path",
 	}
 
-	manifests, err := client.FindManifests(ctx, sourceWithBasePath)
+	manifests, err := client.FindManifests(ctx, gitConfig)
 	assert.Error(t, err)
 	assert.Nil(t, manifests)
 	assert.Contains(t, err.Error(), "failed to ensure repository")
-}
-
-func TestSourceConfig_DefaultValues(t *testing.T) {
-	// Test that default values work as expected
-	config := SourceConfig{
-		Type: "git",
-		URL:  "https://github.com/user/repo",
-		// Branch should default to "main"
-		// Interval should default to "5m"
-		BasePath: "services",
-	}
-
-	assert.Equal(t, "git", config.Type)
-	assert.Equal(t, "https://github.com/user/repo", config.URL)
-	assert.Equal(t, "services", config.BasePath)
-	// Note: defaults are applied by the fig library during config loading
 }
 
 // Note: These tests would require actual git repositories to test fully.
@@ -147,36 +190,35 @@ func TestGitClient_ErrorCases(t *testing.T) {
 	client := NewGitClient()
 	ctx := context.Background()
 
-	// Test with invalid source config
-	invalidSource := SourceConfig{
-		Type:   "git",
+	// Test with invalid git config
+	invalidGitConfig := GitSourceConfig{
 		URL:    "invalid-url",
 		Branch: "main",
 	}
 
 	t.Run("invalid repository URL", func(t *testing.T) {
-		manifests, err := client.FindManifests(ctx, invalidSource)
+		manifests, err := client.FindManifests(ctx, invalidGitConfig)
 		assert.Error(t, err)
 		assert.Nil(t, manifests)
 	})
 
 	t.Run("get file content from invalid repo", func(t *testing.T) {
-		content, err := client.GetFileContent(ctx, invalidSource, "test.txt")
+		content, err := client.GetFileContent(ctx, invalidGitConfig, "test.txt")
 		assert.Error(t, err)
 		assert.Nil(t, content)
 	})
 
 	t.Run("get latest commit from invalid repo", func(t *testing.T) {
-		commit, err := client.GetLatestCommit(ctx, invalidSource)
+		commit, err := client.GetLatestCommit(ctx, invalidGitConfig)
 		assert.Error(t, err)
 		assert.Empty(t, commit)
 	})
 
 	t.Run("invalid repository URL with base path", func(t *testing.T) {
-		sourceWithBasePath := invalidSource
-		sourceWithBasePath.BasePath = "some/path"
+		gitConfigWithBasePath := invalidGitConfig
+		gitConfigWithBasePath.BasePath = "some/path"
 
-		manifests, err := client.FindManifests(ctx, sourceWithBasePath)
+		manifests, err := client.FindManifests(ctx, gitConfigWithBasePath)
 		assert.Error(t, err)
 		assert.Nil(t, manifests)
 	})

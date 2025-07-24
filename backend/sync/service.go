@@ -45,21 +45,22 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig) {
 	ticker := time.NewTicker(source.Interval)
 	defer ticker.Stop()
 
-	slog.Info("Starting periodic sync for source", "url", source.URL, "interval", source.Interval)
+	sourceInfo := s.getSourceInfo(source)
+	slog.Info("Starting periodic sync for source", "source", sourceInfo, "interval", source.Interval)
 
 	// Initial sync
 	if err := s.SyncSource(ctx, source); err != nil {
-		slog.Error("Initial sync failed", "source", source.URL, "error", err)
+		slog.Error("Initial sync failed", "source", sourceInfo, "error", err)
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("Stopping sync for source", "url", source.URL)
+			slog.Info("Stopping sync for source", "source", sourceInfo)
 			return
 		case <-ticker.C:
 			if err := s.SyncSource(ctx, source); err != nil {
-				slog.Error("Sync failed", "source", source.URL, "error", err)
+				slog.Error("Sync failed", "source", sourceInfo, "error", err)
 			}
 		}
 	}
@@ -67,7 +68,8 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig) {
 
 // SyncSource performs a full sync for a single source
 func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
-	slog.Info("Starting sync", "source", source.URL, "type", source.Type)
+	sourceInfo := s.getSourceInfo(source)
+	slog.Info("Starting sync", "source", sourceInfo, "type", source.Type)
 
 	// Get or create fetcher for this source type
 	fetcher, err := s.getFetcher(source.Type)
@@ -81,7 +83,7 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 		return fmt.Errorf("failed to fetch components: %w", err)
 	}
 
-	slog.Info("Fetched components", "count", len(components), "source", source.URL)
+	slog.Info("Fetched components", "count", len(components), "source", sourceInfo)
 
 	// Process each component
 	created := 0
@@ -89,7 +91,7 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 		if err := s.processComponent(ctx, component, source); err != nil {
 			slog.Error("Failed to process component",
 				"name", component.Name,
-				"source", source.URL,
+				"source", sourceInfo,
 				"error", err)
 			continue
 		}
@@ -97,7 +99,7 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 	}
 
 	slog.Info("Sync completed",
-		"source", source.URL,
+		"source", sourceInfo,
 		"total", len(components),
 		"created", created)
 
@@ -144,4 +146,22 @@ func (s *Service) getFetcher(sourceType string) (ComponentsFetcher, error) {
 
 	s.fetchers[sourceType] = fetcher
 	return fetcher, nil
+}
+
+// getSourceInfo returns a string representation of the source for logging
+func (s *Service) getSourceInfo(source SourceConfig) string {
+	switch source.Type {
+	case "git":
+		if gitConfig, err := source.GitConfig(); err == nil {
+			return gitConfig.URL
+		}
+		return source.URL // fallback to raw field
+	case "filesystem":
+		if fsConfig, err := source.FilesystemConfig(); err == nil {
+			return fsConfig.Path
+		}
+		return source.Path // fallback to raw field
+	default:
+		return fmt.Sprintf("%s:%s", source.Type, source.URL)
+	}
 }

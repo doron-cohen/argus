@@ -14,85 +14,43 @@ import (
 
 // GitClient handles git repository operations using go-git
 type GitClient struct {
-	tempDir string
+	tempDir        string
+	manifestClient *ManifestClient
 }
 
 // NewGitClient creates a new git client
 func NewGitClient() *GitClient {
 	return &GitClient{
-		tempDir: os.TempDir(),
+		tempDir:        os.TempDir(),
+		manifestClient: NewManifestClient(),
 	}
 }
 
 // FindManifests finds all manifest.yaml and manifest.yml files in the repository
-func (g *GitClient) FindManifests(ctx context.Context, source SourceConfig) ([]string, error) {
-	repoDir, err := g.ensureRepository(ctx, source)
+func (g *GitClient) FindManifests(ctx context.Context, gitConfig GitSourceConfig) ([]string, error) {
+	repoDir, err := g.ensureRepository(ctx, gitConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure repository: %w", err)
 	}
 
-	// Determine search directory based on base path
-	searchDir := repoDir
-	if source.BasePath != "" {
-		searchDir = filepath.Join(repoDir, source.BasePath)
-		// Check if base path exists
-		if _, err := os.Stat(searchDir); os.IsNotExist(err) {
-			return nil, fmt.Errorf("base path %s does not exist in repository", source.BasePath)
-		}
-	}
-
-	var manifests []string
-
-	// Find manifest.yaml files
-	yamlFiles, err := g.findFiles(searchDir, "manifest.yaml")
-	if err != nil {
-		return nil, fmt.Errorf("failed to find manifest.yaml files: %w", err)
-	}
-
-	// If we have a base path, adjust the relative paths
-	if source.BasePath != "" {
-		for i, file := range yamlFiles {
-			yamlFiles[i] = filepath.Join(source.BasePath, file)
-		}
-	}
-	manifests = append(manifests, yamlFiles...)
-
-	// Find manifest.yml files
-	ymlFiles, err := g.findFiles(searchDir, "manifest.yml")
-	if err != nil {
-		return nil, fmt.Errorf("failed to find manifest.yml files: %w", err)
-	}
-
-	// If we have a base path, adjust the relative paths
-	if source.BasePath != "" {
-		for i, file := range ymlFiles {
-			ymlFiles[i] = filepath.Join(source.BasePath, file)
-		}
-	}
-	manifests = append(manifests, ymlFiles...)
-
-	return manifests, nil
+	// Use shared manifest discovery logic
+	return g.manifestClient.FindManifests(repoDir, gitConfig.BasePath)
 }
 
 // GetFileContent reads the content of a file from the repository
-func (g *GitClient) GetFileContent(ctx context.Context, source SourceConfig, filePath string) ([]byte, error) {
-	repoDir, err := g.ensureRepository(ctx, source)
+func (g *GitClient) GetFileContent(ctx context.Context, gitConfig GitSourceConfig, filePath string) ([]byte, error) {
+	repoDir, err := g.ensureRepository(ctx, gitConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure repository: %w", err)
 	}
 
-	fullPath := filepath.Join(repoDir, filePath)
-	content, err := os.ReadFile(fullPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-
-	return content, nil
+	// Use shared file reading logic
+	return g.manifestClient.GetFileContent(repoDir, filePath)
 }
 
 // GetLatestCommit returns the latest commit hash using go-git
-func (g *GitClient) GetLatestCommit(ctx context.Context, source SourceConfig) (string, error) {
-	repoDir, err := g.ensureRepository(ctx, source)
+func (g *GitClient) GetLatestCommit(ctx context.Context, gitConfig GitSourceConfig) (string, error) {
+	repoDir, err := g.ensureRepository(ctx, gitConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to ensure repository: %w", err)
 	}
@@ -113,21 +71,21 @@ func (g *GitClient) GetLatestCommit(ctx context.Context, source SourceConfig) (s
 }
 
 // ensureRepository clones or updates the repository and returns the local path
-func (g *GitClient) ensureRepository(ctx context.Context, source SourceConfig) (string, error) {
+func (g *GitClient) ensureRepository(ctx context.Context, gitConfig GitSourceConfig) (string, error) {
 	// Create a safe directory name from the URL
-	dirName := g.sanitizeURL(source.URL)
+	dirName := g.sanitizeURL(gitConfig.URL)
 	repoDir := filepath.Join(g.tempDir, "argus-sync", dirName)
 
 	// Check if directory exists and has a .git folder
 	gitDir := filepath.Join(repoDir, ".git")
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		// Clone the repository
-		if err := g.cloneRepository(ctx, source, repoDir); err != nil {
+		if err := g.cloneRepository(ctx, gitConfig, repoDir); err != nil {
 			return "", err
 		}
 	} else {
 		// Update existing repository
-		if err := g.updateRepository(ctx, source, repoDir); err != nil {
+		if err := g.updateRepository(ctx, gitConfig, repoDir); err != nil {
 			return "", err
 		}
 	}
@@ -136,7 +94,7 @@ func (g *GitClient) ensureRepository(ctx context.Context, source SourceConfig) (
 }
 
 // cloneRepository clones the repository using go-git with optional sparse checkout
-func (g *GitClient) cloneRepository(ctx context.Context, source SourceConfig, repoDir string) error {
+func (g *GitClient) cloneRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(repoDir), 0755); err != nil {
 		return fmt.Errorf("failed to create parent directory: %w", err)
@@ -144,8 +102,8 @@ func (g *GitClient) cloneRepository(ctx context.Context, source SourceConfig, re
 
 	// Clone options
 	cloneOptions := &git.CloneOptions{
-		URL:           source.URL,
-		ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", source.Branch)),
+		URL:           gitConfig.URL,
+		ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", gitConfig.Branch)),
 		SingleBranch:  true,
 		Depth:         1,
 	}
@@ -153,12 +111,12 @@ func (g *GitClient) cloneRepository(ctx context.Context, source SourceConfig, re
 	// Clone the repository
 	repo, err := git.PlainClone(repoDir, false, cloneOptions)
 	if err != nil {
-		return fmt.Errorf("failed to clone repository %s: %w", source.URL, err)
+		return fmt.Errorf("failed to clone repository %s: %w", gitConfig.URL, err)
 	}
 
 	// Set up sparse checkout if BasePath is specified
-	if source.BasePath != "" {
-		if err := g.setupSparseCheckout(repo, source.BasePath); err != nil {
+	if gitConfig.BasePath != "" {
+		if err := g.setupSparseCheckout(repo, gitConfig.BasePath); err != nil {
 			return fmt.Errorf("failed to setup sparse checkout: %w", err)
 		}
 	}
@@ -167,7 +125,7 @@ func (g *GitClient) cloneRepository(ctx context.Context, source SourceConfig, re
 }
 
 // updateRepository pulls the latest changes using go-git
-func (g *GitClient) updateRepository(ctx context.Context, source SourceConfig, repoDir string) error {
+func (g *GitClient) updateRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
 	// Open the repository
 	repo, err := git.PlainOpen(repoDir)
 	if err != nil {
@@ -183,7 +141,7 @@ func (g *GitClient) updateRepository(ctx context.Context, source SourceConfig, r
 	// Fetch options
 	fetchOptions := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/remotes/origin/%s", source.Branch, source.Branch)),
+			config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/remotes/origin/%s", gitConfig.Branch, gitConfig.Branch)),
 		},
 	}
 
@@ -194,7 +152,7 @@ func (g *GitClient) updateRepository(ctx context.Context, source SourceConfig, r
 	}
 
 	// Get the latest commit from the remote branch
-	remoteRef, err := repo.Reference(plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", source.Branch)), true)
+	remoteRef, err := repo.Reference(plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", gitConfig.Branch)), true)
 	if err != nil {
 		return fmt.Errorf("failed to get remote reference: %w", err)
 	}
@@ -211,8 +169,8 @@ func (g *GitClient) updateRepository(ctx context.Context, source SourceConfig, r
 	}
 
 	// Ensure sparse checkout is still configured if BasePath is specified
-	if source.BasePath != "" {
-		if err := g.setupSparseCheckout(repo, source.BasePath); err != nil {
+	if gitConfig.BasePath != "" {
+		if err := g.setupSparseCheckout(repo, gitConfig.BasePath); err != nil {
 			return fmt.Errorf("failed to maintain sparse checkout: %w", err)
 		}
 	}
@@ -272,30 +230,6 @@ func (g *GitClient) setupSparseCheckout(repo *git.Repository, basePath string) e
 	}
 
 	return nil
-}
-
-// findFiles recursively finds files with the given name
-func (g *GitClient) findFiles(rootDir, fileName string) ([]string, error) {
-	var files []string
-
-	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() && info.Name() == fileName {
-			// Get relative path from root directory
-			relPath, err := filepath.Rel(rootDir, path)
-			if err != nil {
-				return err
-			}
-			files = append(files, relPath)
-		}
-
-		return nil
-	})
-
-	return files, err
 }
 
 // sanitizeURL creates a safe directory name from a URL

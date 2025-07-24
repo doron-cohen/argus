@@ -28,14 +28,13 @@ func skipIfRepositoryNotAccessible(t *testing.T) {
 	ctx := context.Background()
 	client := NewGitClient()
 
-	sourceConfig := SourceConfig{
-		Type:   "git",
+	gitConfig := GitSourceConfig{
 		URL:    getTestRepositoryURL(),
 		Branch: "main",
 	}
 
 	// Try to get the latest commit to check if repository is accessible
-	_, err := client.GetLatestCommit(ctx, sourceConfig)
+	_, err := client.GetLatestCommit(ctx, gitConfig)
 	if err != nil {
 		t.Skipf("Repository %s not accessible (you may need to set ARGUS_TEST_REPO_URL env var to your fork): %v",
 			getTestRepositoryURL(), err)
@@ -252,15 +251,14 @@ func TestExample_GitClient_RealRepository(t *testing.T) {
 	ctx := context.Background()
 	client := NewGitClient()
 
-	sourceConfig := SourceConfig{
-		Type:     "git",
+	gitConfig := GitSourceConfig{
 		URL:      getTestRepositoryURL(),
 		Branch:   "main",
 		BasePath: "examples",
 	}
 
 	t.Run("find manifests in examples directory", func(t *testing.T) {
-		manifests, err := client.FindManifests(ctx, sourceConfig)
+		manifests, err := client.FindManifests(ctx, gitConfig)
 		require.NoError(t, err)
 
 		// Should find all 4 manifest files
@@ -281,7 +279,7 @@ func TestExample_GitClient_RealRepository(t *testing.T) {
 
 	t.Run("read manifest content", func(t *testing.T) {
 		// Test reading the auth service manifest
-		content, err := client.GetFileContent(ctx, sourceConfig, "examples/services/auth/manifest.yaml")
+		content, err := client.GetFileContent(ctx, gitConfig, "examples/services/auth/manifest.yaml")
 		require.NoError(t, err)
 
 		// Parse the manifest
@@ -297,7 +295,7 @@ func TestExample_GitClient_RealRepository(t *testing.T) {
 	})
 
 	t.Run("get latest commit", func(t *testing.T) {
-		commit, err := client.GetLatestCommit(ctx, sourceConfig)
+		commit, err := client.GetLatestCommit(ctx, gitConfig)
 		require.NoError(t, err)
 		assert.NotEmpty(t, commit, "Should return a valid commit hash")
 		assert.Len(t, commit, 40, "Git commit hash should be 40 characters")
@@ -315,15 +313,14 @@ func TestExample_ManifestValidation(t *testing.T) {
 	client := NewGitClient()
 	parser := models.NewParser()
 
-	sourceConfig := SourceConfig{
-		Type:     "git",
+	gitConfig := GitSourceConfig{
 		URL:      getTestRepositoryURL(),
 		Branch:   "main",
 		BasePath: "examples",
 	}
 
 	// Test all manifest files can be parsed and validated
-	manifests, err := client.FindManifests(ctx, sourceConfig)
+	manifests, err := client.FindManifests(ctx, gitConfig)
 	require.NoError(t, err)
 
 	expectedComponents := map[string]string{
@@ -336,7 +333,7 @@ func TestExample_ManifestValidation(t *testing.T) {
 	for _, manifestPath := range manifests {
 		t.Run("validate "+manifestPath, func(t *testing.T) {
 			// Read content
-			content, err := client.GetFileContent(ctx, sourceConfig, manifestPath)
+			content, err := client.GetFileContent(ctx, gitConfig, manifestPath)
 			require.NoError(t, err, "Should be able to read manifest file")
 
 			// Parse
