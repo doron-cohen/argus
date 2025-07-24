@@ -1,0 +1,44 @@
+# Test Configuration for Argus Sync
+# Copy this to config.yaml and update the URL to match your repository
+
+# Note: Database connection will fail without PostgreSQL running
+# But you can still test the sync service initialization and configuration parsing
+storage:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: argus
+  sslmode: disable
+
+# Sync Configuration - Test against examples/ directory
+sync:
+  sources:
+    # Test 1: Sync all examples (should find 4 components)
+    - type: git
+      url: "https://github.com/doron-cohen/argus" # Update this to your fork!
+      branch: "main"
+      base_path: "examples"
+      interval: "30s" # Fast for testing
+
+
+    # Test 2: Services only (should find 3 components: auth, api, user)
+    # Uncomment to test multiple sources
+    # - type: git
+    #   url: "https://github.com/doron-cohen/argus"  # Update this to your fork!
+    #   branch: "main"
+    #   base_path: "examples/services"
+    #   interval: "45s"
+
+    # Test 3: Platform only (should find 1 component: infrastructure)
+    # Uncomment to test BasePath optimization
+    # - type: git
+    #   url: "https://github.com/doron-cohen/argus"  # Update this to your fork!
+    #   branch: "main"
+    #   base_path: "examples/platform"
+    #   interval: "60s"
+# Expected Results:
+# - auth-service (from examples/services/auth/manifest.yaml)
+# - api-gateway (from examples/services/api/manifest.yaml)
+# - user-service (from examples/services/user/manifest.yml)
+# - platform-infrastructure (from examples/platform/infrastructure/manifest.yml)
