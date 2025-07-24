@@ -111,7 +111,7 @@ func TestExample_SyncFromRealRepository(t *testing.T) {
 				Type:     "git",
 				URL:      getTestRepositoryURL(),
 				Branch:   "main",
-				BasePath: "examples",
+				BasePath: "backend/tests/testdata",
 				Interval: time.Minute, // Not used in single sync test
 			},
 		},
@@ -168,14 +168,14 @@ func TestExample_SyncWithBasePath_ServicesOnly(t *testing.T) {
 		return comp.Name == "user-service"
 	})).Return(nil)
 
-	// Test configuration - sync only from examples/services
+	// Test configuration - sync only from backend/tests/testdata/services
 	config := Config{
 		Sources: []SourceConfig{
 			{
 				Type:     "git",
 				URL:      getTestRepositoryURL(),
 				Branch:   "main",
-				BasePath: "examples/services", // Only services subdirectory
+				BasePath: "backend/tests/testdata/services", // Only services subdirectory
 				Interval: time.Minute,
 			},
 		},
@@ -225,7 +225,7 @@ func TestExample_SyncWithBasePath_PlatformOnly(t *testing.T) {
 				Type:     "git",
 				URL:      getTestRepositoryURL(),
 				Branch:   "main",
-				BasePath: "examples/platform", // Only platform subdirectory
+				BasePath: "backend/tests/testdata/platform", // Only platform subdirectory
 				Interval: time.Minute,
 			},
 		},
@@ -254,7 +254,7 @@ func TestExample_GitClient_RealRepository(t *testing.T) {
 	gitConfig := GitSourceConfig{
 		URL:      getTestRepositoryURL(),
 		Branch:   "main",
-		BasePath: "examples",
+		BasePath: "backend/tests/testdata",
 	}
 
 	t.Run("find manifests in examples directory", func(t *testing.T) {
@@ -266,10 +266,10 @@ func TestExample_GitClient_RealRepository(t *testing.T) {
 
 		// Check that all expected manifests are found
 		expectedManifests := []string{
-			"examples/services/auth/manifest.yaml",
-			"examples/services/api/manifest.yaml",
-			"examples/services/user/manifest.yml",
-			"examples/platform/infrastructure/manifest.yml",
+			"backend/tests/testdata/services/auth/manifest.yaml",
+			"backend/tests/testdata/services/api/manifest.yaml",
+			"backend/tests/testdata/services/user/manifest.yml",
+			"backend/tests/testdata/platform/infrastructure/manifest.yml",
 		}
 
 		for _, expected := range expectedManifests {
@@ -279,7 +279,7 @@ func TestExample_GitClient_RealRepository(t *testing.T) {
 
 	t.Run("read manifest content", func(t *testing.T) {
 		// Test reading the auth service manifest
-		content, err := client.GetFileContent(ctx, gitConfig, "examples/services/auth/manifest.yaml")
+		content, err := client.GetFileContent(ctx, gitConfig, "backend/tests/testdata/services/auth/manifest.yaml")
 		require.NoError(t, err)
 
 		// Parse the manifest
@@ -316,7 +316,7 @@ func TestExample_ManifestValidation(t *testing.T) {
 	gitConfig := GitSourceConfig{
 		URL:      getTestRepositoryURL(),
 		Branch:   "main",
-		BasePath: "examples",
+		BasePath: "backend/tests/testdata",
 	}
 
 	// Test all manifest files can be parsed and validated
@@ -324,10 +324,10 @@ func TestExample_ManifestValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedComponents := map[string]string{
-		"examples/services/auth/manifest.yaml":          "auth-service",
-		"examples/services/api/manifest.yaml":           "api-gateway",
-		"examples/services/user/manifest.yml":           "user-service",
-		"examples/platform/infrastructure/manifest.yml": "platform-infrastructure",
+		"backend/tests/testdata/services/auth/manifest.yaml":          "auth-service",
+		"backend/tests/testdata/services/api/manifest.yaml":           "api-gateway",
+		"backend/tests/testdata/services/user/manifest.yml":           "user-service",
+		"backend/tests/testdata/platform/infrastructure/manifest.yml": "platform-infrastructure",
 	}
 
 	for _, manifestPath := range manifests {
@@ -375,7 +375,7 @@ func TestExample_FullEndToEnd(t *testing.T) {
 		Type:     "git",
 		URL:      getTestRepositoryURL(),
 		Branch:   "main",
-		BasePath: "examples",
+		BasePath: "backend/tests/testdata",
 		Interval: time.Minute,
 	}
 
