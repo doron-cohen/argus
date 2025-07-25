@@ -11,6 +11,7 @@ import (
 	"github.com/doron-cohen/argus/backend/internal/health"
 	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/doron-cohen/argus/backend/sync"
+	syncapi "github.com/doron-cohen/argus/backend/sync/api"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -38,6 +39,9 @@ func Start(cfg config.Config) (stop func(), err error) {
 
 	// Start sync service (will log warning and return if no sources configured)
 	go syncService.StartPeriodicSync(syncCtx)
+
+	// Mount sync API under /sync
+	mux.Mount("/sync", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
 
 	srv := &http.Server{
 		Addr:    ":8080",

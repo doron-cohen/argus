@@ -3,6 +3,9 @@ oapi-codegen := $(TOOLS_BIN)/oapi-codegen
 OPENAPI_SPEC := backend/api/openapi.yaml
 API_OUT := backend/api/api.gen.go
 CLIENT_OUT := backend/api/client/client.gen.go
+SYNC_OPENAPI_SPEC := backend/sync/api/openapi.yaml
+SYNC_API_OUT := backend/sync/api/api.gen.go
+SYNC_CLIENT_OUT := backend/sync/api/client/client.gen.go
 
 .PHONY: all install-tools backend/gen-all backend/go-mod-tidy
 
@@ -17,9 +20,16 @@ backend/gen-api-server: install-tools
 backend/gen-api-client: install-tools
 	$(oapi-codegen) -generate types,client -package client -o $(CLIENT_OUT) $(OPENAPI_SPEC)
 
-backend/gen-all: backend/gen-api-server backend/gen-api-client
+backend/gen-sync-api-server: install-tools
+	$(oapi-codegen) -generate types,chi-server,spec -package api -o $(SYNC_API_OUT) $(SYNC_OPENAPI_SPEC)
+
+backend/gen-sync-api-client: install-tools
+	$(oapi-codegen) -generate types,client -package client -o $(SYNC_CLIENT_OUT) $(SYNC_OPENAPI_SPEC)
+
+backend/gen-all: backend/gen-api-server backend/gen-api-client backend/gen-sync-api-server backend/gen-sync-api-client
 	true
 
 backend/go-mod-tidy:
 	cd backend && go mod tidy
 	cd backend/api/client && go mod tidy
+	cd backend/sync/api/client && go mod tidy

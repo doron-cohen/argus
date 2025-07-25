@@ -4,11 +4,13 @@ go 1.24.2
 
 require (
 	github.com/doron-cohen/argus/backend/api/client v0.0.0-00010101000000-000000000000
+	github.com/doron-cohen/argus/backend/sync/api/client v0.0.0-00010101000000-000000000000
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/google/uuid v1.6.0
 	github.com/kkyr/fig v0.5.0
+	github.com/oapi-codegen/runtime v1.1.2
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.38.0
@@ -23,6 +25,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
@@ -109,3 +112,5 @@ require (
 )
 
 replace github.com/doron-cohen/argus/backend/api/client => ./api/client
+
+replace github.com/doron-cohen/argus/backend/sync/api/client => ./sync/api/client

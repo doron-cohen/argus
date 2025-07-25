@@ -2,12 +2,39 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/models"
 	"github.com/doron-cohen/argus/backend/internal/storage"
+)
+
+// Error definitions
+var (
+	ErrSourceNotFound     = errors.New("source not found")
+	ErrSyncAlreadyRunning = errors.New("sync already running for this source")
+)
+
+// SourceStatus represents the status of a sync source
+type SourceStatus struct {
+	Status          Status
+	LastSync        *time.Time
+	LastError       *string
+	ComponentsCount int
+	Duration        time.Duration
+}
+
+// Status represents the sync status
+type Status string
+
+const (
+	StatusIdle      Status = "idle"
+	StatusRunning   Status = "running"
+	StatusCompleted Status = "completed"
+	StatusFailed    Status = "failed"
 )
 
 // Service orchestrates the sync process
@@ -15,6 +42,11 @@ type Service struct {
 	repo     Repository // Use interface instead of concrete type
 	config   Config
 	fetchers map[string]ComponentsFetcher // Cache fetchers by type
+
+	// Status tracking
+	statusMutex sync.RWMutex
+	statuses    map[int]*SourceStatus
+	running     map[int]bool
 }
 
 // NewService creates a new sync service
@@ -23,7 +55,113 @@ func NewService(repo Repository, config Config) *Service {
 		repo:     repo,
 		config:   config,
 		fetchers: make(map[string]ComponentsFetcher),
+		statuses: make(map[int]*SourceStatus),
+		running:  make(map[int]bool),
 	}
+}
+
+// API Methods
+
+// GetSources returns all configured sources
+func (s *Service) GetSources() []SourceConfig {
+	return s.config.Sources
+}
+
+// GetSourceByIndex returns a source by its index
+func (s *Service) GetSourceByIndex(index int) (SourceConfig, error) {
+	if index < 0 || index >= len(s.config.Sources) {
+		return SourceConfig{}, ErrSourceNotFound
+	}
+	return s.config.Sources[index], nil
+}
+
+// GetSourceStatus returns the status of a source by index
+func (s *Service) GetSourceStatus(index int) (*SourceStatus, error) {
+	if index < 0 || index >= len(s.config.Sources) {
+		return nil, ErrSourceNotFound
+	}
+
+	s.statusMutex.RLock()
+	defer s.statusMutex.RUnlock()
+
+	status, exists := s.statuses[index]
+	if !exists {
+		// Return default status for sources that haven't been synced yet
+		return &SourceStatus{
+			Status: StatusIdle,
+		}, nil
+	}
+
+	return status, nil
+}
+
+// TriggerSync triggers a manual sync for a source
+func (s *Service) TriggerSync(index int) error {
+	if index < 0 || index >= len(s.config.Sources) {
+		return ErrSourceNotFound
+	}
+
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	// Check if sync is already running
+	if s.running[index] {
+		return ErrSyncAlreadyRunning
+	}
+
+	// Mark as running
+	s.running[index] = true
+
+	// Start sync in background
+	go func() {
+		defer func() {
+			s.statusMutex.Lock()
+			s.running[index] = false
+			s.statusMutex.Unlock()
+		}()
+
+		source := s.config.Sources[index]
+		ctx := context.Background()
+
+		// Update status to running
+		s.updateStatus(index, &SourceStatus{
+			Status: StatusRunning,
+		})
+
+		startTime := time.Now()
+
+		// Perform sync
+		err := s.SyncSource(ctx, source)
+
+		duration := time.Since(startTime)
+
+		// Update status based on result
+		status := &SourceStatus{
+			Duration: duration,
+		}
+
+		if err != nil {
+			status.Status = StatusFailed
+			errorMsg := err.Error()
+			status.LastError = &errorMsg
+		} else {
+			status.Status = StatusCompleted
+		}
+
+		now := time.Now()
+		status.LastSync = &now
+
+		s.updateStatus(index, status)
+	}()
+
+	return nil
+}
+
+// updateStatus updates the status for a source (thread-safe)
+func (s *Service) updateStatus(index int, status *SourceStatus) {
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+	s.statuses[index] = status
 }
 
 // StartPeriodicSync starts the sync process if sources are configured
@@ -35,13 +173,18 @@ func (s *Service) StartPeriodicSync(ctx context.Context) {
 
 	slog.Info("Starting sync service", "sources", len(s.config.Sources))
 
-	for _, source := range s.config.Sources {
-		go s.startSourceSync(ctx, source)
+	for i, source := range s.config.Sources {
+		// Initialize status for this source
+		s.updateStatus(i, &SourceStatus{
+			Status: StatusIdle,
+		})
+
+		go s.startSourceSync(ctx, source, i)
 	}
 }
 
 // startSourceSync starts periodic sync for a single source
-func (s *Service) startSourceSync(ctx context.Context, source SourceConfig) {
+func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, index int) {
 	interval := time.Duration(0)
 	if cfg := source.GetConfig(); cfg != nil {
 		interval = cfg.GetInterval()

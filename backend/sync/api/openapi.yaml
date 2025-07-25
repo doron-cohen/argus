@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Argus Sync API
+  version: 0.1.0
+paths:
+  /sources:
+    get:
+      summary: Get all sync sources
+      operationId: getSyncSources
+      responses:
+        "200":
+          description: List of configured sync sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SyncSource"
+
+  /sources/{id}:
+    get:
+      summary: Get specific sync source details
+      operationId: getSyncSource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Sync source details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncSource"
+        "404":
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sources/{id}/status:
+    get:
+      summary: Get sync status for specific source
+      operationId: getSyncSourceStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Sync status for the source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncStatus"
+        "404":
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sources/{id}/trigger:
+    post:
+      summary: Trigger manual sync for specific source
+      operationId: triggerSyncSource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "202":
+          description: Sync triggered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncTriggerResponse"
+        "404":
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Sync already running for this source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    SyncSource:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 0
+          description: Unique identifier for the source (index-based)
+        type:
+          type: string
+          enum: [git, filesystem]
+        config:
+          oneOf:
+            - $ref: "#/components/schemas/GitSourceConfig"
+            - $ref: "#/components/schemas/FilesystemSourceConfig"
+        interval:
+          type: string
+          description: Sync interval (e.g., "5m", "1h")
+
+    GitSourceConfig:
+      type: object
+      properties:
+        url:
+          type: string
+        branch:
+          type: string
+        basePath:
+          type: string
+
+    FilesystemSourceConfig:
+      type: object
+      properties:
+        path:
+          type: string
+        basePath:
+          type: string
+
+    SyncStatus:
+      type: object
+      properties:
+        sourceId:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [idle, running, completed, failed]
+        lastSync:
+          type: string
+          format: date-time
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
+        componentsCount:
+          type: integer
+          description: Number of components synced in last successful run
+        duration:
+          type: string
+          description: Duration of last sync operation
+          nullable: true
+
+    SyncTriggerResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        sourceId:
+          type: integer
+          minimum: 0
+        triggered:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
