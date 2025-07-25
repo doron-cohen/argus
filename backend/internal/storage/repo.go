@@ -3,15 +3,25 @@ package storage
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
-// StringArray is a custom type to handle PostgreSQL text[] arrays
+// StringArray is a custom type to handle PostgreSQL JSONB arrays
+// This allows for powerful querying capabilities using PostgreSQL's JSONB operators:
+// - ? : Check if a string exists in the array
+// - ?| : Check if any of the strings exist in the array
+// - ?& : Check if all of the strings exist in the array
+// Example queries:
+//
+//	WHERE maintainers ? 'alice@company.com'                    -- Find components maintained by alice
+//	WHERE maintainers ?| '["alice@company.com", "bob@company.com"]' -- Find components maintained by either alice or bob
+//	WHERE maintainers ?& '["alice@company.com", "bob@company.com"]' -- Find components maintained by both alice and bob
 type StringArray []string
 
 // Value implements the driver.Valuer interface
@@ -19,10 +29,7 @@ func (sa StringArray) Value() (driver.Value, error) {
 	if sa == nil {
 		return nil, nil
 	}
-	if len(sa) == 0 {
-		return "{}", nil
-	}
-	return "{" + strings.Join(sa, ",") + "}", nil
+	return json.Marshal(sa)
 }
 
 // Scan implements the sql.Scanner interface
@@ -32,25 +39,47 @@ func (sa *StringArray) Scan(value interface{}) error {
 		return nil
 	}
 
+	var bytes []byte
 	switch v := value.(type) {
-	case string:
-		if v == "{}" {
-			*sa = StringArray{}
-			return nil
-		}
-		// Remove the curly braces and split by comma
-		v = strings.Trim(v, "{}")
-		if v == "" {
-			*sa = StringArray{}
-			return nil
-		}
-		*sa = StringArray(strings.Split(v, ","))
 	case []byte:
-		return sa.Scan(string(v))
+		bytes = v
+	case string:
+		bytes = []byte(v)
 	default:
-		return errors.New("cannot scan non-string value into StringArray")
+		return errors.New("cannot scan non-json value into StringArray")
 	}
-	return nil
+
+	return json.Unmarshal(bytes, sa)
+}
+
+// GormDataType implements GormDataTypeInterface
+func (sa StringArray) GormDataType() string {
+	return "jsonb"
+}
+
+// GormDBDataType implements GormDBDataTypeInterface
+func (sa StringArray) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	return "jsonb"
+}
+
+// Contains checks if the array contains a specific string
+func (sa StringArray) Contains(value string) bool {
+	for _, item := range sa {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsAny checks if the array contains any of the provided strings
+func (sa StringArray) ContainsAny(values []string) bool {
+	for _, value := range values {
+		if sa.Contains(value) {
+			return true
+		}
+	}
+	return false
 }
 
 // ErrComponentNotFound is returned when a component is not found
@@ -62,7 +91,7 @@ type Component struct {
 	ComponentID string    `gorm:"not null;uniqueIndex"` // Unique identifier from manifest
 	Name        string    `gorm:"not null"`
 	Description string
-	Maintainers StringArray `gorm:"type:text[]"`
+	Maintainers StringArray `gorm:"type:jsonb"`
 	Team        string
 }
 
@@ -122,6 +151,16 @@ func (r *Repository) GetComponentByName(ctx context.Context, name string) (*Comp
 		return nil, err
 	}
 	return &component, nil
+}
+
+// GetComponentsByTeam returns all components owned by a specific team
+func (r *Repository) GetComponentsByTeam(ctx context.Context, team string) ([]Component, error) {
+	var components []Component
+	err := r.DB.WithContext(ctx).Where("team = ?", team).Find(&components).Error
+	if err != nil {
+		return nil, err
+	}
+	return components, nil
 }
 
 // CreateComponent creates a new component
