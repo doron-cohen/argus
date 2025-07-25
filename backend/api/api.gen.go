@@ -16,6 +16,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for HealthStatus.
@@ -74,6 +75,9 @@ type ServerInterface interface {
 	// Get all components
 	// (GET /components)
 	GetComponents(w http.ResponseWriter, r *http.Request)
+	// Get component by ID
+	// (GET /components/{componentId})
+	GetComponentById(w http.ResponseWriter, r *http.Request, componentId string)
 	// Health check
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -86,6 +90,12 @@ type Unimplemented struct{}
 // Get all components
 // (GET /components)
 func (_ Unimplemented) GetComponents(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get component by ID
+// (GET /components/{componentId})
+func (_ Unimplemented) GetComponentById(w http.ResponseWriter, r *http.Request, componentId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -109,6 +119,31 @@ func (siw *ServerInterfaceWrapper) GetComponents(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetComponents(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetComponentById operation middleware
+func (siw *ServerInterfaceWrapper) GetComponentById(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "componentId" -------------
+	var componentId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "componentId", chi.URLParam(r, "componentId"), &componentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "componentId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetComponentById(w, r, componentId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -249,6 +284,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/components", wrapper.GetComponents)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/components/{componentId}", wrapper.GetComponentById)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
 
@@ -258,21 +296,23 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6RVT2/jthP9KgR/P6AX2VYS9KLTBkHQGFhsAje9dLEoxtLImq1IaknKWe/C370YUrIs",
-	"S0lQFNBB/Dfz+ObxzU+ZG9UYjdo7mf2ULq9QQfi96xd4UKDLLTWejJaZvBWnU6Igl5s9WixEaY0SIJxp",
-	"bY4ykY01DVpP6CYhJhGLgvgXapEb7fG7F7A1rRe+wiHZL040rW2MQwG6EGWr83iI/EEmEr+DamqUmXwA",
-	"XdToROvQCmh9hdpTDrw5nOQpY+lHmJGJ9IeGjzlvSe/kMZFUTDH+oelbi4IKDlYSWlEaOwa4FOtSaONF",
-	"Y82eCiySsK5BoXihuhZbZEyFABcWhljLEX7Gt3Bo9xSInMDjgFOAD60CvbAIBWzrLqspxwhHaW7HzPz+",
-	"ekLzotGGMv7fYikz+b/VIJxVp5rVY9x1PCbS4reWLBYy+xzRfjlFNduvmHuOem+tsdN7hGlh0TVGu6mQ",
-	"clPga4fC2vkV15+e7zefbj/+db/ZPG7mroZvgVDoHOwuQmqPlpXKBUIrYoBJ5AsS4q45Fh4Qal/NlDPM",
-	"C+fBt64v5CCKMSlx1ztB+Bq6VQynCvP8alrd/385v+WwYcKYJ4XOg2qm6Z77pR5vDCPyCvO/Ryxep9c3",
-	"i6vrRXr1fJVmKX9/ykSWxirwMpMFeFxwpneZPd1twDVH8+NJwmPIcb6iRpCO2fkt8NOG0bMZ862AtAea",
-	"D/mRnGcCgv0Mb9z1miZ+npyhj0J6J3xFbv6dfpZQU44feBH0YZkbJRP5YWu2ix35qt3yfcmjClCm5YoT",
-	"YC0cwhhBzVQOQU3wmZd3oMmnGjyzJvj8bKkuCsFTTPRMD3had6Ro2HFaduq+vfB4cJzYavZgybSuazhR",
-	"AT4am921Ttw+rWUi92hdTJAur5ZpcLMGNTQkM3mzTJc3XFzwVWBvNe6HO5xpfxv0lnCPAkTdVRrq+hze",
-	"ZVPMjS5p1/J4AMtyCmJbFzKTv6G/G1KzwqP9BRjXaRqdT/uuIUPT1J1vr7662FKjDfPfSQxvufXQ4Cci",
-	"4SLNS/qMnmMif/2XuN6CE5vBTOp5v+V9rlUK7CGyd1GDsGEV7efHq6W8Y186N6qx20YFTQrVOfZ/LNJb",
-	"ZHQZZtjomrQgJ3qLHlPxcO64x+Px+E8AAAD//0yjpifkCQAA",
+	"H4sIAAAAAAAC/8xWTW/jNhD9KwRboBfZUZLtxadN06AxsNgEbnppEBRjcWRxK5FafjjrDfzfiyElS7IU",
+	"Z4tigQI6UPyYeXzzODMvPNNVrRUqZ/nihduswArC8LpdoB+BNjOydlIrvuBX7HCKCWkzvUWDguVGVwyY",
+	"1d5kyBNeG12jcRLtyMTIohCShlCyTCuHXxyDtfaOuQI7Zz9ZVntTa4sMlGC5V1k8JN2OJxy/QFWXyBf8",
+	"FpQo0TJv0TDwrkDlZAa0OZykKW3k1zDDE+52NR2zzki14fuESzHG+IeSnz0yKchYLtGwXJshwDlb5kxp",
+	"x2qjt1KgSMK6ggrZsyxLtkbCJBjYsNDZmg/wE76ZRbOVgcgRPDI4BnjrK1AzgyBgXTZedT5EOHBzNWTm",
+	"99cd6meFJoTxR4M5X/AfzjrhnDWqObuLu/b7hBv87KVBwRePEe3Twapef8LMkdUbY7QZ3yNMM4O21sqO",
+	"hZRpga8dCmv9Ky4/PtysPl59+OtmtbpbTV0NT4Go0FrYHJlUDg0plQKEhkUDI8tHJMRdUyzcIpSumAhn",
+	"mGfWgfO2DWQniiEpcdcbRugaylcEpwjz9Gq8asdP/Vt2G0aMOVmhdVDVY3cP7VKLN5phWYHZ3wMWL9KL",
+	"y9n5xSw9fzhPFyl9f/KE59pU4PiCC3A4I09vMnu4W4driua7g4SHkON8IWsmVfROb4GeNgyezZDvCqRy",
+	"IKdNfpDWEQEh/XRv3LaalvQ8yUNrRaoNc4W00+/0kUMpM3xPi6B280xXPOHv13o920hX+DXdVzqsApRx",
+	"uOIEGAO78I9QTUQOoRrh089vQOP3JThijdH5yVAdBYKmiOiJGnC/bEhRsCG3lKnb8kL/XcaJpWYLRmpv",
+	"m4ITFeBiYjMbb9nV/ZInfIvGRgfp/HyehmxWo4Ja8gW/nKfzSwouuCKwdzashxucKH8rdEbiFhmwsok0",
+	"lGUf3nFRzLTK5cbTfweW5BTEthR8wX9Dd925JoXH9BdgXKRpzHzKNQUZ6rps8vbZJxtLakzDNDqI4VS2",
+	"7gr8SCQUpGlJ9+jZJ/znf4nrFJxYDCZcT+db2md9VYHZRfaOYhA29P28HMZLsf+W2NoaM5nLrNfsrHdM",
+	"Osv8cSdwMpq/7JYiSMxAhS4kjMe3e4uThfuoP5BkgiTM29aA9y7L++nSGY9JLyLH7/XpPyrvGwU3jvJ1",
+	"11GiA1kGfb1L331/fXWeqXPLtVfif6ftgQSXv0Zxx9r69VUtX1PR7VfhYSsR0+NIt0078h110HiYoKPp",
+	"QJm0rO0/hlzc9tuJ/X6//ycAAP//X2G1u8EMAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

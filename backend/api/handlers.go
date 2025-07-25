@@ -67,6 +67,64 @@ func (s *APIServer) GetComponents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(apiComponents)
 }
 
+func (s *APIServer) GetComponentById(w http.ResponseWriter, r *http.Request, componentId string) {
+	ctx := r.Context()
+	component, err := s.Repo.GetComponentByID(ctx, componentId)
+	if err != nil {
+		if err == storage.ErrComponentNotFound {
+			code := "NOT_FOUND"
+			errorResponse := Error{
+				Error: "Component not found",
+				Code:  &code,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(errorResponse)
+			return
+		}
+		http.Error(w, "failed to fetch component", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert storage component to API component
+	apiComponent := Component{
+		Name: component.Name,
+	}
+
+	// Set ID if available (use ComponentID from storage)
+	if component.ComponentID != "" {
+		id := component.ComponentID
+		apiComponent.Id = &id
+	}
+
+	// Set description if available
+	if component.Description != "" {
+		description := component.Description
+		apiComponent.Description = &description
+	}
+
+	// Set owners if available
+	if len(component.Maintainers) > 0 || component.Team != "" {
+		owners := &Owners{}
+
+		if len(component.Maintainers) > 0 {
+			maintainers := []string(component.Maintainers)
+			owners.Maintainers = &maintainers
+		}
+
+		if component.Team != "" {
+			team := component.Team
+			owners.Team = &team
+		}
+
+		apiComponent.Owners = owners
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(apiComponent)
+}
+
 func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
 	health := Health{
 		Status:    Healthy,

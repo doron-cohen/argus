@@ -24,6 +24,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /components/{componentId}:
+    get:
+      summary: Get component by ID
+      description: Retrieve a specific component by its unique identifier
+      operationId: getComponentById
+      parameters:
+        - name: componentId
+          in: path
+          required: true
+          description: Unique identifier of the component
+          schema:
+            type: string
+          example: "auth-service"
+      responses:
+        "200":
+          description: Component details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Component"
+        "404":
+          description: Component not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /healthz:
     get:
       summary: Health check

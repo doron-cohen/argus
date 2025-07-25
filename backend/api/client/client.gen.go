@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 // Defines values for HealthStatus.
@@ -141,12 +143,27 @@ type ClientInterface interface {
 	// GetComponents request
 	GetComponents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetComponentById request
+	GetComponentById(ctx context.Context, componentId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetHealth request
 	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetComponents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetComponentsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetComponentById(ctx context.Context, componentId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetComponentByIdRequest(c.Server, componentId)
 	if err != nil {
 		return nil, err
 	}
@@ -179,6 +196,40 @@ func NewGetComponentsRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/components")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetComponentByIdRequest generates requests for GetComponentById
+func NewGetComponentByIdRequest(server string, componentId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "componentId", runtime.ParamLocationPath, componentId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/components/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -269,6 +320,9 @@ type ClientWithResponsesInterface interface {
 	// GetComponentsWithResponse request
 	GetComponentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetComponentsResponse, error)
 
+	// GetComponentByIdWithResponse request
+	GetComponentByIdWithResponse(ctx context.Context, componentId string, reqEditors ...RequestEditorFn) (*GetComponentByIdResponse, error)
+
 	// GetHealthWithResponse request
 	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
 }
@@ -290,6 +344,30 @@ func (r GetComponentsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetComponentsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetComponentByIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Component
+	JSON404      *Error
+	JSON500      *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r GetComponentByIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetComponentByIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -327,6 +405,15 @@ func (c *ClientWithResponses) GetComponentsWithResponse(ctx context.Context, req
 	return ParseGetComponentsResponse(rsp)
 }
 
+// GetComponentByIdWithResponse request returning *GetComponentByIdResponse
+func (c *ClientWithResponses) GetComponentByIdWithResponse(ctx context.Context, componentId string, reqEditors ...RequestEditorFn) (*GetComponentByIdResponse, error) {
+	rsp, err := c.GetComponentById(ctx, componentId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetComponentByIdResponse(rsp)
+}
+
 // GetHealthWithResponse request returning *GetHealthResponse
 func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error) {
 	rsp, err := c.GetHealth(ctx, reqEditors...)
@@ -356,6 +443,46 @@ func ParseGetComponentsResponse(rsp *http.Response) (*GetComponentsResponse, err
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetComponentByIdResponse parses an HTTP response from a GetComponentByIdWithResponse call
+func ParseGetComponentByIdResponse(rsp *http.Response) (*GetComponentByIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetComponentByIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Component
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest Error
