@@ -263,28 +263,35 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 
 // processComponent handles a single component (create only for now)
 func (s *Service) processComponent(ctx context.Context, component models.Component, source SourceConfig) error {
-	// Check if component already exists
-	existing, err := s.repo.GetComponentByName(ctx, component.Name)
+	// Get the unique identifier for this component
+	componentID := component.GetIdentifier()
+
+	// Check if component already exists by its unique identifier
+	existing, err := s.repo.GetComponentByID(ctx, componentID)
 	if err != nil && err != storage.ErrComponentNotFound {
 		return fmt.Errorf("failed to check existing component: %w", err)
 	}
 
 	if existing != nil {
 		// Component exists, skip for now (no updates)
-		slog.Debug("Component already exists, skipping", "name", component.Name)
+		slog.Debug("Component already exists, skipping", "id", componentID, "name", component.Name)
 		return nil
 	}
 
 	// Create new component
 	storageComponent := storage.Component{
-		Name: component.Name,
+		ComponentID: componentID,
+		Name:        component.Name,
+		Description: component.Description,
+		Maintainers: component.Owners.Maintainers,
+		Team:        component.Owners.Team,
 	}
 
 	if err := s.repo.CreateComponent(ctx, storageComponent); err != nil {
 		return fmt.Errorf("failed to create component: %w", err)
 	}
 
-	slog.Info("Created new component", "name", component.Name)
+	slog.Info("Created new component", "id", componentID, "name", component.Name)
 	return nil
 }
 

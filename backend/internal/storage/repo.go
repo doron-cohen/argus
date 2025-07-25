@@ -12,9 +12,14 @@ import (
 // ErrComponentNotFound is returned when a component is not found
 var ErrComponentNotFound = errors.New("component not found")
 
+// Component represents a component stored in the database.
 type Component struct {
-	ID   uuid.UUID `gorm:"type:uuid;primaryKey"`
-	Name string    `gorm:"not null;unique"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ComponentID string    `gorm:"not null;uniqueIndex"` // Unique identifier from manifest
+	Name        string    `gorm:"not null"`
+	Description string
+	Maintainers []string `gorm:"type:text[]"`
+	Team        string
 }
 
 func (c *Component) BeforeCreate(tx *gorm.DB) (err error) {
@@ -49,7 +54,20 @@ func (r *Repository) GetComponents(ctx context.Context) ([]Component, error) {
 	return components, err
 }
 
-// GetComponentByName returns a component by name
+// GetComponentByID returns a component by its unique identifier
+func (r *Repository) GetComponentByID(ctx context.Context, componentID string) (*Component, error) {
+	var component Component
+	err := r.DB.WithContext(ctx).Where("component_id = ?", componentID).First(&component).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrComponentNotFound
+		}
+		return nil, err
+	}
+	return &component, nil
+}
+
+// GetComponentByName returns a component by name (for backward compatibility)
 func (r *Repository) GetComponentByName(ctx context.Context, name string) (*Component, error) {
 	var component Component
 	err := r.DB.WithContext(ctx).Where("name = ?", name).First(&component).Error

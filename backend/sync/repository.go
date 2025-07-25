@@ -8,6 +8,7 @@ import (
 
 // Repository defines the interface for storage operations needed by the sync service
 type Repository interface {
+	GetComponentByID(ctx context.Context, componentID string) (*storage.Component, error)
 	GetComponentByName(ctx context.Context, name string) (*storage.Component, error)
 	CreateComponent(ctx context.Context, component storage.Component) error
 }

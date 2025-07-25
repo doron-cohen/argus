@@ -171,9 +171,12 @@ func TestFilesystemClient_WithTestData(t *testing.T) {
 	require.NoError(t, os.MkdirAll(infraDir, 0755))
 
 	// Create test manifest files
-	authManifest := `name: "auth-service"`
-	apiManifest := `name: "api-gateway"`
-	infraManifest := `name: "platform-infrastructure"`
+	authManifest := `version: "v1"
+name: "auth-service"`
+	apiManifest := `version: "v1"
+name: "api-gateway"`
+	infraManifest := `version: "v1"
+name: "platform-infrastructure"`
 
 	require.NoError(t, os.WriteFile(filepath.Join(authDir, "manifest.yaml"), []byte(authManifest), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(apiDir, "manifest.yml"), []byte(apiManifest), 0644))
@@ -305,7 +308,8 @@ func TestFilesystemFetcher(t *testing.T) {
 	require.NoError(t, os.MkdirAll(authDir, 0755))
 
 	// Create test manifest file
-	authManifest := `name: "auth-service"`
+	authManifest := `version: "v1"
+name: "auth-service"`
 	require.NoError(t, os.WriteFile(filepath.Join(authDir, "manifest.yaml"), []byte(authManifest), 0644))
 
 	fetcher := NewFilesystemFetcher()
@@ -353,7 +357,8 @@ func TestManifestClient_SharedFunctionality(t *testing.T) {
 	authDir := filepath.Join(tempDir, "auth")
 	require.NoError(t, os.MkdirAll(authDir, 0755))
 
-	authContent := `name: "auth-service"`
+	authContent := `version: "v1"
+name: "auth-service"`
 	authFile := filepath.Join(authDir, "manifest.yaml")
 	require.NoError(t, os.WriteFile(authFile, []byte(authContent), 0644))
 

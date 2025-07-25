@@ -1,4 +1,5 @@
 # Platform Infrastructure Manifest
 # Core infrastructure components and monitoring
 
+version: "v1"
 name: "platform-infrastructure"

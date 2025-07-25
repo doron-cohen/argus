@@ -30,6 +30,14 @@ type MockRepository struct {
 	mock.Mock
 }
 
+func (m *MockRepository) GetComponentByID(ctx context.Context, componentID string) (*storage.Component, error) {
+	args := m.Called(ctx, componentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*storage.Component), args.Error(1)
+}
+
 func (m *MockRepository) GetComponentByName(ctx context.Context, name string) (*storage.Component, error) {
 	args := m.Called(ctx, name)
 	if args.Get(0) == nil {
@@ -76,12 +84,12 @@ func TestService_SyncSource_Success(t *testing.T) {
 	mockFetcher.On("Fetch", ctx, source).Return(expectedComponents, nil)
 
 	// Both components are new (not found)
-	mockRepo.On("GetComponentByName", ctx, "service-a").Return(nil, storage.ErrComponentNotFound)
-	mockRepo.On("GetComponentByName", ctx, "service-b").Return(nil, storage.ErrComponentNotFound)
+	mockRepo.On("GetComponentByID", ctx, "service-a").Return(nil, storage.ErrComponentNotFound)
+	mockRepo.On("GetComponentByID", ctx, "service-b").Return(nil, storage.ErrComponentNotFound)
 
 	// Both components are created successfully
-	mockRepo.On("CreateComponent", ctx, storage.Component{Name: "service-a"}).Return(nil)
-	mockRepo.On("CreateComponent", ctx, storage.Component{Name: "service-b"}).Return(nil)
+	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "service-a", Name: "service-a"}).Return(nil)
+	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "service-b", Name: "service-b"}).Return(nil)
 
 	// Execute
 	err := service.SyncSource(ctx, source)
@@ -111,17 +119,17 @@ func TestService_SyncSource_SkipExistingComponents(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	existingComponent := &storage.Component{Name: "existing-service"}
+	existingComponent := &storage.Component{ComponentID: "existing-service", Name: "existing-service"}
 
 	// Mock expectations
 	mockFetcher.On("Fetch", ctx, source).Return(expectedComponents, nil)
 
 	// First component exists, second is new
-	mockRepo.On("GetComponentByName", ctx, "existing-service").Return(existingComponent, nil)
-	mockRepo.On("GetComponentByName", ctx, "new-service").Return(nil, storage.ErrComponentNotFound)
+	mockRepo.On("GetComponentByID", ctx, "existing-service").Return(existingComponent, nil)
+	mockRepo.On("GetComponentByID", ctx, "new-service").Return(nil, storage.ErrComponentNotFound)
 
 	// Only new component is created
-	mockRepo.On("CreateComponent", ctx, storage.Component{Name: "new-service"}).Return(nil)
+	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "new-service", Name: "new-service"}).Return(nil)
 
 	// Execute
 	err := service.SyncSource(ctx, source)
@@ -187,12 +195,12 @@ func TestService_SyncSource_CreateComponentError(t *testing.T) {
 	mockFetcher.On("Fetch", ctx, source).Return(expectedComponents, nil)
 
 	// Both components are new
-	mockRepo.On("GetComponentByName", ctx, "failing-service").Return(nil, storage.ErrComponentNotFound)
-	mockRepo.On("GetComponentByName", ctx, "working-service").Return(nil, storage.ErrComponentNotFound)
+	mockRepo.On("GetComponentByID", ctx, "failing-service").Return(nil, storage.ErrComponentNotFound)
+	mockRepo.On("GetComponentByID", ctx, "working-service").Return(nil, storage.ErrComponentNotFound)
 
 	// First component creation fails, second succeeds
-	mockRepo.On("CreateComponent", ctx, storage.Component{Name: "failing-service"}).Return(createError)
-	mockRepo.On("CreateComponent", ctx, storage.Component{Name: "working-service"}).Return(nil)
+	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "failing-service", Name: "failing-service"}).Return(createError)
+	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "working-service", Name: "working-service"}).Return(nil)
 
 	// Execute
 	err := service.SyncSource(ctx, source)
@@ -288,7 +296,7 @@ func TestService_processComponent_DatabaseCheckError(t *testing.T) {
 	dbError := errors.New("database connection lost")
 
 	// Mock expectations - database check fails with non-NotFound error
-	mockRepo.On("GetComponentByName", ctx, "test-service").Return(nil, dbError)
+	mockRepo.On("GetComponentByID", ctx, "test-service").Return(nil, dbError)
 
 	// Execute
 	err := service.processComponent(ctx, component, source)

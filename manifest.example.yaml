@@ -1,4 +1,4 @@
-# Example Component Manifest
+# Example Component Manifest V1
 # Place this file as "manifest.yaml" or "manifest.yml" anywhere in your repository
 # The sync service will automatically discover and process these files
 #
@@ -10,4 +10,25 @@
 # When using base_path in sync configuration, only manifests within
 # that path will be discovered and processed.
 
+version: "v1"
+
+# ID is the unique identifier for this component (optional)
+# If not provided, the name will be used as the identifier
+id: "user-service-v1"
+
+# Name is the human-readable name of the component (required)
 name: "user-service"
+
+# Description provides context about the component's purpose
+description: "User management service responsible for authentication and user data"
+
+# Owners contains ownership information
+owners:
+  # Maintainers are responsible for maintaining this component
+  # Can be emails, GitHub handles, or other user identifiers
+  maintainers:
+    - "alice@company.com"
+    - "@bob-dev"
+
+  # Team is responsible for owning this component
+  team: "Platform Engineering"

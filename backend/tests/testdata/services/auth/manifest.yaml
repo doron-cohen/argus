@@ -1,4 +1,5 @@
 # Authentication Service Manifest
 # This service handles user authentication and authorization
 
+version: "v1"
 name: "auth-service"

@@ -1,4 +1,5 @@
 # User Management Service Manifest
 # Handles user profiles, preferences, and account management
 
+version: "v1"
 name: "user-service"
