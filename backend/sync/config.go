@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+const (
+	// Minimum sync intervals to prevent system overload
+	MinFilesystemInterval = time.Second      // 1 second minimum for filesystem sources
+	MinGitInterval        = 10 * time.Second // 10 seconds minimum for git sources
+)
+
 // Config holds the sync module configuration
 type Config struct {
 	Sources []SourceConfig `fig:"sources"`
@@ -34,6 +40,9 @@ func (s SourceConfig) GitConfig() (GitSourceConfig, error) {
 	if s.URL == "" {
 		return GitSourceConfig{}, fmt.Errorf("git source requires url field")
 	}
+	if s.Interval > 0 && s.Interval < MinGitInterval {
+		return GitSourceConfig{}, fmt.Errorf("git source interval must be at least %v, got %v", MinGitInterval, s.Interval)
+	}
 
 	branch := s.Branch
 	if branch == "" {
@@ -54,6 +63,9 @@ func (s SourceConfig) FilesystemConfig() (FilesystemSourceConfig, error) {
 	}
 	if s.Path == "" {
 		return FilesystemSourceConfig{}, fmt.Errorf("filesystem source requires path field")
+	}
+	if s.Interval > 0 && s.Interval < MinFilesystemInterval {
+		return FilesystemSourceConfig{}, fmt.Errorf("filesystem source interval must be at least %v, got %v", MinFilesystemInterval, s.Interval)
 	}
 
 	return FilesystemSourceConfig{

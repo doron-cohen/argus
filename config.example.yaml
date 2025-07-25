@@ -18,7 +18,7 @@ sync:
     - type: git
       url: "https://github.com/your-org/platform-services"
       branch: "main"
-      interval: "5m"
+      interval: "5m" # Minimum 10s for git sources
 
     # Monorepo with specific base path to save bandwidth
     # Only syncs the "services" subdirectory instead of entire repo
@@ -39,7 +39,7 @@ sync:
     # Local filesystem source - entire directory
     - type: filesystem
       path: "/opt/services"
-      interval: "2m"
+      interval: "2m" # Minimum 1s for filesystem sources
 
     # Local filesystem with base path optimization
     # Only syncs manifests from the "production" subdirectory

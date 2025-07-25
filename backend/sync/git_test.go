@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -135,6 +136,37 @@ func TestSourceConfig_GitConfig(t *testing.T) {
 				URL:    "https://github.com/user/repo",
 				Branch: "develop",
 			},
+		},
+		{
+			name: "git config with valid interval",
+			source: SourceConfig{
+				Type:     "git",
+				URL:      "https://github.com/user/repo",
+				Interval: 30 * time.Second,
+			},
+			expectError: false,
+			expected: GitSourceConfig{
+				URL:    "https://github.com/user/repo",
+				Branch: "main",
+			},
+		},
+		{
+			name: "git config with interval too low",
+			source: SourceConfig{
+				Type:     "git",
+				URL:      "https://github.com/user/repo",
+				Interval: 5 * time.Second, // Below 10 second minimum
+			},
+			expectError: true,
+		},
+		{
+			name: "git config with interval way too low",
+			source: SourceConfig{
+				Type:     "git",
+				URL:      "https://github.com/user/repo",
+				Interval: 100 * time.Millisecond,
+			},
+			expectError: true,
 		},
 		{
 			name: "wrong type",

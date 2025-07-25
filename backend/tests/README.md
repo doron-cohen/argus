@@ -34,7 +34,7 @@ tests/
 #### **Filesystem Source Tests**
 - `TestFilesystemSyncIntegration`: Full filesystem sync of all testdata
 - `TestFilesystemSyncWithBasePath`: BasePath filtering (services only)
-- `TestSyncPerformance`: High-frequency sync performance testing
+
 
 #### **Git Source Tests**  
 - `TestGitSyncIntegration`: Full Git repository sync with sparse checkout
@@ -159,15 +159,21 @@ sync:
 
 ## Performance Expectations
 
+### **Minimum Intervals**
+- **Filesystem sources**: Minimum 1 second interval
+- **Git sources**: Minimum 10 seconds interval  
+- **Validation**: Configuration validation prevents intervals below minimums
+
 ### **Filesystem Sync**
 - **Initial sync**: <1 second (4 components)
 - **Subsequent syncs**: <100ms (cached)
-- **High frequency**: 100ms intervals sustainable
+- **Sustainable intervals**: 1+ seconds (enforced minimum)
 - **Memory**: Minimal overhead
 
 ### **Git Sync**  
 - **Initial clone**: 3-5 seconds (with BasePath optimization)
 - **Subsequent fetches**: 1-2 seconds (sparse checkout)
+- **Sustainable intervals**: 10+ seconds (enforced minimum - prevents repository overload)
 - **Network usage**: 80-90% reduction with BasePath
 - **Storage**: Only relevant files downloaded
 

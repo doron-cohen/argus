@@ -185,7 +185,7 @@ func TestGitSyncIntegration(t *testing.T) {
 				URL:      getTestRepositoryURL(),
 				Branch:   "main",
 				BasePath: "backend/tests/testdata", // Point to moved testdata location
-				Interval: time.Second,
+				Interval: 10 * time.Second,         // Minimum for git sources
 			},
 		},
 	}
@@ -255,7 +255,7 @@ func TestMixedSourcesIntegration(t *testing.T) {
 				URL:      getTestRepositoryURL(),
 				Branch:   "main",
 				BasePath: "backend/tests/testdata/platform",
-				Interval: time.Second,
+				Interval: 10 * time.Second, // Minimum for git sources
 			},
 		},
 	}
@@ -369,54 +369,4 @@ func TestSyncErrorHandling(t *testing.T) {
 
 	components := *resp.JSON200
 	require.Len(t, components, 0, "Should have no components when sync source is invalid")
-}
-
-func TestSyncPerformance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	testDataPath := getTestDataPath(t)
-
-	// Test filesystem sync performance
-	testConfig := TestConfig
-	testConfig.Sync = sync.Config{
-		Sources: []sync.SourceConfig{
-			{
-				Type:     "filesystem",
-				Path:     testDataPath,
-				Interval: 100 * time.Millisecond, // Very fast sync
-			},
-		},
-	}
-
-	start := time.Now()
-
-	// Start server with sync enabled
-	stop, err := server.Start(testConfig)
-	require.NoError(t, err)
-	defer stop()
-
-	// Wait for multiple sync cycles
-	time.Sleep(2 * time.Second)
-
-	elapsed := time.Since(start)
-
-	// Create API client and verify components exist
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
-	require.NoError(t, err)
-
-	resp, err := apiClient.GetComponentsWithResponse(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode())
-	require.NotNil(t, resp.JSON200)
-
-	components := *resp.JSON200
-	require.Len(t, components, 4, "Should have synced all components")
-
-	t.Logf("Filesystem sync performance: %d components synced in %v with 100ms intervals",
-		len(components), elapsed)
-
-	// Filesystem sync should be very fast
-	assert.Less(t, elapsed, 5*time.Second, "Filesystem sync should complete quickly")
 }

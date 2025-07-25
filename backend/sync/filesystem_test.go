@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,6 +87,36 @@ func TestSourceConfig_FilesystemConfig(t *testing.T) {
 				Path:     "/some/path",
 				BasePath: "services",
 			},
+		},
+		{
+			name: "filesystem config with valid interval",
+			source: SourceConfig{
+				Type:     "filesystem",
+				Path:     "/some/path",
+				Interval: 5 * time.Second,
+			},
+			expectError: false,
+			expected: FilesystemSourceConfig{
+				Path: "/some/path",
+			},
+		},
+		{
+			name: "filesystem config with interval too low",
+			source: SourceConfig{
+				Type:     "filesystem",
+				Path:     "/some/path",
+				Interval: 500 * time.Millisecond, // Below 1 second minimum
+			},
+			expectError: true,
+		},
+		{
+			name: "filesystem config with interval way too low",
+			source: SourceConfig{
+				Type:     "filesystem",
+				Path:     "/some/path",
+				Interval: 100 * time.Millisecond,
+			},
+			expectError: true,
 		},
 		{
 			name: "wrong type",
