@@ -12,31 +12,86 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
 
-// Component defines model for Component.
+// Defines values for HealthStatus.
+const (
+	Healthy   HealthStatus = "healthy"
+	Unhealthy HealthStatus = "unhealthy"
+)
+
+// Component A component discovered from a source
 type Component struct {
-	Id   *string `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
+	// Description Additional context about the component's purpose and functionality
+	Description *string `json:"description,omitempty"`
+
+	// Id Unique identifier for the component. If not provided, the name will be used as the identifier.
+	Id *string `json:"id,omitempty"`
+
+	// Name Human-readable name of the component
+	Name string `json:"name"`
+
+	// Owners Ownership information for a component
+	Owners *Owners `json:"owners,omitempty"`
+}
+
+// Error Error response
+type Error struct {
+	// Code Error code
+	Code *string `json:"code,omitempty"`
+
+	// Error Error message
+	Error string `json:"error"`
+}
+
+// Health Health status of the service
+type Health struct {
+	// Status Health status
+	Status HealthStatus `json:"status"`
+
+	// Timestamp Timestamp of the health check
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// HealthStatus Health status
+type HealthStatus string
+
+// Owners Ownership information for a component
+type Owners struct {
+	// Maintainers List of user identifiers responsible for maintaining this component
+	Maintainers *[]string `json:"maintainers,omitempty"`
+
+	// Team Team responsible for owning this component
+	Team *string `json:"team,omitempty"`
 }
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get component manifest
+	// Get all components
 	// (GET /components)
 	GetComponents(w http.ResponseWriter, r *http.Request)
+	// Health check
+	// (GET /healthz)
+	GetHealth(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
-// Get component manifest
+// Get all components
 // (GET /components)
 func (_ Unimplemented) GetComponents(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Health check
+// (GET /healthz)
+func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -54,6 +109,20 @@ func (siw *ServerInterfaceWrapper) GetComponents(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetComponents(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHealth operation middleware
+func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHealth(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -179,6 +248,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/components", wrapper.GetComponents)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
+	})
 
 	return r
 }
@@ -186,11 +258,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/2yQQWvDMAyF/0rQdgxJtt58Kz2Mwg77C56rtCq1LSR1UEr++7DTkA52SWy9J/O+d4eQ",
-	"I+eEyRTcHTScMPp63C1CubBkRjHCKtGhfO3GCA7UhNIRphaSj/iPMLXLJH+fMRhMZURpzNVMdinaVo5X",
-	"bbZfe2jhB0UpJ3AwdG/dUN7OjMkzgYNNN3QbaIG9nWqa/i/CEWviktcb5bQ/gIMPtN3qakFQOSedcd6H",
-	"ofxCTvbA9cwXCnW9P2tJslRT8Q1jXXwVHMHBy1OC/tFgv9a38nsRf5vxD6hBiG3G/CS1Jo/NE0kx6TVG",
-	"L7c5/yo20ScaUWuT028AAAD//9LpmPbDAQAA",
+	"H4sIAAAAAAAC/6RVT2/jthP9KgR/P6AX2VYS9KLTBkHQGFhsAje9dLEoxtLImq1IaknKWe/C370YUrIs",
+	"S0lQFNBB/Dfz+ObxzU+ZG9UYjdo7mf2ULq9QQfi96xd4UKDLLTWejJaZvBWnU6Igl5s9WixEaY0SIJxp",
+	"bY4ykY01DVpP6CYhJhGLgvgXapEb7fG7F7A1rRe+wiHZL040rW2MQwG6EGWr83iI/EEmEr+DamqUmXwA",
+	"XdToROvQCmh9hdpTDrw5nOQpY+lHmJGJ9IeGjzlvSe/kMZFUTDH+oelbi4IKDlYSWlEaOwa4FOtSaONF",
+	"Y82eCiySsK5BoXihuhZbZEyFABcWhljLEX7Gt3Bo9xSInMDjgFOAD60CvbAIBWzrLqspxwhHaW7HzPz+",
+	"ekLzotGGMv7fYikz+b/VIJxVp5rVY9x1PCbS4reWLBYy+xzRfjlFNduvmHuOem+tsdN7hGlh0TVGu6mQ",
+	"clPga4fC2vkV15+e7zefbj/+db/ZPG7mroZvgVDoHOwuQmqPlpXKBUIrYoBJ5AsS4q45Fh4Qal/NlDPM",
+	"C+fBt64v5CCKMSlx1ztB+Bq6VQynCvP8alrd/385v+WwYcKYJ4XOg2qm6Z77pR5vDCPyCvO/Ryxep9c3",
+	"i6vrRXr1fJVmKX9/ykSWxirwMpMFeFxwpneZPd1twDVH8+NJwmPIcb6iRpCO2fkt8NOG0bMZ862AtAea",
+	"D/mRnGcCgv0Mb9z1miZ+npyhj0J6J3xFbv6dfpZQU44feBH0YZkbJRP5YWu2ix35qt3yfcmjClCm5YoT",
+	"YC0cwhhBzVQOQU3wmZd3oMmnGjyzJvj8bKkuCsFTTPRMD3had6Ro2HFaduq+vfB4cJzYavZgybSuazhR",
+	"AT4am921Ttw+rWUi92hdTJAur5ZpcLMGNTQkM3mzTJc3XFzwVWBvNe6HO5xpfxv0lnCPAkTdVRrq+hze",
+	"ZVPMjS5p1/J4AMtyCmJbFzKTv6G/G1KzwqP9BRjXaRqdT/uuIUPT1J1vr7662FKjDfPfSQxvufXQ4Cci",
+	"4SLNS/qMnmMif/2XuN6CE5vBTOp5v+V9rlUK7CGyd1GDsGEV7efHq6W8Y186N6qx20YFTQrVOfZ/LNJb",
+	"ZHQZZtjomrQgJ3qLHlPxcO64x+Px+E8AAAD//0yjpifkCQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -283,7 +283,7 @@ func (s *Service) processComponent(ctx context.Context, component models.Compone
 		ComponentID: componentID,
 		Name:        component.Name,
 		Description: component.Description,
-		Maintainers: component.Owners.Maintainers,
+		Maintainers: storage.StringArray(component.Owners.Maintainers),
 		Team:        component.Owners.Team,
 	}
 

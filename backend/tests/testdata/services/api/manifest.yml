@@ -1,0 +1,12 @@
+# API Gateway Manifest
+# This service acts as the main entry point for all API requests
+
+version: "v1"
+id: "api-gateway"
+name: "API Gateway"
+description: "Main entry point for all API requests, handles routing, rate limiting, and request validation"
+owners:
+  maintainers:
+    - "bob@company.com"
+    - "@platform-team"
+  team: "Platform Team"

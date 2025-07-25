@@ -1,5 +1,12 @@
-# User Management Service Manifest
-# Handles user profiles, preferences, and account management
+# User Service Manifest
+# This service manages user profiles and user-related operations
 
 version: "v1"
-name: "user-service"
+id: "user-service"
+name: "User Service"
+description: "Manages user profiles, user registration, and user-related operations"
+owners:
+  maintainers:
+    - "charlie@company.com"
+    - "@user-team"
+  team: "User Experience Team"

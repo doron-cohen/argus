@@ -2,12 +2,56 @@ package storage
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// StringArray is a custom type to handle PostgreSQL text[] arrays
+type StringArray []string
+
+// Value implements the driver.Valuer interface
+func (sa StringArray) Value() (driver.Value, error) {
+	if sa == nil {
+		return nil, nil
+	}
+	if len(sa) == 0 {
+		return "{}", nil
+	}
+	return "{" + strings.Join(sa, ",") + "}", nil
+}
+
+// Scan implements the sql.Scanner interface
+func (sa *StringArray) Scan(value interface{}) error {
+	if value == nil {
+		*sa = nil
+		return nil
+	}
+
+	switch v := value.(type) {
+	case string:
+		if v == "{}" {
+			*sa = StringArray{}
+			return nil
+		}
+		// Remove the curly braces and split by comma
+		v = strings.Trim(v, "{}")
+		if v == "" {
+			*sa = StringArray{}
+			return nil
+		}
+		*sa = StringArray(strings.Split(v, ","))
+	case []byte:
+		return sa.Scan(string(v))
+	default:
+		return errors.New("cannot scan non-string value into StringArray")
+	}
+	return nil
+}
 
 // ErrComponentNotFound is returned when a component is not found
 var ErrComponentNotFound = errors.New("component not found")
@@ -18,7 +62,7 @@ type Component struct {
 	ComponentID string    `gorm:"not null;uniqueIndex"` // Unique identifier from manifest
 	Name        string    `gorm:"not null"`
 	Description string
-	Maintainers []string `gorm:"type:text[]"`
+	Maintainers StringArray `gorm:"type:text[]"`
 	Team        string
 }
 

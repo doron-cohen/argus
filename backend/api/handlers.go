@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
 )
@@ -25,15 +26,54 @@ func (s *APIServer) GetComponents(w http.ResponseWriter, r *http.Request) {
 
 	var apiComponents []Component
 	for _, c := range components {
-		id := c.ID.String()
-		name := c.Name
-		apiComponents = append(apiComponents, Component{
-			Id:   &id,
-			Name: &name,
-		})
+		component := Component{
+			Name: c.Name,
+		}
+
+		// Set ID if available (use ComponentID from storage)
+		if c.ComponentID != "" {
+			id := c.ComponentID
+			component.Id = &id
+		}
+
+		// Set description if available
+		if c.Description != "" {
+			description := c.Description
+			component.Description = &description
+		}
+
+		// Set owners if available
+		if len(c.Maintainers) > 0 || c.Team != "" {
+			owners := &Owners{}
+
+			if len(c.Maintainers) > 0 {
+				maintainers := []string(c.Maintainers)
+				owners.Maintainers = &maintainers
+			}
+
+			if c.Team != "" {
+				team := c.Team
+				owners.Team = &team
+			}
+
+			component.Owners = owners
+		}
+
+		apiComponents = append(apiComponents, component)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(apiComponents)
+}
+
+func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
+	health := Health{
+		Status:    Healthy,
+		Timestamp: time.Now(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(health)
 }

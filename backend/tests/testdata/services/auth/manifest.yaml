@@ -2,4 +2,11 @@
 # This service handles user authentication and authorization
 
 version: "v1"
-name: "auth-service"
+id: "auth-service"
+name: "Authentication Service"
+description: "Handles user authentication and authorization including login, logout, and session management"
+owners:
+  maintainers:
+    - "alice@company.com"
+    - "@auth-team"
+  team: "Security Team"

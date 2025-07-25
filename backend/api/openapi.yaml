@@ -2,10 +2,12 @@ openapi: 3.0.3
 info:
   title: Argus API
   version: 0.1.0
+  description: API for managing and discovering components from various sources
 paths:
   /components:
     get:
-      summary: Get component manifest
+      summary: Get all components
+      description: Retrieve a list of all components discovered from configured sources
       operationId: getComponents
       responses:
         "200":
@@ -16,12 +18,88 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Component"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /healthz:
+    get:
+      summary: Health check
+      description: Check the health status of the API
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
 components:
   schemas:
     Component:
       type: object
+      description: A component discovered from a source
       properties:
         id:
           type: string
+          description: Unique identifier for the component. If not provided, the name will be used as the identifier.
+          example: "auth-service"
         name:
           type: string
+          description: Human-readable name of the component
+          example: "Authentication Service"
+        description:
+          type: string
+          description: Additional context about the component's purpose and functionality
+          example: "Handles user authentication and authorization"
+        owners:
+          $ref: "#/components/schemas/Owners"
+      required:
+        - name
+    Owners:
+      type: object
+      description: Ownership information for a component
+      properties:
+        maintainers:
+          type: array
+          description: List of user identifiers responsible for maintaining this component
+          items:
+            type: string
+          example: ["alice@company.com", "@bob-github"]
+        team:
+          type: string
+          description: Team responsible for owning this component
+          example: "Platform Team"
+    Health:
+      type: object
+      description: Health status of the service
+      properties:
+        status:
+          type: string
+          description: Health status
+          enum: ["healthy", "unhealthy"]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the health check
+          example: "2023-12-01T10:00:00Z"
+      required:
+        - status
+        - timestamp
+    Error:
+      type: object
+      description: Error response
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Internal server error"
+        code:
+          type: string
+          description: Error code
+          example: "INTERNAL_ERROR"
+      required:
+        - error

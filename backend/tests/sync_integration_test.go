@@ -111,21 +111,44 @@ func TestFilesystemSyncIntegration(t *testing.T) {
 	components := *resp.JSON200
 	require.Len(t, components, 4, "Should have synced 4 components from testdata")
 
-	// Verify expected components exist
+	// Verify expected components exist with their new names
 	componentNames := make([]string, len(components))
+	componentIDs := make([]string, len(components))
 	for i, comp := range components {
-		componentNames[i] = *comp.Name
+		componentNames[i] = comp.Name
+		if comp.Id != nil {
+			componentIDs[i] = *comp.Id
+		}
 	}
 
 	expectedComponents := []string{
+		"Authentication Service",
+		"API Gateway",
+		"User Service",
+		"Platform Infrastructure",
+	}
+
+	expectedIDs := []string{
 		"auth-service",
 		"api-gateway",
 		"user-service",
 		"platform-infrastructure",
 	}
 
-	for _, expected := range expectedComponents {
+	for i, expected := range expectedComponents {
 		assert.Contains(t, componentNames, expected, "Should contain component: %s", expected)
+		assert.Contains(t, componentIDs, expectedIDs[i], "Should contain component ID: %s", expectedIDs[i])
+	}
+
+	// Verify that components have descriptions and owners
+	for _, comp := range components {
+		assert.NotNil(t, comp.Description, "Component should have description")
+		assert.NotEmpty(t, *comp.Description, "Component description should not be empty")
+		assert.NotNil(t, comp.Owners, "Component should have owners")
+		assert.NotNil(t, comp.Owners.Maintainers, "Component should have maintainers")
+		assert.NotEmpty(t, *comp.Owners.Maintainers, "Component should have at least one maintainer")
+		assert.NotNil(t, comp.Owners.Team, "Component should have team")
+		assert.NotEmpty(t, *comp.Owners.Team, "Component team should not be empty")
 	}
 }
 
@@ -173,13 +196,13 @@ func TestFilesystemSyncWithSpecificPath(t *testing.T) {
 	// Verify only service components exist (no platform components)
 	componentNames := make([]string, len(components))
 	for i, comp := range components {
-		componentNames[i] = *comp.Name
+		componentNames[i] = comp.Name
 	}
 
 	expectedServices := []string{
-		"auth-service",
-		"api-gateway",
-		"user-service",
+		"Authentication Service",
+		"API Gateway",
+		"User Service",
 	}
 
 	for _, expected := range expectedServices {
@@ -243,14 +266,14 @@ func TestGitSyncIntegration(t *testing.T) {
 	// Verify expected components exist
 	componentNames := make([]string, len(components))
 	for i, comp := range components {
-		componentNames[i] = *comp.Name
+		componentNames[i] = comp.Name
 	}
 
 	expectedComponents := []string{
-		"auth-service",
-		"api-gateway",
-		"user-service",
-		"platform-infrastructure",
+		"Authentication Service",
+		"API Gateway",
+		"User Service",
+		"Platform Infrastructure",
 	}
 
 	for _, expected := range expectedComponents {
@@ -311,13 +334,13 @@ func TestMixedSourcesIntegration(t *testing.T) {
 	// Verify filesystem components exist
 	componentNames := make([]string, len(components))
 	for i, comp := range components {
-		componentNames[i] = *comp.Name
+		componentNames[i] = comp.Name
 	}
 
 	expectedFilesystemComponents := []string{
-		"auth-service", // From filesystem
-		"api-gateway",  // From filesystem
-		"user-service", // From filesystem
+		"Authentication Service", // From filesystem
+		"API Gateway",            // From filesystem
+		"User Service",           // From filesystem
 	}
 
 	for _, expected := range expectedFilesystemComponents {
@@ -326,7 +349,7 @@ func TestMixedSourcesIntegration(t *testing.T) {
 
 	// If we have 4 components, the git part worked too
 	if len(components) == 4 {
-		assert.Contains(t, componentNames, "platform-infrastructure", "Should contain git component: platform-infrastructure")
+		assert.Contains(t, componentNames, "Platform Infrastructure", "Should contain git component: Platform Infrastructure")
 	} else {
 		t.Log("Git sync failed - only filesystem components found (this is expected if testdata structure doesn't exist in git)")
 	}

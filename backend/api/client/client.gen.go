@@ -11,12 +11,58 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
-// Component defines model for Component.
+// Defines values for HealthStatus.
+const (
+	Healthy   HealthStatus = "healthy"
+	Unhealthy HealthStatus = "unhealthy"
+)
+
+// Component A component discovered from a source
 type Component struct {
-	Id   *string `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
+	// Description Additional context about the component's purpose and functionality
+	Description *string `json:"description,omitempty"`
+
+	// Id Unique identifier for the component. If not provided, the name will be used as the identifier.
+	Id *string `json:"id,omitempty"`
+
+	// Name Human-readable name of the component
+	Name string `json:"name"`
+
+	// Owners Ownership information for a component
+	Owners *Owners `json:"owners,omitempty"`
+}
+
+// Error Error response
+type Error struct {
+	// Code Error code
+	Code *string `json:"code,omitempty"`
+
+	// Error Error message
+	Error string `json:"error"`
+}
+
+// Health Health status of the service
+type Health struct {
+	// Status Health status
+	Status HealthStatus `json:"status"`
+
+	// Timestamp Timestamp of the health check
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// HealthStatus Health status
+type HealthStatus string
+
+// Owners Ownership information for a component
+type Owners struct {
+	// Maintainers List of user identifiers responsible for maintaining this component
+	Maintainers *[]string `json:"maintainers,omitempty"`
+
+	// Team Team responsible for owning this component
+	Team *string `json:"team,omitempty"`
 }
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -94,10 +140,25 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 type ClientInterface interface {
 	// GetComponents request
 	GetComponents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHealth request
+	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetComponents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetComponentsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHealthRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +179,33 @@ func NewGetComponentsRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/components")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHealthRequest generates requests for GetHealth
+func NewGetHealthRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/healthz")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -180,12 +268,16 @@ func WithBaseURL(baseURL string) ClientOption {
 type ClientWithResponsesInterface interface {
 	// GetComponentsWithResponse request
 	GetComponentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetComponentsResponse, error)
+
+	// GetHealthWithResponse request
+	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
 }
 
 type GetComponentsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]Component
+	JSON500      *Error
 }
 
 // Status returns HTTPResponse.Status
@@ -204,6 +296,28 @@ func (r GetComponentsResponse) StatusCode() int {
 	return 0
 }
 
+type GetHealthResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Health
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHealthResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHealthResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // GetComponentsWithResponse request returning *GetComponentsResponse
 func (c *ClientWithResponses) GetComponentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetComponentsResponse, error) {
 	rsp, err := c.GetComponents(ctx, reqEditors...)
@@ -211,6 +325,15 @@ func (c *ClientWithResponses) GetComponentsWithResponse(ctx context.Context, req
 		return nil, err
 	}
 	return ParseGetComponentsResponse(rsp)
+}
+
+// GetHealthWithResponse request returning *GetHealthResponse
+func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error) {
+	rsp, err := c.GetHealth(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHealthResponse(rsp)
 }
 
 // ParseGetComponentsResponse parses an HTTP response from a GetComponentsWithResponse call
@@ -229,6 +352,39 @@ func ParseGetComponentsResponse(rsp *http.Response) (*GetComponentsResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []Component
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHealthResponse parses an HTTP response from a GetHealthWithResponse call
+func ParseGetHealthResponse(rsp *http.Response) (*GetHealthResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHealthResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Health
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

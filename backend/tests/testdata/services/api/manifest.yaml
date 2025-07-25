@@ -1,5 +1,0 @@
-# API Gateway Service Manifest
-# Main API gateway that routes requests to backend services
-
-version: "v1"
-name: "api-gateway"

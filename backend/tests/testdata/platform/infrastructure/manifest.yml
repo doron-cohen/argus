@@ -1,5 +1,12 @@
 # Platform Infrastructure Manifest
-# Core infrastructure components and monitoring
+# This component represents the core platform infrastructure
 
 version: "v1"
-name: "platform-infrastructure"
+id: "platform-infrastructure"
+name: "Platform Infrastructure"
+description: "Core platform infrastructure including databases, message queues, and monitoring systems"
+owners:
+  maintainers:
+    - "dave@company.com"
+    - "@infra-team"
+  team: "Infrastructure Team"
