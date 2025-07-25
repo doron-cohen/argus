@@ -56,15 +56,15 @@ func getTestRepositoryURL() string {
 // skipIfRepositoryNotAccessible checks if the repository is accessible and skips the test if not
 func skipIfRepositoryNotAccessible(t *testing.T) {
 	ctx := context.Background()
-	client := sync.NewGitClient()
+	fetcher := sync.NewGitFetcher()
 
 	gitConfig := sync.GitSourceConfig{
 		URL:    getTestRepositoryURL(),
 		Branch: "main",
 	}
 
-	// Try to get the latest commit to check if repository is accessible
-	_, err := client.GetLatestCommit(ctx, gitConfig)
+	// Try to fetch components to check if repository is accessible
+	_, err := fetcher.Fetch(ctx, sync.NewSourceConfig(&gitConfig))
 	if err != nil {
 		t.Skipf("Repository %s not accessible (you may need to set ARGUS_TEST_REPO_URL env var to your fork): %v",
 			getTestRepositoryURL(), err)
@@ -83,7 +83,7 @@ func TestFilesystemSyncIntegration(t *testing.T) {
 
 	// Create config with filesystem source pointing to testdata
 	testConfig := TestConfig
-	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, "", 1*time.Second)
+	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, 1*time.Second)
 	testConfig.Sync = sync.Config{
 		Sources: []sync.SourceConfig{
 			sync.NewSourceConfig(fsConfig.GetConfig()),
@@ -129,7 +129,7 @@ func TestFilesystemSyncIntegration(t *testing.T) {
 	}
 }
 
-func TestFilesystemSyncWithBasePath(t *testing.T) {
+func TestFilesystemSyncWithSpecificPath(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -138,10 +138,11 @@ func TestFilesystemSyncWithBasePath(t *testing.T) {
 	clearDatabase(t)
 
 	testDataPath := getTestDataPath(t)
+	servicesPath := filepath.Join(testDataPath, "services")
 
-	// Test with BasePath pointing to services only
+	// Create config with filesystem source pointing to services subdirectory
 	testConfig := TestConfig
-	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, "services", 1*time.Second)
+	fsConfig := sync.NewFilesystemSourceConfig(servicesPath, 1*time.Second)
 	testConfig.Sync = sync.Config{
 		Sources: []sync.SourceConfig{
 			sync.NewSourceConfig(fsConfig.GetConfig()),
@@ -187,7 +188,7 @@ func TestFilesystemSyncWithBasePath(t *testing.T) {
 
 	// Verify platform component is NOT present
 	assert.NotContains(t, componentNames, "platform-infrastructure",
-		"Should not contain platform component when BasePath=services")
+		"Should not contain platform component when path points to services subdirectory")
 }
 
 func TestGitSyncIntegration(t *testing.T) {
@@ -271,7 +272,8 @@ func TestMixedSourcesIntegration(t *testing.T) {
 
 	// Create config with both filesystem and git sources
 	testConfig := TestConfig
-	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, "services", 1*time.Second)
+	servicesPath := filepath.Join(testDataPath, "services")
+	fsConfig := sync.NewFilesystemSourceConfig(servicesPath, 1*time.Second)
 	gitConfig := sync.NewGitSourceConfig(getTestRepositoryURL(), "main", "tests/testdata/platform", 10*time.Second)
 	testConfig.Sync = sync.Config{
 		Sources: []sync.SourceConfig{
@@ -374,9 +376,9 @@ func TestSyncErrorHandling(t *testing.T) {
 	// Clear database before test
 	clearDatabase(t)
 
-	// Create config with invalid filesystem path
+	// Create config with non-existent filesystem path
 	testConfig := TestConfig
-	fsConfig := sync.NewFilesystemSourceConfig("/non/existent/path", "", 1*time.Second)
+	fsConfig := sync.NewFilesystemSourceConfig("/non/existent/path", 1*time.Second)
 	testConfig.Sync = sync.Config{
 		Sources: []sync.SourceConfig{
 			sync.NewSourceConfig(fsConfig.GetConfig()),

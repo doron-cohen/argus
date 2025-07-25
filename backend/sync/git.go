@@ -67,66 +67,61 @@ func (g *GitSourceConfig) GetSourceType() string {
 	return g.Type
 }
 
-// GitClient handles git repository operations using go-git
-type GitClient struct {
-	tempDir        string
-	manifestClient *ManifestClient
+// GitFetcher implements ComponentsFetcher for git repositories
+type GitFetcher struct {
+	tempDir string
 }
 
-// NewGitClient creates a new git client
-func NewGitClient() *GitClient {
-	return &GitClient{
-		tempDir:        os.TempDir(),
-		manifestClient: NewManifestClient(),
+// NewGitFetcher creates a new git fetcher
+func NewGitFetcher() *GitFetcher {
+	return &GitFetcher{
+		tempDir: os.TempDir(),
 	}
 }
 
-// FindManifests finds all manifest.yaml and manifest.yml files in the repository
-func (g *GitClient) FindManifests(ctx context.Context, gitConfig GitSourceConfig) ([]string, error) {
-	repoDir, err := g.ensureRepository(ctx, gitConfig)
+// Fetch retrieves all components from a git repository
+func (g *GitFetcher) Fetch(ctx context.Context, source SourceConfig) ([]models.Component, error) {
+	cfg := source.GetConfig()
+	gitConfig, ok := cfg.(*GitSourceConfig)
+	if !ok {
+		return nil, fmt.Errorf("source is not a git config")
+	}
+
+	// Get repository directory
+	repoDir, err := g.ensureRepository(ctx, *gitConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure repository: %w", err)
 	}
 
-	// Use shared manifest discovery logic
-	return g.manifestClient.FindManifests(repoDir, gitConfig.BasePath)
-}
-
-// GetFileContent reads the content of a file from the repository
-func (g *GitClient) GetFileContent(ctx context.Context, gitConfig GitSourceConfig, filePath string) ([]byte, error) {
-	repoDir, err := g.ensureRepository(ctx, gitConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ensure repository: %w", err)
+	// Determine search directory based on base path
+	searchDir := repoDir
+	if gitConfig.BasePath != "" {
+		searchDir = filepath.Join(repoDir, gitConfig.BasePath)
+		// Check if base path exists
+		if _, err := os.Stat(searchDir); os.IsNotExist(err) {
+			return nil, fmt.Errorf("base path %s does not exist in repository", gitConfig.BasePath)
+		}
 	}
 
-	// Use shared file reading logic
-	return g.manifestClient.GetFileContent(repoDir, filePath)
-}
-
-// GetLatestCommit returns the latest commit hash using go-git
-func (g *GitClient) GetLatestCommit(ctx context.Context, gitConfig GitSourceConfig) (string, error) {
-	repoDir, err := g.ensureRepository(ctx, gitConfig)
+	// Load all manifests directly
+	manifests, err := LoadManifests(ctx, searchDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to ensure repository: %w", err)
+		return nil, fmt.Errorf("failed to load manifests: %w", err)
 	}
 
-	// Open the repository
-	repo, err := git.PlainOpen(repoDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to open repository: %w", err)
+	slog.Debug("Found manifest files", "count", len(manifests), "source", gitConfig.URL)
+
+	var components []models.Component
+	for _, manifest := range manifests {
+		component := manifest.Content.ToComponent()
+		components = append(components, component)
 	}
 
-	// Get the HEAD reference
-	ref, err := repo.Head()
-	if err != nil {
-		return "", fmt.Errorf("failed to get HEAD reference: %w", err)
-	}
-
-	return ref.Hash().String(), nil
+	return components, nil
 }
 
 // ensureRepository clones or updates the repository and returns the local path
-func (g *GitClient) ensureRepository(ctx context.Context, gitConfig GitSourceConfig) (string, error) {
+func (g *GitFetcher) ensureRepository(ctx context.Context, gitConfig GitSourceConfig) (string, error) {
 	// Create a safe directory name from the URL
 	dirName := g.sanitizeURL(gitConfig.URL)
 	repoDir := filepath.Join(g.tempDir, "argus-sync", dirName)
@@ -149,7 +144,7 @@ func (g *GitClient) ensureRepository(ctx context.Context, gitConfig GitSourceCon
 }
 
 // cloneRepository clones the repository using go-git with optional sparse checkout
-func (g *GitClient) cloneRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
+func (g *GitFetcher) cloneRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(repoDir), 0755); err != nil {
 		return fmt.Errorf("failed to create parent directory: %w", err)
@@ -180,7 +175,7 @@ func (g *GitClient) cloneRepository(ctx context.Context, gitConfig GitSourceConf
 }
 
 // updateRepository pulls the latest changes using go-git
-func (g *GitClient) updateRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
+func (g *GitFetcher) updateRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
 	// Open the repository
 	repo, err := git.PlainOpen(repoDir)
 	if err != nil {
@@ -234,7 +229,7 @@ func (g *GitClient) updateRepository(ctx context.Context, gitConfig GitSourceCon
 }
 
 // setupSparseCheckout configures sparse checkout for the specified base path
-func (g *GitClient) setupSparseCheckout(repo *git.Repository, basePath string) error {
+func (g *GitFetcher) setupSparseCheckout(repo *git.Repository, basePath string) error {
 	// Get the working tree
 	worktree, err := repo.Worktree()
 	if err != nil {
@@ -288,7 +283,7 @@ func (g *GitClient) setupSparseCheckout(repo *git.Repository, basePath string) e
 }
 
 // sanitizeURL creates a safe directory name from a URL
-func (g *GitClient) sanitizeURL(url string) string {
+func (g *GitFetcher) sanitizeURL(url string) string {
 	// Remove protocol
 	url = strings.TrimPrefix(url, "https://")
 	url = strings.TrimPrefix(url, "http://")
@@ -300,66 +295,4 @@ func (g *GitClient) sanitizeURL(url string) string {
 	url = strings.ReplaceAll(url, ".", "_")
 
 	return url
-}
-
-// GitFetcher implements ComponentsFetcher for git repositories
-type GitFetcher struct {
-	client *GitClient
-	parser *models.Parser
-}
-
-// NewGitFetcher creates a new git fetcher
-func NewGitFetcher() *GitFetcher {
-	return &GitFetcher{
-		client: NewGitClient(),
-		parser: models.NewParser(),
-	}
-}
-
-// Fetch retrieves all components from a git repository
-func (g *GitFetcher) Fetch(ctx context.Context, source SourceConfig) ([]models.Component, error) {
-	cfg := source.GetConfig()
-	gitConfig, ok := cfg.(*GitSourceConfig)
-	if !ok {
-		return nil, fmt.Errorf("source is not a git config")
-	}
-
-	// Find all manifest files
-	manifestPaths, err := g.client.FindManifests(ctx, *gitConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find manifests: %w", err)
-	}
-
-	slog.Debug("Found manifest files", "count", len(manifestPaths), "source", gitConfig.URL)
-
-	var components []models.Component
-	for _, path := range manifestPaths {
-		component, err := g.fetchComponentFromManifest(ctx, *gitConfig, path)
-		if err != nil {
-			slog.Warn("Failed to process manifest", "path", path, "source", gitConfig.URL, "error", err)
-			continue // Skip invalid manifests, don't fail entire sync
-		}
-		components = append(components, component)
-	}
-
-	return components, nil
-}
-
-// fetchComponentFromManifest processes a single manifest file and returns a Component
-func (g *GitFetcher) fetchComponentFromManifest(ctx context.Context, gitConfig GitSourceConfig, path string) (models.Component, error) {
-	content, err := g.client.GetFileContent(ctx, gitConfig, path)
-	if err != nil {
-		return models.Component{}, fmt.Errorf("failed to get file content: %w", err)
-	}
-
-	manifest, err := g.parser.Parse(content)
-	if err != nil {
-		return models.Component{}, fmt.Errorf("failed to parse manifest: %w", err)
-	}
-
-	if err := g.parser.Validate(manifest); err != nil {
-		return models.Component{}, fmt.Errorf("invalid manifest: %w", err)
-	}
-
-	return manifest.ToComponent(), nil
 }

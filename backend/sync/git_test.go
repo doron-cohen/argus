@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -9,102 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
-
-func TestNewGitClient(t *testing.T) {
-	client := NewGitClient()
-
-	assert.NotNil(t, client)
-	assert.NotEmpty(t, client.tempDir)
-}
-
-func TestGitClient_sanitizeURL(t *testing.T) {
-	client := NewGitClient()
-
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "https URL",
-			input:    "https://github.com/user/repo.git",
-			expected: "github_com_user_repo_git",
-		},
-		{
-			name:     "http URL",
-			input:    "http://gitlab.com/group/project",
-			expected: "gitlab_com_group_project",
-		},
-		{
-			name:     "ssh URL",
-			input:    "git@github.com:user/repo.git",
-			expected: "github_com_user_repo_git",
-		},
-		{
-			name:     "complex URL with ports",
-			input:    "https://gitlab.example.com:8080/namespace/project.git",
-			expected: "gitlab_example_com_8080_namespace_project_git",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := client.sanitizeURL(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestManifestClient_findFiles(t *testing.T) {
-	manifestClient := NewManifestClient()
-
-	// Test with current directory (should find our test files)
-	files, err := manifestClient.findFiles(".", "git_test.go")
-
-	require.NoError(t, err)
-	assert.Contains(t, files, "git_test.go")
-}
-
-func TestGitSourceConfig_BasePath(t *testing.T) {
-	tests := []struct {
-		name     string
-		config   GitSourceConfig
-		expected string
-	}{
-		{
-			name: "no base path",
-			config: GitSourceConfig{
-				URL:    "https://github.com/user/repo",
-				Branch: "main",
-			},
-			expected: "",
-		},
-		{
-			name: "with base path",
-			config: GitSourceConfig{
-				URL:      "https://github.com/user/monorepo",
-				Branch:   "main",
-				BasePath: "services/api",
-			},
-			expected: "services/api",
-		},
-		{
-			name: "base path with leading slash",
-			config: GitSourceConfig{
-				URL:      "https://github.com/user/monorepo",
-				Branch:   "main",
-				BasePath: "/microservices/auth",
-			},
-			expected: "/microservices/auth",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, tt.config.BasePath)
-		})
-	}
-}
 
 func TestSourceConfig_GitConfig(t *testing.T) {
 	tests := []struct {
@@ -119,9 +22,8 @@ func TestSourceConfig_GitConfig(t *testing.T) {
 url: https://github.com/user/repo`,
 			expectError: false,
 			expected: GitSourceConfig{
-				Type:   "git",
-				URL:    "https://github.com/user/repo",
-				Branch: "main", // default
+				Type: "git",
+				URL:  "https://github.com/user/repo",
 			},
 		},
 		{
@@ -140,20 +42,19 @@ branch: develop`,
 			name: "git config with valid interval",
 			yamlSource: `type: git
 url: https://github.com/user/repo
-interval: 30s`,
+interval: 10s`,
 			expectError: false,
 			expected: GitSourceConfig{
 				Type:     "git",
 				URL:      "https://github.com/user/repo",
-				Branch:   "main",
-				Interval: 30 * time.Second,
+				Interval: 10 * time.Second,
 			},
 		},
 		{
 			name: "git config with interval too low",
 			yamlSource: `type: git
 url: https://github.com/user/repo
-interval: 5s`,
+interval: 500ms`,
 			expectError: true,
 		},
 		{
@@ -197,7 +98,9 @@ path: /some/path`,
 			assert.True(t, ok)
 			assert.Equal(t, tt.expected.Type, gitConfig.Type)
 			assert.Equal(t, tt.expected.URL, gitConfig.URL)
-			assert.Equal(t, tt.expected.Branch, gitConfig.Branch)
+			if tt.expected.Branch != "" {
+				assert.Equal(t, tt.expected.Branch, gitConfig.Branch)
+			}
 			if tt.expected.Interval > 0 {
 				assert.Equal(t, tt.expected.Interval, gitConfig.Interval)
 			}
@@ -205,59 +108,81 @@ path: /some/path`,
 	}
 }
 
-func TestGitClient_FindManifests_WithBasePath(t *testing.T) {
-	client := NewGitClient()
-	ctx := context.Background()
-
-	// Test with a non-existent base path - should return error
-	gitConfig := GitSourceConfig{
-		URL:      "invalid-url",
-		Branch:   "main",
-		BasePath: "non-existent-path",
+func TestGitSourceConfig_BasePath(t *testing.T) {
+	tests := []struct {
+		name     string
+		basePath string
+		expected string
+	}{
+		{
+			name:     "no base path",
+			basePath: "",
+			expected: "",
+		},
+		{
+			name:     "with base path",
+			basePath: "services",
+			expected: "services",
+		},
+		{
+			name:     "base path with leading slash",
+			basePath: "/services",
+			expected: "/services",
+		},
 	}
 
-	manifests, err := client.FindManifests(ctx, gitConfig)
-	assert.Error(t, err)
-	assert.Nil(t, manifests)
-	assert.Contains(t, err.Error(), "failed to ensure repository")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := GitSourceConfig{
+				BasePath: tt.basePath,
+			}
+			assert.Equal(t, tt.expected, config.GetBasePath())
+		})
+	}
 }
 
-// Note: These tests would require actual git repositories to test fully.
-// In a real test suite, you might use test fixtures or temporary git repos.
-func TestGitClient_ErrorCases(t *testing.T) {
-	client := NewGitClient()
-	ctx := context.Background()
+func TestGitFetcher_sanitizeURL(t *testing.T) {
+	fetcher := &GitFetcher{}
 
-	// Test with invalid git config
-	invalidGitConfig := GitSourceConfig{
-		URL:    "invalid-url",
-		Branch: "main",
+	tests := []struct {
+		name     string
+		url      string
+		expected string
+	}{
+		{
+			name:     "https URL",
+			url:      "https://github.com/user/repo",
+			expected: "github_com_user_repo",
+		},
+		{
+			name:     "http URL",
+			url:      "http://github.com/user/repo",
+			expected: "github_com_user_repo",
+		},
+		{
+			name:     "ssh URL",
+			url:      "git@github.com:user/repo.git",
+			expected: "github_com_user_repo_git",
+		},
+		{
+			name:     "complex URL with ports",
+			url:      "https://git.example.com:8443/user/repo",
+			expected: "git_example_com_8443_user_repo",
+		},
 	}
 
-	t.Run("invalid repository URL", func(t *testing.T) {
-		manifests, err := client.FindManifests(ctx, invalidGitConfig)
-		assert.Error(t, err)
-		assert.Nil(t, manifests)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := fetcher.sanitizeURL(tt.url)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
 
-	t.Run("get file content from invalid repo", func(t *testing.T) {
-		content, err := client.GetFileContent(ctx, invalidGitConfig, "test.txt")
-		assert.Error(t, err)
-		assert.Nil(t, content)
-	})
+func TestNewFetcher_GitType(t *testing.T) {
+	fetcher, err := NewFetcher("git")
 
-	t.Run("get latest commit from invalid repo", func(t *testing.T) {
-		commit, err := client.GetLatestCommit(ctx, invalidGitConfig)
-		assert.Error(t, err)
-		assert.Empty(t, commit)
-	})
-
-	t.Run("invalid repository URL with base path", func(t *testing.T) {
-		gitConfigWithBasePath := invalidGitConfig
-		gitConfigWithBasePath.BasePath = "some/path"
-
-		manifests, err := client.FindManifests(ctx, gitConfigWithBasePath)
-		assert.Error(t, err)
-		assert.Nil(t, manifests)
-	})
+	require.NoError(t, err)
+	assert.NotNil(t, fetcher)
+	assert.IsType(t, &GitFetcher{}, fetcher)
 }

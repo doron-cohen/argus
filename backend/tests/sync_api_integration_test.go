@@ -22,7 +22,7 @@ func TestSyncAPIEndpoints(t *testing.T) {
 
 	// Create config with filesystem source pointing to testdata
 	testConfig := TestConfig
-	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, "", time.Second)
+	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, time.Second)
 	testConfig.Sync = sync.Config{
 		Sources: []sync.SourceConfig{
 			sync.NewSourceConfig(fsConfig.GetConfig()),

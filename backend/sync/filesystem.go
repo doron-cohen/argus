@@ -15,7 +15,6 @@ type FilesystemSourceConfig struct {
 	Type     string        `fig:"type" yaml:"type"`
 	Interval time.Duration `fig:"interval" yaml:"interval"`
 	Path     string        `fig:"path" yaml:"path"`
-	BasePath string        `fig:"base_path" yaml:"base_path,omitempty"`
 }
 
 // Validate ensures the filesystem configuration is valid
@@ -48,9 +47,9 @@ func (f *FilesystemSourceConfig) GetInterval() time.Duration {
 	return f.Interval
 }
 
-// GetBasePath returns the base path for this source
+// GetBasePath returns the base path for this source (always empty for filesystem)
 func (f *FilesystemSourceConfig) GetBasePath() string {
-	return f.BasePath
+	return ""
 }
 
 // GetSourceType returns the source type
@@ -58,67 +57,12 @@ func (f *FilesystemSourceConfig) GetSourceType() string {
 	return f.Type
 }
 
-// FilesystemClient handles filesystem operations for syncing
-type FilesystemClient struct {
-	manifestClient *ManifestClient
-}
-
-// NewFilesystemClient creates a new filesystem client
-func NewFilesystemClient() *FilesystemClient {
-	return &FilesystemClient{
-		manifestClient: NewManifestClient(),
-	}
-}
-
-// FindManifests finds all manifest.yaml and manifest.yml files in the filesystem path
-func (f *FilesystemClient) FindManifests(ctx context.Context, config FilesystemSourceConfig) ([]string, error) {
-	// Resolve absolute path
-	rootPath, err := filepath.Abs(config.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve absolute path for %s: %w", config.Path, err)
-	}
-
-	// Validate that the root path exists
-	if err := f.manifestClient.ValidateBasePath(rootPath, ""); err != nil {
-		return nil, fmt.Errorf("filesystem path %s does not exist", config.Path)
-	}
-
-	// Use shared manifest discovery logic
-	return f.manifestClient.FindManifests(rootPath, config.BasePath)
-}
-
-// GetFileContent reads the content of a file from the filesystem
-func (f *FilesystemClient) GetFileContent(ctx context.Context, config FilesystemSourceConfig, filePath string) ([]byte, error) {
-	// Resolve absolute path
-	rootPath, err := filepath.Abs(config.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve absolute path for %s: %w", config.Path, err)
-	}
-
-	// Use shared file reading logic
-	return f.manifestClient.GetFileContent(rootPath, filePath)
-}
-
-// GetLastModified returns a simple timestamp for filesystem sources (not as sophisticated as git commits)
-// This could be enhanced to track the most recent modification time of manifest files
-func (f *FilesystemClient) GetLastModified(ctx context.Context, config FilesystemSourceConfig) (string, error) {
-	// For now, we'll just return a simple indicator that this is a filesystem source
-	// In the future, this could track the modification times of manifest files
-	return fmt.Sprintf("filesystem:%s", config.Path), nil
-}
-
 // FilesystemFetcher implements ComponentsFetcher for local filesystem
-type FilesystemFetcher struct {
-	client *FilesystemClient
-	parser *models.Parser
-}
+type FilesystemFetcher struct{}
 
 // NewFilesystemFetcher creates a new filesystem fetcher
 func NewFilesystemFetcher() *FilesystemFetcher {
-	return &FilesystemFetcher{
-		client: NewFilesystemClient(),
-		parser: models.NewParser(),
-	}
+	return &FilesystemFetcher{}
 }
 
 // Fetch retrieves all components from a filesystem path
@@ -129,42 +73,25 @@ func (f *FilesystemFetcher) Fetch(ctx context.Context, source SourceConfig) ([]m
 		return nil, fmt.Errorf("source is not a filesystem config")
 	}
 
-	// Find all manifest files
-	manifestPaths, err := f.client.FindManifests(ctx, *filesystemConfig)
+	// Resolve absolute path
+	rootPath, err := filepath.Abs(filesystemConfig.Path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find manifests: %w", err)
+		return nil, fmt.Errorf("failed to resolve absolute path for %s: %w", filesystemConfig.Path, err)
 	}
 
-	slog.Debug("Found manifest files", "count", len(manifestPaths), "source", filesystemConfig.Path)
+	// Load all manifests directly
+	manifests, err := LoadManifests(ctx, rootPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load manifests: %w", err)
+	}
+
+	slog.Debug("Found manifest files", "count", len(manifests), "source", filesystemConfig.Path)
 
 	var components []models.Component
-	for _, path := range manifestPaths {
-		component, err := f.fetchComponentFromManifest(ctx, *filesystemConfig, path)
-		if err != nil {
-			slog.Warn("Failed to process manifest", "path", path, "source", filesystemConfig.Path, "error", err)
-			continue // Skip invalid manifests, don't fail entire sync
-		}
+	for _, manifest := range manifests {
+		component := manifest.Content.ToComponent()
 		components = append(components, component)
 	}
 
 	return components, nil
-}
-
-// fetchComponentFromManifest processes a single manifest file and returns a Component
-func (f *FilesystemFetcher) fetchComponentFromManifest(ctx context.Context, filesystemConfig FilesystemSourceConfig, path string) (models.Component, error) {
-	content, err := f.client.GetFileContent(ctx, filesystemConfig, path)
-	if err != nil {
-		return models.Component{}, fmt.Errorf("failed to get file content: %w", err)
-	}
-
-	manifest, err := f.parser.Parse(content)
-	if err != nil {
-		return models.Component{}, fmt.Errorf("failed to parse manifest: %w", err)
-	}
-
-	if err := f.parser.Validate(manifest); err != nil {
-		return models.Component{}, fmt.Errorf("invalid manifest: %w", err)
-	}
-
-	return manifest.ToComponent(), nil
 }

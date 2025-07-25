@@ -41,17 +41,9 @@ sync:
       path: "/opt/services"
       interval: "2m" # Minimum 1s for filesystem sources
 
-    # Local filesystem with base path optimization
-    # Only syncs manifests from the "production" subdirectory
-    - type: filesystem
-      path: "/opt/deployments"
-      base_path: "production"
-      interval: "5m"
-
     # Development environment - local project directory
     - type: filesystem
       path: "./local-services"
-      base_path: "active"
       interval: "30s" # Fast interval for development
 
 # Examples of mixed scenarios:

@@ -125,12 +125,11 @@ func NewGitSourceConfig(url, branch, basePath string, interval time.Duration) Ty
 	}
 }
 
-func NewFilesystemSourceConfig(path, basePath string, interval time.Duration) TypedSourceConfig[*FilesystemSourceConfig] {
+func NewFilesystemSourceConfig(path string, interval time.Duration) TypedSourceConfig[*FilesystemSourceConfig] {
 	return TypedSourceConfig[*FilesystemSourceConfig]{
 		Config: &FilesystemSourceConfig{
 			Type:     "filesystem",
 			Path:     path,
-			BasePath: basePath,
 			Interval: interval,
 		},
 	}

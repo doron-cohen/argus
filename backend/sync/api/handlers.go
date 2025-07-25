@@ -115,8 +115,7 @@ func (s *SyncAPIServer) convertToAPISource(source sync.SourceConfig, id int64) S
 			fsConfig := cfg.(*sync.FilesystemSourceConfig)
 			apiSource.Type = (*SyncSourceType)(stringPtr("filesystem"))
 			fsAPIConfig := FilesystemSourceConfig{
-				Path:     stringPtr(fsConfig.Path),
-				BasePath: stringPtr(fsConfig.BasePath),
+				Path: stringPtr(fsConfig.Path),
 			}
 			apiSource.Config = &SyncSource_Config{}
 			apiSource.Config.FromFilesystemSourceConfig(fsAPIConfig)
