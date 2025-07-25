@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/doron-cohen/argus/backend/internal/models"
 	"github.com/doron-cohen/argus/backend/internal/storage"
@@ -40,6 +43,15 @@ func (m *MockRepository) CreateComponent(ctx context.Context, component storage.
 	return args.Error(0)
 }
 
+func newSourceConfigFromYAMLOrPanic(yamlSource string) SourceConfig {
+	var source SourceConfig
+	err := yaml.Unmarshal([]byte(yamlSource), &source)
+	if err != nil {
+		panic(err)
+	}
+	return source
+}
+
 func TestService_SyncSource_Success(t *testing.T) {
 	// Setup
 	mockRepo := &MockRepository{}
@@ -51,10 +63,7 @@ func TestService_SyncSource_Success(t *testing.T) {
 		fetchers: map[string]ComponentsFetcher{"git": mockFetcher},
 	}
 
-	source := SourceConfig{
-		Type: "git",
-		URL:  "https://github.com/test/repo",
-	}
+	source := newSourceConfigFromYAMLOrPanic("type: git\nurl: https://github.com/test/repo")
 
 	expectedComponents := []models.Component{
 		{Name: "service-a"},
@@ -94,10 +103,7 @@ func TestService_SyncSource_SkipExistingComponents(t *testing.T) {
 		fetchers: map[string]ComponentsFetcher{"git": mockFetcher},
 	}
 
-	source := SourceConfig{
-		Type: "git",
-		URL:  "https://github.com/test/repo",
-	}
+	source := newSourceConfigFromYAMLOrPanic("type: git\nurl: https://github.com/test/repo")
 
 	expectedComponents := []models.Component{
 		{Name: "existing-service"},
@@ -137,10 +143,7 @@ func TestService_SyncSource_FetchError(t *testing.T) {
 		fetchers: map[string]ComponentsFetcher{"git": mockFetcher},
 	}
 
-	source := SourceConfig{
-		Type: "git",
-		URL:  "https://github.com/test/repo",
-	}
+	source := newSourceConfigFromYAMLOrPanic("type: git\nurl: https://github.com/test/repo")
 
 	ctx := context.Background()
 	fetchError := errors.New("failed to clone repository")
@@ -170,10 +173,7 @@ func TestService_SyncSource_CreateComponentError(t *testing.T) {
 		fetchers: map[string]ComponentsFetcher{"git": mockFetcher},
 	}
 
-	source := SourceConfig{
-		Type: "git",
-		URL:  "https://github.com/test/repo",
-	}
+	source := newSourceConfigFromYAMLOrPanic("type: git\nurl: https://github.com/test/repo")
 
 	expectedComponents := []models.Component{
 		{Name: "failing-service"},
@@ -213,9 +213,11 @@ func TestService_SyncSource_UnsupportedSourceType(t *testing.T) {
 		fetchers: make(map[string]ComponentsFetcher),
 	}
 
+	// Test that the service handles unsupported source types gracefully
+	// Create a source config with an unsupported type
+	// We need to create a SourceConfig manually since YAML unmarshaling would fail
 	source := SourceConfig{
-		Type: "svn", // Unsupported type
-		URL:  "https://svn.example.com/repo",
+		config: &MockSourceConfig{sourceType: "svn"},
 	}
 
 	ctx := context.Background()
@@ -227,6 +229,27 @@ func TestService_SyncSource_UnsupportedSourceType(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get fetcher")
 	assert.Contains(t, err.Error(), "unsupported source type: svn")
+}
+
+// MockSourceConfig implements SourceTypeConfig for testing unsupported types
+type MockSourceConfig struct {
+	sourceType string
+}
+
+func (m *MockSourceConfig) Validate() error {
+	return nil
+}
+
+func (m *MockSourceConfig) GetInterval() time.Duration {
+	return 5 * time.Minute
+}
+
+func (m *MockSourceConfig) GetBasePath() string {
+	return ""
+}
+
+func (m *MockSourceConfig) GetSourceType() string {
+	return m.sourceType
 }
 
 func TestService_StartPeriodicSync_NoSources(t *testing.T) {
@@ -259,7 +282,7 @@ func TestService_processComponent_DatabaseCheckError(t *testing.T) {
 	}
 
 	component := models.Component{Name: "test-service"}
-	source := SourceConfig{URL: "https://github.com/test/repo"}
+	source := newSourceConfigFromYAMLOrPanic("type: git\nurl: https://github.com/test/repo")
 	ctx := context.Background()
 
 	dbError := errors.New("database connection lost")
@@ -298,10 +321,9 @@ func TestService_getFetcher_Caching(t *testing.T) {
 func TestNewService(t *testing.T) {
 	// Setup
 	mockRepo := &MockRepository{}
+	source := newSourceConfigFromYAMLOrPanic("type: git\nurl: https://github.com/test/repo")
 	config := Config{
-		Sources: []SourceConfig{
-			{Type: "git", URL: "https://github.com/test/repo"},
-		},
+		Sources: []SourceConfig{source},
 	}
 
 	// Execute
@@ -313,4 +335,12 @@ func TestNewService(t *testing.T) {
 	assert.Equal(t, config, service.config)
 	assert.NotNil(t, service.fetchers)
 	assert.Empty(t, service.fetchers) // Should start empty
+}
+
+func TestService_EmptySources(t *testing.T) {
+	mockRepo := &MockRepository{}
+	config := Config{Sources: []SourceConfig{}}
+	service := NewService(mockRepo, config)
+	assert.NotNil(t, service)
+	assert.Empty(t, service.config.Sources)
 }

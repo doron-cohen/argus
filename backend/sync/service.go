@@ -42,11 +42,18 @@ func (s *Service) StartPeriodicSync(ctx context.Context) {
 
 // startSourceSync starts periodic sync for a single source
 func (s *Service) startSourceSync(ctx context.Context, source SourceConfig) {
-	ticker := time.NewTicker(source.Interval)
+	interval := time.Duration(0)
+	if cfg := source.GetConfig(); cfg != nil {
+		interval = cfg.GetInterval()
+	}
+	if interval == 0 {
+		interval = 5 * time.Minute // fallback default
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	sourceInfo := s.getSourceInfo(source)
-	slog.Info("Starting periodic sync for source", "source", sourceInfo, "interval", source.Interval)
+	slog.Info("Starting periodic sync for source", "source", sourceInfo, "interval", interval)
 
 	// Initial sync
 	if err := s.SyncSource(ctx, source); err != nil {
@@ -69,10 +76,15 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig) {
 // SyncSource performs a full sync for a single source
 func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 	sourceInfo := s.getSourceInfo(source)
-	slog.Info("Starting sync", "source", sourceInfo, "type", source.Type)
+	cfg := source.GetConfig()
+	sourceType := "unknown"
+	if cfg != nil {
+		sourceType = cfg.GetSourceType()
+	}
+	slog.Info("Starting sync", "source", sourceInfo, "type", sourceType)
 
 	// Get or create fetcher for this source type
-	fetcher, err := s.getFetcher(source.Type)
+	fetcher, err := s.getFetcher(sourceType)
 	if err != nil {
 		return fmt.Errorf("failed to get fetcher: %w", err)
 	}
@@ -150,18 +162,13 @@ func (s *Service) getFetcher(sourceType string) (ComponentsFetcher, error) {
 
 // getSourceInfo returns a string representation of the source for logging
 func (s *Service) getSourceInfo(source SourceConfig) string {
-	switch source.Type {
-	case "git":
-		if gitConfig, err := source.GitConfig(); err == nil {
-			return gitConfig.URL
-		}
-		return source.URL // fallback to raw field
-	case "filesystem":
-		if fsConfig, err := source.FilesystemConfig(); err == nil {
-			return fsConfig.Path
-		}
-		return source.Path // fallback to raw field
+	cfg := source.GetConfig()
+	switch c := cfg.(type) {
+	case *GitSourceConfig:
+		return c.URL
+	case *FilesystemSourceConfig:
+		return c.Path
 	default:
-		return fmt.Sprintf("%s:%s", source.Type, source.URL)
+		return "unknown"
 	}
 }

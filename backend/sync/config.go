@@ -3,6 +3,8 @@ package sync
 import (
 	"fmt"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -16,73 +18,120 @@ type Config struct {
 	Sources []SourceConfig `fig:"sources"`
 }
 
-// SourceConfig defines a single source to sync from with type-specific configuration
+// SourceTypeConfig is a regular interface for different source types
+type SourceTypeConfig interface {
+	Validate() error
+	GetInterval() time.Duration
+	GetBasePath() string
+	GetSourceType() string
+}
+
+// SourceConfigConstraint is a type constraint for compile-time type safety
+type SourceConfigConstraint interface {
+	*GitSourceConfig | *FilesystemSourceConfig
+	SourceTypeConfig
+}
+
+// TypedSourceConfig provides compile-time type safety for individual source configs
+type TypedSourceConfig[T SourceConfigConstraint] struct {
+	Config T `fig:",inline" yaml:",inline"`
+}
+
+func (t *TypedSourceConfig[T]) GetConfig() T {
+	return t.Config
+}
+
+func (t *TypedSourceConfig[T]) UnmarshalYAML(node *yaml.Node) error {
+	// Unmarshal directly into the generic config
+	if err := node.Decode(&t.Config); err != nil {
+		return fmt.Errorf("failed to decode source config: %w", err)
+	}
+
+	// Validate the configuration
+	if err := t.Config.Validate(); err != nil {
+		return fmt.Errorf("invalid source config: %w", err)
+	}
+
+	return nil
+}
+
+// SourceConfig wraps any valid source type configuration
+// This is needed for heterogeneous collections since we can't have []TypedSourceConfig[T] with mixed types
 type SourceConfig struct {
-	Type     string        `fig:"type"`                  // "git" or "filesystem"
-	Interval time.Duration `fig:"interval" default:"5m"` // How often to sync this source
-
-	// Git-specific configuration (only used when Type="git")
-	URL    string `fig:"url,omitempty"`    // Git repository URL
-	Branch string `fig:"branch,omitempty"` // Git branch to sync from
-
-	// Filesystem-specific configuration (only used when Type="filesystem")
-	Path string `fig:"path,omitempty"` // Local filesystem path
-
-	// Common configuration (used by both git and filesystem)
-	BasePath string `fig:"base_path,omitempty"` // Optional: subdirectory to sync from
+	config SourceTypeConfig
 }
 
-// GitConfig returns git-specific configuration, validates required fields
-func (s SourceConfig) GitConfig() (GitSourceConfig, error) {
-	if s.Type != "git" {
-		return GitSourceConfig{}, fmt.Errorf("source type is %s, not git", s.Type)
-	}
-	if s.URL == "" {
-		return GitSourceConfig{}, fmt.Errorf("git source requires url field")
-	}
-	if s.Interval > 0 && s.Interval < MinGitInterval {
-		return GitSourceConfig{}, fmt.Errorf("git source interval must be at least %v, got %v", MinGitInterval, s.Interval)
-	}
-
-	branch := s.Branch
-	if branch == "" {
-		branch = "main" // Default branch
-	}
-
-	return GitSourceConfig{
-		URL:      s.URL,
-		Branch:   branch,
-		BasePath: s.BasePath,
-	}, nil
+// GetConfig returns the underlying type-specific configuration
+func (s *SourceConfig) GetConfig() SourceTypeConfig {
+	return s.config
 }
 
-// FilesystemConfig returns filesystem-specific configuration, validates required fields
-func (s SourceConfig) FilesystemConfig() (FilesystemSourceConfig, error) {
-	if s.Type != "filesystem" {
-		return FilesystemSourceConfig{}, fmt.Errorf("source type is %s, not filesystem", s.Type)
-	}
-	if s.Path == "" {
-		return FilesystemSourceConfig{}, fmt.Errorf("filesystem source requires path field")
-	}
-	if s.Interval > 0 && s.Interval < MinFilesystemInterval {
-		return FilesystemSourceConfig{}, fmt.Errorf("filesystem source interval must be at least %v, got %v", MinFilesystemInterval, s.Interval)
+// UnmarshalYAML implements custom YAML unmarshaling for SourceConfig
+func (s *SourceConfig) UnmarshalYAML(node *yaml.Node) error {
+	// First, decode just enough to determine the type
+	var typeInfo struct {
+		Type string `yaml:"type"`
 	}
 
-	return FilesystemSourceConfig{
-		Path:     s.Path,
-		BasePath: s.BasePath,
-	}, nil
+	if err := node.Decode(&typeInfo); err != nil {
+		return fmt.Errorf("failed to decode source type: %w", err)
+	}
+
+	// Create the appropriate config type based on the "type" field
+	var config SourceTypeConfig
+	switch typeInfo.Type {
+	case "git":
+		config = &GitSourceConfig{}
+	case "filesystem":
+		config = &FilesystemSourceConfig{}
+	default:
+		return fmt.Errorf("unknown source type: %s", typeInfo.Type)
+	}
+
+	// Unmarshal the full configuration into the specific type
+	if err := node.Decode(config); err != nil {
+		return fmt.Errorf("failed to decode %s source config: %w", typeInfo.Type, err)
+	}
+
+	// Validate the configuration
+	if err := config.Validate(); err != nil {
+		return fmt.Errorf("invalid %s source config: %w", typeInfo.Type, err)
+	}
+
+	s.config = config
+	return nil
 }
 
-// GitSourceConfig holds git-specific configuration
-type GitSourceConfig struct {
-	URL      string // Repository URL
-	Branch   string // Git branch to sync from
-	BasePath string // Optional: subdirectory to sync from
+// MarshalYAML implements custom YAML marshaling for SourceConfig
+func (s *SourceConfig) MarshalYAML() (interface{}, error) {
+	return s.config, nil
 }
 
-// FilesystemSourceConfig holds filesystem-specific configuration
-type FilesystemSourceConfig struct {
-	Path     string // Local filesystem path
-	BasePath string // Optional: subdirectory to sync from
+// NewSourceConfig creates a new SourceConfig from a SourceTypeConfig
+func NewSourceConfig(config SourceTypeConfig) SourceConfig {
+	return SourceConfig{config: config}
+}
+
+// Factory functions for type-safe creation
+func NewGitSourceConfig(url, branch, basePath string, interval time.Duration) TypedSourceConfig[*GitSourceConfig] {
+	return TypedSourceConfig[*GitSourceConfig]{
+		Config: &GitSourceConfig{
+			Type:     "git",
+			URL:      url,
+			Branch:   branch,
+			BasePath: basePath,
+			Interval: interval,
+		},
+	}
+}
+
+func NewFilesystemSourceConfig(path, basePath string, interval time.Duration) TypedSourceConfig[*FilesystemSourceConfig] {
+	return TypedSourceConfig[*FilesystemSourceConfig]{
+		Config: &FilesystemSourceConfig{
+			Type:     "filesystem",
+			Path:     path,
+			BasePath: basePath,
+			Interval: interval,
+		},
+	}
 }

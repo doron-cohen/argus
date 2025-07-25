@@ -6,11 +6,64 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 )
+
+// GitSourceConfig holds git-specific configuration
+type GitSourceConfig struct {
+	Type     string        `fig:"type" yaml:"type"`
+	Interval time.Duration `fig:"interval" yaml:"interval"`
+	URL      string        `fig:"url" yaml:"url"`
+	Branch   string        `fig:"branch" yaml:"branch,omitempty"`
+	BasePath string        `fig:"base_path" yaml:"base_path,omitempty"`
+}
+
+// Validate ensures the git configuration is valid
+func (g *GitSourceConfig) Validate() error {
+	if g.Type != "git" {
+		return fmt.Errorf("expected type 'git', got '%s'", g.Type)
+	}
+	if g.URL == "" {
+		return fmt.Errorf("git source requires url field")
+	}
+
+	interval := g.GetInterval()
+	if interval < MinGitInterval {
+		return fmt.Errorf("git source interval must be at least %v, got %v", MinGitInterval, interval)
+	}
+
+	// Set default values if not provided
+	if g.Type == "" {
+		g.Type = "git"
+	}
+	if g.Branch == "" {
+		g.Branch = "main"
+	}
+
+	return nil
+}
+
+// GetInterval returns the sync interval for this source
+func (g *GitSourceConfig) GetInterval() time.Duration {
+	if g.Interval == 0 {
+		return 5 * time.Minute // default
+	}
+	return g.Interval
+}
+
+// GetBasePath returns the base path for this source
+func (g *GitSourceConfig) GetBasePath() string {
+	return g.BasePath
+}
+
+// GetSourceType returns the source type
+func (g *GitSourceConfig) GetSourceType() string {
+	return g.Type
+}
 
 // GitClient handles git repository operations using go-git
 type GitClient struct {

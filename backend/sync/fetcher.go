@@ -30,14 +30,14 @@ func NewGitFetcher() *GitFetcher {
 
 // Fetch retrieves all components from a git repository
 func (g *GitFetcher) Fetch(ctx context.Context, source SourceConfig) ([]models.Component, error) {
-	// Extract git-specific configuration
-	gitConfig, err := source.GitConfig()
-	if err != nil {
-		return nil, fmt.Errorf("invalid git configuration: %w", err)
+	cfg := source.GetConfig()
+	gitConfig, ok := cfg.(*GitSourceConfig)
+	if !ok {
+		return nil, fmt.Errorf("source is not a git config")
 	}
 
 	// Find all manifest files
-	manifestPaths, err := g.client.FindManifests(ctx, gitConfig)
+	manifestPaths, err := g.client.FindManifests(ctx, *gitConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find manifests: %w", err)
 	}
@@ -46,7 +46,7 @@ func (g *GitFetcher) Fetch(ctx context.Context, source SourceConfig) ([]models.C
 
 	var components []models.Component
 	for _, path := range manifestPaths {
-		component, err := g.fetchComponentFromManifest(ctx, gitConfig, path)
+		component, err := g.fetchComponentFromManifest(ctx, *gitConfig, path)
 		if err != nil {
 			slog.Warn("Failed to process manifest", "path", path, "source", gitConfig.URL, "error", err)
 			continue // Skip invalid manifests, don't fail entire sync
@@ -94,14 +94,14 @@ func NewFilesystemFetcher() *FilesystemFetcher {
 
 // Fetch retrieves all components from a filesystem path
 func (f *FilesystemFetcher) Fetch(ctx context.Context, source SourceConfig) ([]models.Component, error) {
-	// Extract filesystem-specific configuration
-	filesystemConfig, err := source.FilesystemConfig()
-	if err != nil {
-		return nil, fmt.Errorf("invalid filesystem configuration: %w", err)
+	cfg := source.GetConfig()
+	filesystemConfig, ok := cfg.(*FilesystemSourceConfig)
+	if !ok {
+		return nil, fmt.Errorf("source is not a filesystem config")
 	}
 
 	// Find all manifest files
-	manifestPaths, err := f.client.FindManifests(ctx, filesystemConfig)
+	manifestPaths, err := f.client.FindManifests(ctx, *filesystemConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find manifests: %w", err)
 	}
@@ -110,7 +110,7 @@ func (f *FilesystemFetcher) Fetch(ctx context.Context, source SourceConfig) ([]m
 
 	var components []models.Component
 	for _, path := range manifestPaths {
-		component, err := f.fetchComponentFromManifest(ctx, filesystemConfig, path)
+		component, err := f.fetchComponentFromManifest(ctx, *filesystemConfig, path)
 		if err != nil {
 			slog.Warn("Failed to process manifest", "path", path, "source", filesystemConfig.Path, "error", err)
 			continue // Skip invalid manifests, don't fail entire sync

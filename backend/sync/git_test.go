@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestNewGitClient(t *testing.T) {
@@ -108,92 +109,97 @@ func TestGitSourceConfig_BasePath(t *testing.T) {
 func TestSourceConfig_GitConfig(t *testing.T) {
 	tests := []struct {
 		name        string
-		source      SourceConfig
+		yamlSource  string
 		expectError bool
 		expected    GitSourceConfig
 	}{
 		{
 			name: "valid git config",
-			source: SourceConfig{
-				Type: "git",
-				URL:  "https://github.com/user/repo",
-			},
+			yamlSource: `type: git
+url: https://github.com/user/repo`,
 			expectError: false,
 			expected: GitSourceConfig{
+				Type:   "git",
 				URL:    "https://github.com/user/repo",
 				Branch: "main", // default
 			},
 		},
 		{
 			name: "git config with custom branch",
-			source: SourceConfig{
-				Type:   "git",
-				URL:    "https://github.com/user/repo",
-				Branch: "develop",
-			},
+			yamlSource: `type: git
+url: https://github.com/user/repo
+branch: develop`,
 			expectError: false,
 			expected: GitSourceConfig{
+				Type:   "git",
 				URL:    "https://github.com/user/repo",
 				Branch: "develop",
 			},
 		},
 		{
 			name: "git config with valid interval",
-			source: SourceConfig{
-				Type:     "git",
-				URL:      "https://github.com/user/repo",
-				Interval: 30 * time.Second,
-			},
+			yamlSource: `type: git
+url: https://github.com/user/repo
+interval: 30s`,
 			expectError: false,
 			expected: GitSourceConfig{
-				URL:    "https://github.com/user/repo",
-				Branch: "main",
+				Type:     "git",
+				URL:      "https://github.com/user/repo",
+				Branch:   "main",
+				Interval: 30 * time.Second,
 			},
 		},
 		{
 			name: "git config with interval too low",
-			source: SourceConfig{
-				Type:     "git",
-				URL:      "https://github.com/user/repo",
-				Interval: 5 * time.Second, // Below 10 second minimum
-			},
+			yamlSource: `type: git
+url: https://github.com/user/repo
+interval: 5s`,
 			expectError: true,
 		},
 		{
 			name: "git config with interval way too low",
-			source: SourceConfig{
-				Type:     "git",
-				URL:      "https://github.com/user/repo",
-				Interval: 100 * time.Millisecond,
-			},
+			yamlSource: `type: git
+url: https://github.com/user/repo
+interval: 100ms`,
 			expectError: true,
 		},
 		{
 			name: "wrong type",
-			source: SourceConfig{
-				Type: "filesystem",
-				Path: "/some/path",
-			},
+			yamlSource: `type: filesystem
+path: /some/path`,
 			expectError: true,
 		},
 		{
-			name: "missing URL",
-			source: SourceConfig{
-				Type: "git",
-			},
+			name:        "missing URL",
+			yamlSource:  `type: git`,
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gitConfig, err := tt.source.GitConfig()
-
+			var source SourceConfig
+			err := yaml.Unmarshal([]byte(tt.yamlSource), &source)
 			if tt.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expected, gitConfig)
+				if err != nil {
+					assert.Error(t, err)
+					return
+				}
+				// For "wrong type" cases, check if type assertion fails
+				cfg := source.GetConfig()
+				_, ok := cfg.(*GitSourceConfig)
+				assert.False(t, ok, "Expected type assertion to fail for wrong type")
+				return
+			}
+			assert.NoError(t, err)
+			cfg := source.GetConfig()
+			gitConfig, ok := cfg.(*GitSourceConfig)
+			assert.True(t, ok)
+			assert.Equal(t, tt.expected.Type, gitConfig.Type)
+			assert.Equal(t, tt.expected.URL, gitConfig.URL)
+			assert.Equal(t, tt.expected.Branch, gitConfig.Branch)
+			if tt.expected.Interval > 0 {
+				assert.Equal(t, tt.expected.Interval, gitConfig.Interval)
 			}
 		})
 	}
