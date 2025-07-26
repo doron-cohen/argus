@@ -18,9 +18,6 @@ import (
 func Start(cfg config.Config) (stop func(), err error) {
 	mux := chi.NewRouter()
 
-	// Mount healthz
-	mux.Get("/healthz", health.HealthHandler)
-
 	// Connect to PostgreSQL using storage.ConnectAndMigrate
 	dsn := cfg.Storage.DSN()
 	repo, dberr := storage.ConnectAndMigrate(context.Background(), dsn)
@@ -28,6 +25,9 @@ func Start(cfg config.Config) (stop func(), err error) {
 		slog.Error("Failed to connect or migrate database", "error", dberr)
 		return nil, dberr
 	}
+
+	// Mount healthz
+	mux.Get("/healthz", health.HealthHandler(repo))
 
 	// Mount OpenAPI-generated handlers under /api
 	mux.Mount("/api", api.Handler(api.NewAPIServer(repo)))

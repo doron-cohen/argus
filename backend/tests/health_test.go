@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/doron-cohen/argus/backend/internal/health"
 	"github.com/doron-cohen/argus/backend/internal/server"
 	"github.com/stretchr/testify/require"
 )
@@ -24,5 +26,16 @@ func TestHealthzIntegration(t *testing.T) {
 
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
-	require.Equal(t, "ok", string(body))
+
+	var healthResponse health.HealthResponse
+	err = json.Unmarshal(body, &healthResponse)
+	require.NoError(t, err)
+
+	require.Equal(t, "ok", healthResponse.Status)
+	require.Equal(t, "healthy", healthResponse.Database)
+	require.NotEmpty(t, healthResponse.Timestamp)
+
+	// Verify timestamp is in RFC3339 format
+	_, err = time.Parse(time.RFC3339, healthResponse.Timestamp)
+	require.NoError(t, err)
 }
