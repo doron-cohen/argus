@@ -94,3 +94,13 @@ func (r *Repository) GetComponentsByTeam(ctx context.Context, team string) ([]Co
 func (r *Repository) CreateComponent(ctx context.Context, component Component) error {
 	return r.DB.WithContext(ctx).Create(&component).Error
 }
+
+// HealthCheck implements the health.Checker interface
+func (r *Repository) HealthCheck(ctx context.Context) error {
+	return r.DB.WithContext(ctx).Raw("SELECT 1").Error
+}
+
+// Name returns the name of this health checker
+func (r *Repository) Name() string {
+	return "database"
+}

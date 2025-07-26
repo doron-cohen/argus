@@ -31,8 +31,9 @@ func TestHealthzIntegration(t *testing.T) {
 	err = json.Unmarshal(body, &healthResponse)
 	require.NoError(t, err)
 
-	require.Equal(t, "ok", healthResponse.Status)
-	require.Equal(t, "healthy", healthResponse.Database)
+	require.Equal(t, "healthy", healthResponse.Status)
+	require.NotEmpty(t, healthResponse.Checks)
+	require.Equal(t, "healthy", healthResponse.Checks["database"])
 	require.NotEmpty(t, healthResponse.Timestamp)
 
 	// Verify timestamp is in RFC3339 format
