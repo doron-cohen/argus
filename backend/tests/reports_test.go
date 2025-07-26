@@ -356,7 +356,11 @@ func TestReportsAPIWithDirectHTTP(t *testing.T) {
 		// Test with invalid JSON
 		resp, err := http.Post("http://localhost:8080/reports/reports", "application/json", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				t.Logf("Failed to close response body: %v", err)
+			}
+		}()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -372,7 +376,11 @@ func TestReportsAPIWithDirectHTTP(t *testing.T) {
 		// Test with wrong content type
 		resp, err := http.Post("http://localhost:8080/reports/reports", "text/plain", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				t.Logf("Failed to close response body: %v", err)
+			}
+		}()
 
 		// Should still work as the handler checks content type
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)

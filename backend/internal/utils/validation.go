@@ -14,14 +14,19 @@ func IsValidSlug(slug string) bool {
 
 	// Allow alphanumeric characters, hyphens, and underscores
 	for _, char := range slug {
-		if !((char >= 'a' && char <= 'z') ||
-			(char >= 'A' && char <= 'Z') ||
-			(char >= '0' && char <= '9') ||
-			char == '-' || char == '_') {
+		if !isValidSlugChar(char) {
 			return false
 		}
 	}
 	return true
+}
+
+// isValidSlugChar checks if a single character is valid for a slug (ASCII only)
+func isValidSlugChar(char rune) bool {
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char >= '0' && char <= '9') ||
+		char == '-' || char == '_'
 }
 
 // ValidateJSONBField validates a JSONB field for size and depth limits

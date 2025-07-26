@@ -51,50 +51,84 @@ func (s *ReportsServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ReportsServer) validateReportSubmission(submission *ReportSubmission) error {
+	if err := s.validateCheck(submission.Check); err != nil {
+		return err
+	}
+
+	if err := s.validateComponentId(submission.ComponentId); err != nil {
+		return err
+	}
+
+	if err := s.validateStatus(submission.Status); err != nil {
+		return err
+	}
+
+	if err := s.validateTimestamp(submission.Timestamp); err != nil {
+		return err
+	}
+
+	if err := s.validateOptionalFields(submission); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *ReportsServer) validateCheck(check Check) error {
 	// Validate check.slug
-	if strings.TrimSpace(submission.Check.Slug) == "" {
+	if strings.TrimSpace(check.Slug) == "" {
 		return fmt.Errorf("check.slug is required and cannot be empty")
 	}
-	if len(submission.Check.Slug) > 100 {
+	if len(check.Slug) > 100 {
 		return fmt.Errorf("check.slug cannot exceed 100 characters")
 	}
-	if !utils.IsValidSlug(submission.Check.Slug) {
+	if !utils.IsValidSlug(check.Slug) {
 		return fmt.Errorf("check.slug must contain only alphanumeric characters, hyphens, and underscores")
 	}
 
 	// Validate check.name (optional)
-	if submission.Check.Name != nil && len(*submission.Check.Name) > 255 {
+	if check.Name != nil && len(*check.Name) > 255 {
 		return fmt.Errorf("check.name cannot exceed 255 characters")
 	}
 
 	// Validate check.description (optional)
-	if submission.Check.Description != nil && len(*submission.Check.Description) > 1000 {
+	if check.Description != nil && len(*check.Description) > 1000 {
 		return fmt.Errorf("check.description cannot exceed 1000 characters")
 	}
 
-	// Validate component_id
-	if strings.TrimSpace(submission.ComponentId) == "" {
+	return nil
+}
+
+func (s *ReportsServer) validateComponentId(componentId string) error {
+	if strings.TrimSpace(componentId) == "" {
 		return fmt.Errorf("component_id is required and cannot be empty")
 	}
-	if len(submission.ComponentId) > 255 {
+	if len(componentId) > 255 {
 		return fmt.Errorf("component_id cannot exceed 255 characters")
 	}
+	return nil
+}
 
-	// Validate status
-	if !s.isValidStatus(submission.Status) {
+func (s *ReportsServer) validateStatus(status ReportSubmissionStatus) error {
+	if !s.isValidStatus(status) {
 		return fmt.Errorf("status must be one of: pass, fail, disabled, skipped, unknown, error, completed")
 	}
+	return nil
+}
 
-	// Validate timestamp
-	if submission.Timestamp.IsZero() {
+func (s *ReportsServer) validateTimestamp(timestamp time.Time) error {
+	if timestamp.IsZero() {
 		return fmt.Errorf("timestamp is required and cannot be zero")
 	}
 
 	// Check if timestamp is not in the future (with 5 minute tolerance for clock skew)
-	if submission.Timestamp.After(time.Now().Add(5 * time.Minute)) {
+	if timestamp.After(time.Now().Add(5 * time.Minute)) {
 		return fmt.Errorf("timestamp cannot be in the future")
 	}
+	return nil
+}
 
+func (s *ReportsServer) validateOptionalFields(submission *ReportSubmission) error {
 	// Validate details (if provided)
 	if submission.Details != nil {
 		if err := utils.ValidateJSONBField(*submission.Details, "details"); err != nil {
