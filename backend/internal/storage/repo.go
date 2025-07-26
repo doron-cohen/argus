@@ -12,6 +12,9 @@ import (
 // ErrComponentNotFound is returned when a component is not found
 var ErrComponentNotFound = errors.New("component not found")
 
+// ErrCheckNotFound is returned when a check is not found
+var ErrCheckNotFound = errors.New("check not found")
+
 // Component represents a component stored in the database.
 type Component struct {
 	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
@@ -38,16 +41,17 @@ func ConnectAndMigrate(ctx context.Context, dsn string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.WithContext(ctx).AutoMigrate(&Component{}); err != nil {
+	if err := db.WithContext(ctx).AutoMigrate(&Component{}, &Check{}, &CheckReport{}); err != nil {
 		return nil, err
 	}
 	return &Repository{DB: db}, nil
 }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&Component{})
+	return r.DB.WithContext(ctx).AutoMigrate(&Component{}, &Check{}, &CheckReport{})
 }
 
+// Component methods
 func (r *Repository) GetComponents(ctx context.Context) ([]Component, error) {
 	var components []Component
 	err := r.DB.WithContext(ctx).Find(&components).Error
@@ -95,12 +99,33 @@ func (r *Repository) CreateComponent(ctx context.Context, component Component) e
 	return r.DB.WithContext(ctx).Create(&component).Error
 }
 
+// Check methods - only what's needed for handlers
+func (r *Repository) GetCheckBySlug(ctx context.Context, slug string) (*Check, error) {
+	var check Check
+	err := r.DB.WithContext(ctx).Where("slug = ?", slug).First(&check).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrCheckNotFound
+		}
+		return nil, err
+	}
+	return &check, nil
+}
+
+func (r *Repository) CreateCheck(ctx context.Context, check Check) error {
+	return r.DB.WithContext(ctx).Create(&check).Error
+}
+
+// CheckReport methods - only what's needed for handlers
+func (r *Repository) CreateCheckReport(ctx context.Context, report CheckReport) error {
+	return r.DB.WithContext(ctx).Create(&report).Error
+}
+
 // HealthCheck implements the health.Checker interface
 func (r *Repository) HealthCheck(ctx context.Context) error {
 	return r.DB.WithContext(ctx).Raw("SELECT 1").Error
 }
 
-// Name returns the name of this health checker
 func (r *Repository) Name() string {
 	return "database"
 }
