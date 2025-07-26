@@ -42,6 +42,7 @@ func TestGetComponentByIdIntegration(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	client, err := client.NewClientWithResponses("http://localhost:8080/api")
+	require.NoError(t, err)
 
 	// Test getting a non-existent component
 	resp, err := client.GetComponentByIdWithResponse(context.Background(), "non-existent-component")

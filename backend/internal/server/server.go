@@ -44,8 +44,9 @@ func Start(cfg config.Config) (stop func(), err error) {
 	mux.Mount("/sync", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
 
 	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadHeaderTimeout: 20 * time.Second,
 	}
 
 	go func() {

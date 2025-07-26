@@ -64,7 +64,10 @@ func (s *APIServer) GetComponents(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(apiComponents)
+	if err := json.NewEncoder(w).Encode(apiComponents); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *APIServer) GetComponentById(w http.ResponseWriter, r *http.Request, componentId string) {
@@ -72,14 +75,7 @@ func (s *APIServer) GetComponentById(w http.ResponseWriter, r *http.Request, com
 	component, err := s.Repo.GetComponentByID(ctx, componentId)
 	if err != nil {
 		if err == storage.ErrComponentNotFound {
-			code := "NOT_FOUND"
-			errorResponse := Error{
-				Error: "Component not found",
-				Code:  &code,
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(errorResponse)
+			s.writeNotFoundError(w)
 			return
 		}
 		http.Error(w, "failed to fetch component", http.StatusInternalServerError)
@@ -87,6 +83,18 @@ func (s *APIServer) GetComponentById(w http.ResponseWriter, r *http.Request, com
 	}
 
 	// Convert storage component to API component
+	apiComponent := s.convertToAPIComponent(component)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(apiComponent); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// convertToAPIComponent converts a storage component to an API component
+func (s *APIServer) convertToAPIComponent(component *storage.Component) Component {
 	apiComponent := Component{
 		Name: component.Name,
 	}
@@ -120,9 +128,22 @@ func (s *APIServer) GetComponentById(w http.ResponseWriter, r *http.Request, com
 		apiComponent.Owners = owners
 	}
 
+	return apiComponent
+}
+
+// writeNotFoundError writes a not found error response
+func (s *APIServer) writeNotFoundError(w http.ResponseWriter) {
+	code := "NOT_FOUND"
+	errorResponse := Error{
+		Error: "Component not found",
+		Code:  &code,
+	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(apiComponent)
+	w.WriteHeader(http.StatusNotFound)
+	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+		http.Error(w, "failed to encode error response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
@@ -133,5 +154,8 @@ func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(health)
+	if err := json.NewEncoder(w).Encode(health); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }

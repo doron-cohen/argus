@@ -27,52 +27,46 @@ func LoadManifests(ctx context.Context, searchPath string) (map[string]Manifest,
 	manifests := make(map[string]Manifest)
 	parser := models.NewParser()
 
-	// Find and load manifest.yaml files
+	// Load manifest.yaml files
 	yamlFiles, err := findManifestFiles(searchPath, "manifest.yaml")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find manifest.yaml files: %w", err)
 	}
 
-	for _, filePath := range yamlFiles {
-		content, err := os.ReadFile(filepath.Join(searchPath, filePath))
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
-		}
-
-		parsedManifest, err := parser.Parse(content)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse manifest %s: %w", filePath, err)
-		}
-
-		if err := parser.Validate(parsedManifest); err != nil {
-			return nil, fmt.Errorf("invalid manifest %s: %w", filePath, err)
-		}
-
-		manifests[filePath] = Manifest{
-			Path:    filePath,
-			Content: parsedManifest,
-		}
+	if err := loadManifestFiles(yamlFiles, searchPath, parser, manifests); err != nil {
+		return nil, err
 	}
 
-	// Find and load manifest.yml files
+	// Load manifest.yml files
 	ymlFiles, err := findManifestFiles(searchPath, "manifest.yml")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find manifest.yml files: %w", err)
 	}
 
-	for _, filePath := range ymlFiles {
-		content, err := os.ReadFile(filepath.Join(searchPath, filePath))
+	if err := loadManifestFiles(ymlFiles, searchPath, parser, manifests); err != nil {
+		return nil, err
+	}
+
+	return manifests, nil
+}
+
+// loadManifestFiles loads and parses manifest files from the given file paths
+func loadManifestFiles(filePaths []string, searchPath string, parser *models.Parser, manifests map[string]Manifest) error {
+	for _, filePath := range filePaths {
+		// Sanitize the file path to prevent path traversal attacks
+		cleanPath := filepath.Clean(filepath.Join(searchPath, filePath))
+		content, err := os.ReadFile(cleanPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
+			return fmt.Errorf("failed to read file %s: %w", filePath, err)
 		}
 
 		parsedManifest, err := parser.Parse(content)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse manifest %s: %w", filePath, err)
+			return fmt.Errorf("failed to parse manifest %s: %w", filePath, err)
 		}
 
 		if err := parser.Validate(parsedManifest); err != nil {
-			return nil, fmt.Errorf("invalid manifest %s: %w", filePath, err)
+			return fmt.Errorf("invalid manifest %s: %w", filePath, err)
 		}
 
 		manifests[filePath] = Manifest{
@@ -80,8 +74,7 @@ func LoadManifests(ctx context.Context, searchPath string) (map[string]Manifest,
 			Content: parsedManifest,
 		}
 	}
-
-	return manifests, nil
+	return nil
 }
 
 // findManifestFiles recursively finds files with the given name using fs.WalkDir

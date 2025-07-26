@@ -26,8 +26,8 @@ type GitSourceConfig struct {
 
 // Validate ensures the git configuration is valid
 func (g *GitSourceConfig) Validate() error {
-	if g.Type != "git" {
-		return fmt.Errorf("expected type 'git', got '%s'", g.Type)
+	if g.Type != sourceTypeGit {
+		return fmt.Errorf("expected type '%s', got '%s'", sourceTypeGit, g.Type)
 	}
 	if g.URL == "" {
 		return fmt.Errorf("git source requires url field")
@@ -40,7 +40,7 @@ func (g *GitSourceConfig) Validate() error {
 
 	// Set default values if not provided
 	if g.Type == "" {
-		g.Type = "git"
+		g.Type = sourceTypeGit
 	}
 	if g.Branch == "" {
 		g.Branch = "main"
@@ -64,7 +64,7 @@ func (g *GitSourceConfig) GetBasePath() string {
 
 // GetSourceType returns the source type
 func (g *GitSourceConfig) GetSourceType() string {
-	return g.Type
+	return sourceTypeGit
 }
 
 // GitFetcher implements ComponentsFetcher for git repositories
@@ -146,7 +146,7 @@ func (g *GitFetcher) ensureRepository(ctx context.Context, gitConfig GitSourceCo
 // cloneRepository clones the repository using go-git with optional sparse checkout
 func (g *GitFetcher) cloneRepository(ctx context.Context, gitConfig GitSourceConfig, repoDir string) error {
 	// Ensure parent directory exists
-	if err := os.MkdirAll(filepath.Dir(repoDir), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(repoDir), 0750); err != nil {
 		return fmt.Errorf("failed to create parent directory: %w", err)
 	}
 
@@ -243,14 +243,14 @@ func (g *GitFetcher) setupSparseCheckout(repo *git.Repository, basePath string) 
 	sparseCheckoutPath := filepath.Join(repoRoot, ".git", "info", "sparse-checkout")
 
 	// Ensure the info directory exists
-	if err := os.MkdirAll(filepath.Dir(sparseCheckoutPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(sparseCheckoutPath), 0750); err != nil {
 		return fmt.Errorf("failed to create sparse-checkout directory: %w", err)
 	}
 
 	// Write sparse checkout configuration
 	// Format: the base path and everything under it
 	sparseContent := fmt.Sprintf("%s/*\n", strings.TrimPrefix(basePath, "/"))
-	if err := os.WriteFile(sparseCheckoutPath, []byte(sparseContent), 0644); err != nil {
+	if err := os.WriteFile(sparseCheckoutPath, []byte(sparseContent), 0600); err != nil {
 		return fmt.Errorf("failed to write sparse-checkout file: %w", err)
 	}
 
@@ -258,7 +258,8 @@ func (g *GitFetcher) setupSparseCheckout(repo *git.Repository, basePath string) 
 	gitConfigPath := filepath.Join(repoRoot, ".git", "config")
 
 	// Read existing config
-	configContent, err := os.ReadFile(gitConfigPath)
+	cleanConfigPath := filepath.Clean(gitConfigPath)
+	configContent, err := os.ReadFile(cleanConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to read git config: %w", err)
 	}
@@ -267,17 +268,15 @@ func (g *GitFetcher) setupSparseCheckout(repo *git.Repository, basePath string) 
 	configStr := string(configContent)
 	if !strings.Contains(configStr, "core.sparseCheckout") {
 		configStr += "\n[core]\n\tsparseCheckout = true\n"
-		if err := os.WriteFile(gitConfigPath, []byte(configStr), 0644); err != nil {
+		if err := os.WriteFile(cleanConfigPath, []byte(configStr), 0600); err != nil {
 			return fmt.Errorf("failed to update git config: %w", err)
 		}
 	}
 
 	// Apply sparse checkout by re-reading the index
 	// This will remove files not matching the sparse checkout pattern
-	_, err = worktree.Add(".")
-	if err != nil && err != git.ErrGitModulesSymlink {
-		// Some errors are expected with sparse checkout, ignore them
-	}
+	// Some errors are expected with sparse checkout, ignore them
+	_, _ = worktree.Add(".")
 
 	return nil
 }

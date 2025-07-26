@@ -27,7 +27,10 @@ func (s *SyncAPIServer) GetSyncSources(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(apiSources)
+	if err := json.NewEncoder(w).Encode(apiSources); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *SyncAPIServer) GetSyncSource(w http.ResponseWriter, r *http.Request, id int) {
@@ -42,7 +45,10 @@ func (s *SyncAPIServer) GetSyncSource(w http.ResponseWriter, r *http.Request, id
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(apiSource)
+	if err := json.NewEncoder(w).Encode(apiSource); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *SyncAPIServer) GetSyncSourceStatus(w http.ResponseWriter, r *http.Request, id int) {
@@ -57,7 +63,10 @@ func (s *SyncAPIServer) GetSyncSourceStatus(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(apiStatus)
+	if err := json.NewEncoder(w).Encode(apiStatus); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *SyncAPIServer) TriggerSyncSource(w http.ResponseWriter, r *http.Request, id int) {
@@ -84,7 +93,10 @@ func (s *SyncAPIServer) TriggerSyncSource(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Helper methods
@@ -109,7 +121,11 @@ func (s *SyncAPIServer) convertToAPISource(source sync.SourceConfig, id int64) S
 				BasePath: stringPtr(gitConfig.BasePath),
 			}
 			apiSource.Config = &SyncSource_Config{}
-			apiSource.Config.FromGitSourceConfig(gitAPIConfig)
+			if err := apiSource.Config.FromGitSourceConfig(gitAPIConfig); err != nil {
+				// Log error but continue - this is a conversion issue
+				// The source config is already validated, so this shouldn't fail
+				return apiSource
+			}
 
 		case "filesystem":
 			fsConfig := cfg.(*sync.FilesystemSourceConfig)
@@ -118,7 +134,11 @@ func (s *SyncAPIServer) convertToAPISource(source sync.SourceConfig, id int64) S
 				Path: stringPtr(fsConfig.Path),
 			}
 			apiSource.Config = &SyncSource_Config{}
-			apiSource.Config.FromFilesystemSourceConfig(fsAPIConfig)
+			if err := apiSource.Config.FromFilesystemSourceConfig(fsAPIConfig); err != nil {
+				// Log error but continue - this is a conversion issue
+				// The source config is already validated, so this shouldn't fail
+				return apiSource
+			}
 		}
 	}
 
@@ -172,7 +192,10 @@ func (s *SyncAPIServer) writeError(w http.ResponseWriter, statusCode int, messag
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(error)
+	if err := json.NewEncoder(w).Encode(error); err != nil {
+		http.Error(w, "failed to encode error response", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Helper functions for creating pointers

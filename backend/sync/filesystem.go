@@ -19,8 +19,8 @@ type FilesystemSourceConfig struct {
 
 // Validate ensures the filesystem configuration is valid
 func (f *FilesystemSourceConfig) Validate() error {
-	if f.Type != "filesystem" {
-		return fmt.Errorf("expected type 'filesystem', got '%s'", f.Type)
+	if f.Type != sourceTypeFilesystem {
+		return fmt.Errorf("expected type '%s', got '%s'", sourceTypeFilesystem, f.Type)
 	}
 	if f.Path == "" {
 		return fmt.Errorf("filesystem source requires path field")
@@ -33,7 +33,7 @@ func (f *FilesystemSourceConfig) Validate() error {
 
 	// Set default values if not provided
 	if f.Type == "" {
-		f.Type = "filesystem"
+		f.Type = sourceTypeFilesystem
 	}
 
 	return nil
@@ -54,7 +54,7 @@ func (f *FilesystemSourceConfig) GetBasePath() string {
 
 // GetSourceType returns the source type
 func (f *FilesystemSourceConfig) GetSourceType() string {
-	return f.Type
+	return sourceTypeFilesystem
 }
 
 // FilesystemFetcher implements ComponentsFetcher for local filesystem

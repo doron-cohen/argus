@@ -107,9 +107,9 @@ func TestLoadManifests(t *testing.T) {
 	platformDir := filepath.Join(tempDir, "platform")
 	infraDir := filepath.Join(platformDir, "infrastructure")
 
-	require.NoError(t, os.MkdirAll(authDir, 0755))
-	require.NoError(t, os.MkdirAll(apiDir, 0755))
-	require.NoError(t, os.MkdirAll(infraDir, 0755))
+	require.NoError(t, os.MkdirAll(authDir, 0750))
+	require.NoError(t, os.MkdirAll(apiDir, 0750))
+	require.NoError(t, os.MkdirAll(infraDir, 0750))
 
 	// Create test manifest files
 	authManifest := `version: "v1"
@@ -119,9 +119,9 @@ name: "api-gateway"`
 	infraManifest := `version: "v1"
 name: "platform-infrastructure"`
 
-	require.NoError(t, os.WriteFile(filepath.Join(authDir, "manifest.yaml"), []byte(authManifest), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(apiDir, "manifest.yml"), []byte(apiManifest), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(infraDir, "manifest.yaml"), []byte(infraManifest), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(authDir, "manifest.yaml"), []byte(authManifest), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(apiDir, "manifest.yml"), []byte(apiManifest), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(infraDir, "manifest.yaml"), []byte(infraManifest), 0600))
 
 	ctx := context.Background()
 
@@ -174,12 +174,12 @@ func TestFilesystemFetcher(t *testing.T) {
 
 	// Create test directory structure
 	authDir := filepath.Join(tempDir, "auth")
-	require.NoError(t, os.MkdirAll(authDir, 0755))
+	require.NoError(t, os.MkdirAll(authDir, 0750))
 
 	// Create test manifest file
 	authManifest := `version: "v1"
 name: "auth-service"`
-	require.NoError(t, os.WriteFile(filepath.Join(authDir, "manifest.yaml"), []byte(authManifest), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(authDir, "manifest.yaml"), []byte(authManifest), 0600))
 
 	fetcher := NewFilesystemFetcher()
 	ctx := context.Background()

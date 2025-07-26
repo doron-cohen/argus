@@ -8,12 +8,15 @@ import (
 )
 
 const (
+	sourceTypeGit        = "git"
+	sourceTypeFilesystem = "filesystem"
+
 	// Minimum sync intervals to prevent system overload
 	MinFilesystemInterval = time.Second      // 1 second minimum for filesystem sources
 	MinGitInterval        = 10 * time.Second // 10 seconds minimum for git sources
 )
 
-// Config holds the sync module configuration
+// Config represents the sync configuration
 type Config struct {
 	Sources []SourceConfig `fig:"sources"`
 }
@@ -80,9 +83,9 @@ func (s *SourceConfig) UnmarshalYAML(node *yaml.Node) error {
 	// Create the appropriate config type based on the "type" field
 	var config SourceTypeConfig
 	switch typeInfo.Type {
-	case "git":
+	case sourceTypeGit:
 		config = &GitSourceConfig{}
-	case "filesystem":
+	case sourceTypeFilesystem:
 		config = &FilesystemSourceConfig{}
 	default:
 		return fmt.Errorf("unknown source type: %s", typeInfo.Type)
@@ -116,7 +119,7 @@ func NewSourceConfig(config SourceTypeConfig) SourceConfig {
 func NewGitSourceConfig(url, branch, basePath string, interval time.Duration) TypedSourceConfig[*GitSourceConfig] {
 	return TypedSourceConfig[*GitSourceConfig]{
 		Config: &GitSourceConfig{
-			Type:     "git",
+			Type:     sourceTypeGit,
 			URL:      url,
 			Branch:   branch,
 			BasePath: basePath,
@@ -128,7 +131,7 @@ func NewGitSourceConfig(url, branch, basePath string, interval time.Duration) Ty
 func NewFilesystemSourceConfig(path string, interval time.Duration) TypedSourceConfig[*FilesystemSourceConfig] {
 	return TypedSourceConfig[*FilesystemSourceConfig]{
 		Config: &FilesystemSourceConfig{
-			Type:     "filesystem",
+			Type:     sourceTypeFilesystem,
 			Path:     path,
 			Interval: interval,
 		},

@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+const (
+	statusHealthy   = "healthy"
+	statusUnhealthy = "unhealthy"
+)
+
 // Checker defines an interface for health checks
 type Checker interface {
 	HealthCheck(ctx context.Context) error
@@ -27,21 +32,21 @@ func HealthHandler(checkers ...Checker) http.HandlerFunc {
 		defer cancel()
 
 		checks := make(map[string]string)
-		overallStatus := "healthy"
+		overallStatus := statusHealthy
 
 		// Run all health checks
 		for _, checker := range checkers {
 			checkName := checker.Name()
 			if err := checker.HealthCheck(ctx); err != nil {
-				checks[checkName] = "unhealthy"
-				overallStatus = "unhealthy"
+				checks[checkName] = statusUnhealthy
+				overallStatus = statusUnhealthy
 			} else {
-				checks[checkName] = "healthy"
+				checks[checkName] = statusHealthy
 			}
 		}
 
 		// Set appropriate status code
-		if overallStatus == "healthy" {
+		if overallStatus == statusHealthy {
 			w.WriteHeader(http.StatusOK)
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -54,6 +59,9 @@ func HealthHandler(checkers ...Checker) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			return
+		}
 	}
 }
