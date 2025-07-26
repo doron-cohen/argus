@@ -10,6 +10,7 @@ import (
 // Checker defines an interface for health checks
 type Checker interface {
 	HealthCheck(ctx context.Context) error
+	Name() string
 }
 
 // HealthResponse represents the health check response
@@ -29,8 +30,8 @@ func HealthHandler(checkers ...Checker) http.HandlerFunc {
 		overallStatus := "healthy"
 
 		// Run all health checks
-		for i, checker := range checkers {
-			checkName := getCheckerName(checker, i)
+		for _, checker := range checkers {
+			checkName := checker.Name()
 			if err := checker.HealthCheck(ctx); err != nil {
 				checks[checkName] = "unhealthy"
 				overallStatus = "unhealthy"
@@ -54,17 +55,5 @@ func HealthHandler(checkers ...Checker) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
-	}
-}
-
-// getCheckerName extracts a meaningful name from the checker
-func getCheckerName(checker Checker, index int) string {
-	// Try to get the type name as a fallback
-	switch c := checker.(type) {
-	case interface{ Name() string }:
-		return c.Name()
-	default:
-		// Use a generic name based on the type
-		return "checker"
 	}
 }
