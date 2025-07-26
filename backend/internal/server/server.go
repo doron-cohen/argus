@@ -10,6 +10,7 @@ import (
 	"github.com/doron-cohen/argus/backend/internal/config"
 	"github.com/doron-cohen/argus/backend/internal/health"
 	"github.com/doron-cohen/argus/backend/internal/storage"
+	reportsapi "github.com/doron-cohen/argus/backend/reports/api"
 	"github.com/doron-cohen/argus/backend/sync"
 	syncapi "github.com/doron-cohen/argus/backend/sync/api"
 	"github.com/go-chi/chi/v5"
@@ -31,6 +32,9 @@ func Start(cfg config.Config) (stop func(), err error) {
 
 	// Mount OpenAPI-generated handlers under /api
 	mux.Mount("/api", api.Handler(api.NewAPIServer(repo)))
+
+	// Mount reports API under /reports
+	mux.Mount("/reports", reportsapi.Handler(reportsapi.NewReportsServer()))
 
 	// Initialize sync service (always create, but may not start if no sources configured)
 	// Cast to sync.Repository interface since storage.Repository implements it

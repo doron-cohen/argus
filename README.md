@@ -30,3 +30,16 @@ The all seeing software catalog is an early-stage tool designed to provide clear
 - A user interface presents all this information in a clear, actionable way.
 
 This project is in its initial stages and under active development. Expect rapid changes and improvements as we define and build out the core features.
+
+## Development
+
+### CI/CD
+
+The project uses GitHub Actions for continuous integration:
+
+- **Linting**: Uses golangci-lint with comprehensive rules for code quality
+- **Testing**: Runs all tests with race detection and coverage reporting
+- **Building**: Creates optimized binaries for deployment
+- **Triggers**: Runs on pushes to main/master and all pull requests
+
+The workflow is designed to be fast and efficient, focusing on essential quality checks without unnecessary deployment steps.

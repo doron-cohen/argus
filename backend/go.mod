@@ -4,6 +4,7 @@ go 1.24.2
 
 require (
 	github.com/doron-cohen/argus/backend/api/client v0.0.0-00010101000000-000000000000
+	github.com/doron-cohen/argus/backend/reports/api/client v0.0.0-00010101000000-000000000000
 	github.com/doron-cohen/argus/backend/sync/api/client v0.0.0-00010101000000-000000000000
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/go-chi/chi/v5 v5.2.2
@@ -112,5 +113,7 @@ require (
 )
 
 replace github.com/doron-cohen/argus/backend/api/client => ./api/client
+
+replace github.com/doron-cohen/argus/backend/reports/api/client => ./reports/api/client
 
 replace github.com/doron-cohen/argus/backend/sync/api/client => ./sync/api/client
