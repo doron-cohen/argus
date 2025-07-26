@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doron-cohen/argus/backend/internal/utils"
 	"github.com/google/uuid"
 )
 
@@ -36,9 +37,9 @@ func (s *ReportsServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 
 	// For now, just return success (no storage yet)
 	response := ReportSubmissionResponse{
-		Message:   "Report submitted successfully",
+		Message:   &[]string{"Report submitted successfully"}[0],
 		ReportId:  s.generateReportID(),
-		Timestamp: time.Now(),
+		Timestamp: &[]time.Time{time.Now()}[0],
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -50,15 +51,25 @@ func (s *ReportsServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ReportsServer) validateReportSubmission(submission *ReportSubmission) error {
-	// Validate check_slug
-	if strings.TrimSpace(submission.CheckSlug) == "" {
-		return fmt.Errorf("check_slug is required and cannot be empty")
+	// Validate check.slug
+	if strings.TrimSpace(submission.Check.Slug) == "" {
+		return fmt.Errorf("check.slug is required and cannot be empty")
 	}
-	if len(submission.CheckSlug) > 100 {
-		return fmt.Errorf("check_slug cannot exceed 100 characters")
+	if len(submission.Check.Slug) > 100 {
+		return fmt.Errorf("check.slug cannot exceed 100 characters")
 	}
-	if !s.isValidSlug(submission.CheckSlug) {
-		return fmt.Errorf("check_slug must contain only alphanumeric characters, hyphens, and underscores")
+	if !utils.IsValidSlug(submission.Check.Slug) {
+		return fmt.Errorf("check.slug must contain only alphanumeric characters, hyphens, and underscores")
+	}
+
+	// Validate check.name (optional)
+	if submission.Check.Name != nil && len(*submission.Check.Name) > 255 {
+		return fmt.Errorf("check.name cannot exceed 255 characters")
+	}
+
+	// Validate check.description (optional)
+	if submission.Check.Description != nil && len(*submission.Check.Description) > 1000 {
+		return fmt.Errorf("check.description cannot exceed 1000 characters")
 	}
 
 	// Validate component_id
@@ -86,32 +97,19 @@ func (s *ReportsServer) validateReportSubmission(submission *ReportSubmission) e
 
 	// Validate details (if provided)
 	if submission.Details != nil {
-		if err := s.validateJSONBField(*submission.Details, "details"); err != nil {
+		if err := utils.ValidateJSONBField(*submission.Details, "details"); err != nil {
 			return err
 		}
 	}
 
 	// Validate metadata (if provided)
 	if submission.Metadata != nil {
-		if err := s.validateJSONBField(*submission.Metadata, "metadata"); err != nil {
+		if err := utils.ValidateJSONBField(*submission.Metadata, "metadata"); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func (s *ReportsServer) isValidSlug(slug string) bool {
-	// Allow alphanumeric characters, hyphens, and underscores
-	for _, char := range slug {
-		if !((char >= 'a' && char <= 'z') ||
-			(char >= 'A' && char <= 'Z') ||
-			(char >= '0' && char <= '9') ||
-			char == '-' || char == '_') {
-			return false
-		}
-	}
-	return true
 }
 
 func (s *ReportsServer) isValidStatus(status ReportSubmissionStatus) bool {
@@ -133,50 +131,6 @@ func (s *ReportsServer) isValidStatus(status ReportSubmissionStatus) bool {
 	return false
 }
 
-func (s *ReportsServer) validateJSONBField(data map[string]interface{}, fieldName string) error {
-	// Check for reasonable size limit (1MB)
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("%s must be a valid JSON object", fieldName)
-	}
-
-	if len(jsonData) > 1024*1024 {
-		return fmt.Errorf("%s cannot exceed 1MB", fieldName)
-	}
-
-	// Check for reasonable depth (max 10 levels)
-	if s.getMaxDepth(data) > 10 {
-		return fmt.Errorf("%s cannot exceed 10 levels of nesting", fieldName)
-	}
-
-	return nil
-}
-
-func (s *ReportsServer) getMaxDepth(data interface{}) int {
-	switch v := data.(type) {
-	case map[string]interface{}:
-		maxDepth := 1
-		for _, value := range v {
-			depth := s.getMaxDepth(value)
-			if depth+1 > maxDepth {
-				maxDepth = depth + 1
-			}
-		}
-		return maxDepth
-	case []interface{}:
-		maxDepth := 1
-		for _, value := range v {
-			depth := s.getMaxDepth(value)
-			if depth+1 > maxDepth {
-				maxDepth = depth + 1
-			}
-		}
-		return maxDepth
-	default:
-		return 0
-	}
-}
-
 func (s *ReportsServer) generateReportID() *string {
 	id := uuid.New().String()
 	return &id
@@ -184,7 +138,7 @@ func (s *ReportsServer) generateReportID() *string {
 
 func (s *ReportsServer) writeValidationError(w http.ResponseWriter, message, code string, details map[string]interface{}) {
 	errorResponse := Error{
-		Error:   message,
+		Error:   &message,
 		Code:    &code,
 		Details: &details,
 	}

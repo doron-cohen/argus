@@ -26,6 +26,18 @@ const (
 	ReportSubmissionStatusUnknown   ReportSubmissionStatus = "unknown"
 )
 
+// Check Information about the check being reported
+type Check struct {
+	// Description Description of what the check does
+	Description *string `json:"description,omitempty"`
+
+	// Name Human-readable name for the check
+	Name *string `json:"name,omitempty"`
+
+	// Slug Unique identifier for the check type (e.g., "unit-tests", "build", "linter")
+	Slug string `json:"slug"`
+}
+
 // Error Error response
 type Error struct {
 	// Code Error code
@@ -35,13 +47,13 @@ type Error struct {
 	Details *map[string]interface{} `json:"details,omitempty"`
 
 	// Error Error message
-	Error string `json:"error"`
+	Error *string `json:"error,omitempty"`
 }
 
 // ReportSubmission A quality check report submission
 type ReportSubmission struct {
-	// CheckSlug Unique identifier for the check type (e.g., "unit-tests", "build", "linter")
-	CheckSlug string `json:"check_slug"`
+	// Check Information about the check being reported
+	Check Check `json:"check"`
 
 	// ComponentId Unique identifier of the component being reported on
 	ComponentId string `json:"component_id"`
@@ -65,13 +77,13 @@ type ReportSubmissionStatus string
 // ReportSubmissionResponse Response to a successful report submission
 type ReportSubmissionResponse struct {
 	// Message Success message
-	Message string `json:"message"`
+	Message *string `json:"message,omitempty"`
 
 	// ReportId Unique identifier for the submitted report
 	ReportId *string `json:"report_id,omitempty"`
 
 	// Timestamp When the report was received
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp *time.Time `json:"timestamp,omitempty"`
 }
 
 // SubmitReportJSONRequestBody defines body for SubmitReport for application/json ContentType.

@@ -33,7 +33,11 @@ func TestReportsAPIEndpoints(t *testing.T) {
 	t.Run("SubmitValidReport", func(t *testing.T) {
 		// Submit a valid report
 		report := reportsclient.ReportSubmission{
-			CheckSlug:   "unit-tests",
+			Check: reportsclient.Check{
+				Slug:        "unit-tests",
+				Name:        &[]string{"Unit Tests"}[0],
+				Description: &[]string{"Runs unit tests for the component"}[0],
+			},
 			ComponentId: "auth-service",
 			Status:      reportsclient.ReportSubmissionStatusPass,
 			Timestamp:   time.Now().Add(-1 * time.Hour), // 1 hour ago
@@ -57,9 +61,9 @@ func TestReportsAPIEndpoints(t *testing.T) {
 		require.NotNil(t, resp.JSON200)
 
 		response := *resp.JSON200
-		assert.Equal(t, "Report submitted successfully", response.Message)
+		assert.Equal(t, "Report submitted successfully", *response.Message)
 		assert.NotNil(t, response.ReportId)
-		assert.False(t, response.Timestamp.IsZero())
+		assert.NotNil(t, response.Timestamp)
 	})
 
 	t.Run("SubmitReportWithDifferentStatuses", func(t *testing.T) {
@@ -76,7 +80,9 @@ func TestReportsAPIEndpoints(t *testing.T) {
 		for _, status := range statuses {
 			t.Run(string(status), func(t *testing.T) {
 				report := reportsclient.ReportSubmission{
-					CheckSlug:   "build",
+					Check: reportsclient.Check{
+						Slug: "build",
+					},
 					ComponentId: "auth-service",
 					Status:      status,
 					Timestamp:   time.Now().Add(-30 * time.Minute),
@@ -103,7 +109,9 @@ func TestReportsAPIEndpoints(t *testing.T) {
 		for _, slug := range checkSlugs {
 			t.Run(slug, func(t *testing.T) {
 				report := reportsclient.ReportSubmission{
-					CheckSlug:   slug,
+					Check: reportsclient.Check{
+						Slug: slug,
+					},
 					ComponentId: "auth-service",
 					Status:      reportsclient.ReportSubmissionStatusPass,
 					Timestamp:   time.Now().Add(-15 * time.Minute),
@@ -119,7 +127,9 @@ func TestReportsAPIEndpoints(t *testing.T) {
 	t.Run("SubmitReportWithMinimalData", func(t *testing.T) {
 		// Submit report with only required fields
 		report := reportsclient.ReportSubmission{
-			CheckSlug:   "unit-tests",
+			Check: reportsclient.Check{
+				Slug: "unit-tests",
+			},
 			ComponentId: "auth-service",
 			Status:      reportsclient.ReportSubmissionStatusPass,
 			Timestamp:   time.Now().Add(-5 * time.Minute),
@@ -133,7 +143,9 @@ func TestReportsAPIEndpoints(t *testing.T) {
 	t.Run("SubmitReportWithComplexDetails", func(t *testing.T) {
 		// Submit report with complex nested details
 		report := reportsclient.ReportSubmission{
-			CheckSlug:   "integration-tests",
+			Check: reportsclient.Check{
+				Slug: "integration-tests",
+			},
 			ComponentId: "auth-service",
 			Status:      reportsclient.ReportSubmissionStatusPass,
 			Timestamp:   time.Now().Add(-10 * time.Minute),
@@ -190,25 +202,33 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 			{
 				name: "missing_check_slug",
 				report: reportsclient.ReportSubmission{
+					Check: reportsclient.Check{
+						Slug: "", // empty slug
+					},
 					ComponentId: "auth-service",
 					Status:      reportsclient.ReportSubmissionStatusPass,
 					Timestamp:   time.Now().Add(-1 * time.Hour),
 				},
-				field: "check_slug",
+				field: "check.slug",
 			},
 			{
 				name: "missing_component_id",
 				report: reportsclient.ReportSubmission{
-					CheckSlug: "unit-tests",
-					Status:    reportsclient.ReportSubmissionStatusPass,
-					Timestamp: time.Now().Add(-1 * time.Hour),
+					Check: reportsclient.Check{
+						Slug: "unit-tests",
+					},
+					ComponentId: "",
+					Status:      reportsclient.ReportSubmissionStatusPass,
+					Timestamp:   time.Now().Add(-1 * time.Hour),
 				},
 				field: "component_id",
 			},
 			{
 				name: "missing_timestamp",
 				report: reportsclient.ReportSubmission{
-					CheckSlug:   "unit-tests",
+					Check: reportsclient.Check{
+						Slug: "unit-tests",
+					},
 					ComponentId: "auth-service",
 					Status:      reportsclient.ReportSubmissionStatusPass,
 					Timestamp:   time.Time{}, // zero time
@@ -223,7 +243,7 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, http.StatusBadRequest, resp.StatusCode())
 				require.NotNil(t, resp.JSON400)
-				assert.Contains(t, resp.JSON400.Error, "required")
+				assert.Contains(t, *resp.JSON400.Error, "required")
 			})
 		}
 	})
@@ -242,7 +262,9 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				report := reportsclient.ReportSubmission{
-					CheckSlug:   tc.checkSlug,
+					Check: reportsclient.Check{
+						Slug: tc.checkSlug,
+					},
 					ComponentId: "auth-service",
 					Status:      reportsclient.ReportSubmissionStatusPass,
 					Timestamp:   time.Now().Add(-1 * time.Hour),
@@ -267,7 +289,9 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				report := reportsclient.ReportSubmission{
-					CheckSlug:   "unit-tests",
+					Check: reportsclient.Check{
+						Slug: "unit-tests",
+					},
 					ComponentId: tc.componentId,
 					Status:      reportsclient.ReportSubmissionStatusPass,
 					Timestamp:   time.Now().Add(-1 * time.Hour),
@@ -282,7 +306,9 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 
 	t.Run("InvalidStatus", func(t *testing.T) {
 		report := reportsclient.ReportSubmission{
-			CheckSlug:   "unit-tests",
+			Check: reportsclient.Check{
+				Slug: "unit-tests",
+			},
 			ComponentId: "auth-service",
 			Status:      "invalid-status",
 			Timestamp:   time.Now().Add(-1 * time.Hour),
@@ -292,12 +318,14 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode())
 		require.NotNil(t, resp.JSON400)
-		assert.Contains(t, resp.JSON400.Error, "status must be one of")
+		assert.Contains(t, *resp.JSON400.Error, "status must be one of")
 	})
 
 	t.Run("FutureTimestamp", func(t *testing.T) {
 		report := reportsclient.ReportSubmission{
-			CheckSlug:   "unit-tests",
+			Check: reportsclient.Check{
+				Slug: "unit-tests",
+			},
 			ComponentId: "auth-service",
 			Status:      reportsclient.ReportSubmissionStatusPass,
 			Timestamp:   time.Now().Add(10 * time.Minute), // 10 minutes in future
@@ -307,7 +335,7 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode())
 		require.NotNil(t, resp.JSON400)
-		assert.Contains(t, resp.JSON400.Error, "timestamp cannot be in the future")
+		assert.Contains(t, *resp.JSON400.Error, "timestamp cannot be in the future")
 	})
 }
 

@@ -1,13 +1,14 @@
 openapi: 3.0.3
 info:
-  title: Argus Reports API
-  version: 0.1.0
-  description: API for submitting quality check reports for components
+  title: Reports API
+  description: API for submitting quality check reports
+  version: 1.0.0
+
 paths:
   /reports:
     post:
       summary: Submit a quality check report
-      description: Submit a report for a quality check performed on a component
+      description: Submit a report for a quality check execution. The report will be validated but not stored.
       operationId: submitReport
       requestBody:
         required: true
@@ -20,7 +21,10 @@ paths:
                 summary: Unit Test Report
                 description: Example of a unit test report submission
                 value:
-                  check_slug: "unit-tests"
+                  check:
+                    slug: "unit-tests"
+                    name: "Unit Tests"
+                    description: "Runs unit tests for the component"
                   component_id: "auth-service"
                   status: "pass"
                   timestamp: "2024-01-15T10:30:00Z"
@@ -39,7 +43,10 @@ paths:
                 summary: Build Report
                 description: Example of a build report submission
                 value:
-                  check_slug: "build"
+                  check:
+                    slug: "build"
+                    name: "Build"
+                    description: "Builds the component artifact"
                   component_id: "auth-service"
                   status: "pass"
                   timestamp: "2024-01-15T10:35:00Z"
@@ -75,16 +82,39 @@ paths:
 
 components:
   schemas:
-    ReportSubmission:
+    Check:
       type: object
-      description: A quality check report submission
+      description: Information about the check being reported
+      required:
+        - slug
       properties:
-        check_slug:
+        slug:
           type: string
           description: Unique identifier for the check type (e.g., "unit-tests", "build", "linter")
           example: "unit-tests"
           minLength: 1
           maxLength: 100
+        name:
+          type: string
+          description: Human-readable name for the check
+          example: "Unit Tests"
+          maxLength: 255
+        description:
+          type: string
+          description: Description of what the check does
+          example: "Runs unit tests for the component"
+          maxLength: 1000
+    ReportSubmission:
+      type: object
+      description: A quality check report submission
+      required:
+        - check
+        - component_id
+        - status
+        - timestamp
+      properties:
+        check:
+          $ref: "#/components/schemas/Check"
         component_id:
           type: string
           description: Unique identifier of the component being reported on
@@ -129,12 +159,6 @@ components:
             branch: "main"
             commit_sha: "abc123"
             execution_duration_ms: 45000
-      required:
-        - check_slug
-        - component_id
-        - status
-        - timestamp
-
     ReportSubmissionResponse:
       type: object
       description: Response to a successful report submission
@@ -152,10 +176,6 @@ components:
           format: date-time
           description: When the report was received
           example: "2024-01-15T10:30:00Z"
-      required:
-        - message
-        - timestamp
-
     Error:
       type: object
       description: Error response
@@ -163,7 +183,7 @@ components:
         error:
           type: string
           description: Error message
-          example: "Invalid request data"
+          example: "check_slug is required and cannot be empty"
         code:
           type: string
           description: Error code
@@ -173,7 +193,4 @@ components:
           description: Additional error details
           additionalProperties: true
           example:
-            field: "check_slug"
-            reason: "Required field is missing"
-      required:
-        - error
+            reason: "check_slug is required and cannot be empty"
