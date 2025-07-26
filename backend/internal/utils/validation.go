@@ -7,6 +7,11 @@ import (
 
 // IsValidSlug checks if a string is a valid slug (alphanumeric, hyphens, underscores only)
 func IsValidSlug(slug string) bool {
+	// Empty string is not valid
+	if len(slug) == 0 {
+		return false
+	}
+
 	// Allow alphanumeric characters, hyphens, and underscores
 	for _, char := range slug {
 		if !((char >= 'a' && char <= 'z') ||
@@ -21,6 +26,11 @@ func IsValidSlug(slug string) bool {
 
 // ValidateJSONBField validates a JSONB field for size and depth limits
 func ValidateJSONBField(data map[string]interface{}, fieldName string) error {
+	// Handle nil data
+	if data == nil {
+		return fmt.Errorf("%s must be a valid JSON object", fieldName)
+	}
+
 	// Check for reasonable size limit (1MB)
 	jsonData, err := json.Marshal(data)
 	if err != nil {
