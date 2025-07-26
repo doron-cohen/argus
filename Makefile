@@ -7,7 +7,7 @@ SYNC_OPENAPI_SPEC := backend/sync/api/openapi.yaml
 SYNC_API_OUT := backend/sync/api/api.gen.go
 SYNC_CLIENT_OUT := backend/sync/api/client/client.gen.go
 
-.PHONY: all install-tools backend/gen-all backend/go-mod-tidy
+.PHONY: all install-tools backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build backend/ci
 
 all: backend/gen-all backend/go-mod-tidy
 
@@ -33,3 +33,22 @@ backend/go-mod-tidy:
 	cd backend && go mod tidy
 	cd backend/api/client && go mod tidy
 	cd backend/sync/api/client && go mod tidy
+
+backend/lint:
+	cd backend && golangci-lint run --timeout=5m
+
+backend/test:
+	cd backend && go test -v -race -coverprofile=coverage.out ./...
+
+backend/build:
+	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
+
+backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
+	@echo "Checking for uncommitted changes in go.sum or generated files..."
+	@if [ -n "$$(git status --porcelain backend/*/go.mod backend/*/go.sum)" ]; then \
+		echo "Error: Uncommitted changes detected in go.mod or go.sum files"; \
+		echo "Please run 'make backend/go-mod-tidy' and commit the changes"; \
+		git diff backend/*/go.mod backend/*/go.sum; \
+		exit 1; \
+	fi
+	@echo "All go.mod and go.sum files are clean"
