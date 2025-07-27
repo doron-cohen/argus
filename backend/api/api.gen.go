@@ -19,11 +19,51 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for CheckReportStatus.
+const (
+	CheckReportStatusCompleted CheckReportStatus = "completed"
+	CheckReportStatusDisabled  CheckReportStatus = "disabled"
+	CheckReportStatusError     CheckReportStatus = "error"
+	CheckReportStatusFail      CheckReportStatus = "fail"
+	CheckReportStatusPass      CheckReportStatus = "pass"
+	CheckReportStatusSkipped   CheckReportStatus = "skipped"
+	CheckReportStatusUnknown   CheckReportStatus = "unknown"
+)
+
 // Defines values for HealthStatus.
 const (
 	Healthy   HealthStatus = "healthy"
 	Unhealthy HealthStatus = "unhealthy"
 )
+
+// Defines values for GetComponentReportsParamsStatus.
+const (
+	GetComponentReportsParamsStatusCompleted GetComponentReportsParamsStatus = "completed"
+	GetComponentReportsParamsStatusDisabled  GetComponentReportsParamsStatus = "disabled"
+	GetComponentReportsParamsStatusError     GetComponentReportsParamsStatus = "error"
+	GetComponentReportsParamsStatusFail      GetComponentReportsParamsStatus = "fail"
+	GetComponentReportsParamsStatusPass      GetComponentReportsParamsStatus = "pass"
+	GetComponentReportsParamsStatusSkipped   GetComponentReportsParamsStatus = "skipped"
+	GetComponentReportsParamsStatusUnknown   GetComponentReportsParamsStatus = "unknown"
+)
+
+// CheckReport A quality check report for a component
+type CheckReport struct {
+	// CheckSlug Unique identifier for the check type
+	CheckSlug string `json:"check_slug"`
+
+	// Id Unique identifier for the report
+	Id string `json:"id"`
+
+	// Status Status of the check execution
+	Status CheckReportStatus `json:"status"`
+
+	// Timestamp When the check was executed
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// CheckReportStatus Status of the check execution
+type CheckReportStatus string
 
 // Component A component discovered from a source
 type Component struct {
@@ -38,6 +78,15 @@ type Component struct {
 
 	// Owners Ownership information for a component
 	Owners *Owners `json:"owners,omitempty"`
+}
+
+// ComponentReportsResponse Response containing component reports with pagination
+type ComponentReportsResponse struct {
+	// Pagination Pagination metadata for list responses
+	Pagination Pagination `json:"pagination"`
+
+	// Reports List of check reports for the component
+	Reports []CheckReport `json:"reports"`
 }
 
 // Error Error response
@@ -70,6 +119,42 @@ type Owners struct {
 	Team *string `json:"team,omitempty"`
 }
 
+// Pagination Pagination metadata for list responses
+type Pagination struct {
+	// HasMore Whether there are more items available
+	HasMore bool `json:"has_more"`
+
+	// Limit Number of items returned in this response
+	Limit int `json:"limit"`
+
+	// Offset Offset used for this response
+	Offset int `json:"offset"`
+
+	// Total Total number of items available
+	Total int `json:"total"`
+}
+
+// GetComponentReportsParams defines parameters for GetComponentReports.
+type GetComponentReportsParams struct {
+	// Status Filter by check status
+	Status *GetComponentReportsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// CheckSlug Filter by specific check type
+	CheckSlug *string `form:"check_slug,omitempty" json:"check_slug,omitempty"`
+
+	// Since Filter reports since timestamp (ISO 8601)
+	Since *time.Time `form:"since,omitempty" json:"since,omitempty"`
+
+	// Limit Number of reports to return default 50 max 100
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Pagination offset
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// GetComponentReportsParamsStatus defines parameters for GetComponentReports.
+type GetComponentReportsParamsStatus string
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get all components
@@ -78,6 +163,9 @@ type ServerInterface interface {
 	// Get component by ID
 	// (GET /components/{componentId})
 	GetComponentById(w http.ResponseWriter, r *http.Request, componentId string)
+	// Get reports for component
+	// (GET /components/{componentId}/reports)
+	GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams)
 	// Health check
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -96,6 +184,12 @@ func (_ Unimplemented) GetComponents(w http.ResponseWriter, r *http.Request) {
 // Get component by ID
 // (GET /components/{componentId})
 func (_ Unimplemented) GetComponentById(w http.ResponseWriter, r *http.Request, componentId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get reports for component
+// (GET /components/{componentId}/reports)
+func (_ Unimplemented) GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -144,6 +238,74 @@ func (siw *ServerInterfaceWrapper) GetComponentById(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetComponentById(w, r, componentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetComponentReports operation middleware
+func (siw *ServerInterfaceWrapper) GetComponentReports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "componentId" -------------
+	var componentId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "componentId", chi.URLParam(r, "componentId"), &componentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "componentId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetComponentReportsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "check_slug" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "check_slug", r.URL.Query(), &params.CheckSlug)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "check_slug", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "since" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "since", r.URL.Query(), &params.Since)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "since", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetComponentReports(w, r, componentId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -287,6 +449,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/components/{componentId}", wrapper.GetComponentById)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/components/{componentId}/reports", wrapper.GetComponentReports)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
 
@@ -296,23 +461,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xWTW/jNhD9KwRboBfZUZLtxadN06AxsNgEbnppEBRjcWRxK5FafjjrDfzfiyElS7IU",
-	"Z4tigQI6UPyYeXzzODMvPNNVrRUqZ/nihduswArC8LpdoB+BNjOydlIrvuBX7HCKCWkzvUWDguVGVwyY",
-	"1d5kyBNeG12jcRLtyMTIohCShlCyTCuHXxyDtfaOuQI7Zz9ZVntTa4sMlGC5V1k8JN2OJxy/QFWXyBf8",
-	"FpQo0TJv0TDwrkDlZAa0OZykKW3k1zDDE+52NR2zzki14fuESzHG+IeSnz0yKchYLtGwXJshwDlb5kxp",
-	"x2qjt1KgSMK6ggrZsyxLtkbCJBjYsNDZmg/wE76ZRbOVgcgRPDI4BnjrK1AzgyBgXTZedT5EOHBzNWTm",
-	"99cd6meFJoTxR4M5X/AfzjrhnDWqObuLu/b7hBv87KVBwRePEe3Twapef8LMkdUbY7QZ3yNMM4O21sqO",
-	"hZRpga8dCmv9Ky4/PtysPl59+OtmtbpbTV0NT4Go0FrYHJlUDg0plQKEhkUDI8tHJMRdUyzcIpSumAhn",
-	"mGfWgfO2DWQniiEpcdcbRugaylcEpwjz9Gq8asdP/Vt2G0aMOVmhdVDVY3cP7VKLN5phWYHZ3wMWL9KL",
-	"y9n5xSw9fzhPFyl9f/KE59pU4PiCC3A4I09vMnu4W4driua7g4SHkON8IWsmVfROb4GeNgyezZDvCqRy",
-	"IKdNfpDWEQEh/XRv3LaalvQ8yUNrRaoNc4W00+/0kUMpM3xPi6B280xXPOHv13o920hX+DXdVzqsApRx",
-	"uOIEGAO78I9QTUQOoRrh089vQOP3JThijdH5yVAdBYKmiOiJGnC/bEhRsCG3lKnb8kL/XcaJpWYLRmpv",
-	"m4ITFeBiYjMbb9nV/ZInfIvGRgfp/HyehmxWo4Ja8gW/nKfzSwouuCKwdzashxucKH8rdEbiFhmwsok0",
-	"lGUf3nFRzLTK5cbTfweW5BTEthR8wX9Dd925JoXH9BdgXKRpzHzKNQUZ6rps8vbZJxtLakzDNDqI4VS2",
-	"7gr8SCQUpGlJ9+jZJ/znf4nrFJxYDCZcT+db2md9VYHZRfaOYhA29P28HMZLsf+W2NoaM5nLrNfsrHdM",
-	"Osv8cSdwMpq/7JYiSMxAhS4kjMe3e4uThfuoP5BkgiTM29aA9y7L++nSGY9JLyLH7/XpPyrvGwU3jvJ1",
-	"11GiA1kGfb1L331/fXWeqXPLtVfif6ftgQSXv0Zxx9r69VUtX1PR7VfhYSsR0+NIt0078h110HiYoKPp",
-	"QJm0rO0/hlzc9tuJ/X6//ycAAP//X2G1u8EMAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
