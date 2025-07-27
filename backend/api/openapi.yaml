@@ -56,6 +56,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /components/{componentId}/reports:
+    get:
+      summary: Get check reports for component
+      description: Retrieve quality check reports for a specific component
+      operationId: getComponentReports
+      parameters:
+        - name: componentId
+          in: path
+          required: true
+          description: Unique identifier of the component
+          schema:
+            type: string
+          example: "auth-service"
+        - name: latest_only
+          in: query
+          required: false
+          description: If true, return only the latest report for each check type
+          schema:
+            type: boolean
+            default: false
+          example: false
+      responses:
+        "200":
+          description: List of check reports for the component
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckReport"
+        "404":
+          description: Component not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /healthz:
     get:
       summary: Health check
@@ -135,3 +177,92 @@ components:
           example: "INTERNAL_ERROR"
       required:
         - error
+    CheckReport:
+      type: object
+      description: A quality check report for a component
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the report
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        check:
+          $ref: "#/components/schemas/Check"
+        status:
+          type: string
+          description: Status of the check execution
+          enum:
+            [
+              "pass",
+              "fail",
+              "disabled",
+              "skipped",
+              "unknown",
+              "error",
+              "completed",
+            ]
+          example: "pass"
+        timestamp:
+          type: string
+          format: date-time
+          description: When the check was executed
+          example: "2024-01-15T10:30:00Z"
+        details:
+          type: object
+          description: Check-specific data (coverage %, warnings, etc.)
+          additionalProperties: true
+          example:
+            coverage_percentage: 85.5
+            tests_passed: 150
+            tests_failed: 0
+            duration_seconds: 45
+        metadata:
+          type: object
+          description: Execution context (CI job, environment, duration)
+          additionalProperties: true
+          example:
+            ci_job_id: "12345"
+            environment: "staging"
+            branch: "main"
+            commit_sha: "abc123"
+            execution_duration_ms: 45000
+        created_at:
+          type: string
+          format: date-time
+          description: When the report was created
+          example: "2024-01-15T10:30:00Z"
+      required:
+        - id
+        - check
+        - status
+        - timestamp
+    Check:
+      type: object
+      description: Information about a quality check
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the check
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        slug:
+          type: string
+          description: Unique identifier for the check type
+          example: "unit-tests"
+        name:
+          type: string
+          description: Human-readable name for the check
+          example: "Unit Tests"
+        description:
+          type: string
+          description: Description of what the check does
+          example: "Runs unit tests for the component"
+        created_at:
+          type: string
+          format: date-time
+          description: When the check was created
+          example: "2024-01-15T10:30:00Z"
+      required:
+        - id
+        - slug
+        - name

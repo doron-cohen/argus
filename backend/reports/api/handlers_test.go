@@ -2,18 +2,45 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
+// MockRepository is a mock implementation of storage.Repository for testing
+type MockRepository struct {
+	*storage.Repository
+}
+
+func NewMockRepository() *MockRepository {
+	// Use SQLite for testing
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	repo := &storage.Repository{DB: db}
+	// Don't run migrations for tests to avoid foreign key issues
+	return &MockRepository{Repository: repo}
+}
+
+func (m *MockRepository) CreateCheckReportFromSubmission(ctx context.Context, input storage.CreateCheckReportInput) error {
+	// For testing, just return success
+	return nil
+}
+
 func TestSubmitReport_ValidRequest(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo.Repository)
 
 	validReport := ReportSubmission{
 		Check: Check{
@@ -53,7 +80,8 @@ func TestSubmitReport_ValidRequest(t *testing.T) {
 }
 
 func TestSubmitReport_MissingRequiredFields(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo.Repository)
 
 	testCases := []struct {
 		name   string
@@ -118,7 +146,8 @@ func TestSubmitReport_MissingRequiredFields(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidCheckSlug(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	testCases := []struct {
 		name      string
@@ -153,7 +182,8 @@ func TestSubmitReport_InvalidCheckSlug(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidComponentId(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	testCases := []struct {
 		name        string
@@ -187,7 +217,8 @@ func TestSubmitReport_InvalidComponentId(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidStatus(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	report := ReportSubmission{
 		Check: Check{
@@ -214,7 +245,8 @@ func TestSubmitReport_InvalidStatus(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidTimestamp(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	report := ReportSubmission{
 		Check: Check{
@@ -241,7 +273,8 @@ func TestSubmitReport_InvalidTimestamp(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidJSON(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	req := httptest.NewRequest("POST", "/reports", bytes.NewBufferString("invalid json"))
 	req.Header.Set("Content-Type", "application/json")
@@ -258,7 +291,8 @@ func TestSubmitReport_InvalidJSON(t *testing.T) {
 }
 
 func TestSubmitReport_ValidStatuses(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	validStatuses := []ReportSubmissionStatus{
 		ReportSubmissionStatusPass,
@@ -294,7 +328,8 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 }
 
 func TestSubmitReport_ValidSlugs(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository()
+	server := NewReportsServer(mockRepo)
 
 	validSlugs := []string{
 		"unit-tests",

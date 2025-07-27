@@ -7,14 +7,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/doron-cohen/argus/backend/internal/utils"
 	"github.com/google/uuid"
 )
 
-type ReportsServer struct{}
+type ReportsServer struct {
+	Repo *storage.Repository
+}
 
-func NewReportsServer() ServerInterface {
-	return &ReportsServer{}
+func NewReportsServer(repo *storage.Repository) ServerInterface {
+	return &ReportsServer{Repo: repo}
 }
 
 func (s *ReportsServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +38,37 @@ func (s *ReportsServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For now, just return success (no storage yet)
+	// Convert API submission to storage input
+	input := storage.CreateCheckReportInput{
+		ComponentID:      submission.ComponentId,
+		CheckSlug:        submission.Check.Slug,
+		CheckName:        submission.Check.Name,
+		CheckDescription: submission.Check.Description,
+		Status:           storage.CheckStatus(submission.Status),
+		Timestamp:        submission.Timestamp,
+	}
+
+	// Convert optional JSONB fields
+	if submission.Details != nil {
+		input.Details = storage.JSONB(*submission.Details)
+	}
+	if submission.Metadata != nil {
+		input.Metadata = storage.JSONB(*submission.Metadata)
+	}
+
+	// Store the report in the database
+	if err := s.Repo.CreateCheckReportFromSubmission(r.Context(), input); err != nil {
+		if err == storage.ErrComponentNotFound {
+			s.writeValidationError(w, "Component not found", "COMPONENT_NOT_FOUND", map[string]interface{}{
+				"component_id": submission.ComponentId,
+			})
+			return
+		}
+		http.Error(w, "Failed to store report", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
 	response := ReportSubmissionResponse{
 		Message:   &[]string{"Report submitted successfully"}[0],
 		ReportId:  s.generateReportID(),

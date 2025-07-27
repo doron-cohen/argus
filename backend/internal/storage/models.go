@@ -28,6 +28,9 @@ type Component struct {
 	Description string
 	Maintainers StringArray `gorm:"type:jsonb"`
 	Team        string
+
+	// Relationships
+	CheckReports []CheckReport `gorm:"foreignKey:ComponentID;constraint:OnDelete:CASCADE"`
 }
 
 func (c *Component) BeforeCreate(tx *gorm.DB) (err error) {
@@ -65,6 +68,10 @@ type CheckReport struct {
 	Metadata    JSONB       `gorm:"type:jsonb"`
 	CreatedAt   time.Time   `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time   `gorm:"autoUpdateTime"`
+
+	// Relationships
+	Check     Check     `gorm:"foreignKey:CheckID;constraint:OnDelete:CASCADE"`
+	Component Component `gorm:"foreignKey:ComponentID;constraint:OnDelete:CASCADE"`
 }
 
 func (cr *CheckReport) BeforeCreate(tx *gorm.DB) (err error) {

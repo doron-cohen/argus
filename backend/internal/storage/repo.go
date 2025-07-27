@@ -206,6 +206,74 @@ func (r *Repository) validateCheckReport(ctx context.Context, report CheckReport
 	return nil
 }
 
+// GetCheckReportsForComponent retrieves all check reports for a specific component
+func (r *Repository) GetCheckReportsForComponent(ctx context.Context, componentID string) ([]CheckReport, error) {
+	// First verify the component exists
+	component, err := r.GetComponentByID(ctx, componentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var reports []CheckReport
+	err = r.DB.WithContext(ctx).
+		Preload("Check").
+		Where("component_id = ?", component.ID).
+		Order("timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
+// GetLatestCheckReportsForComponent retrieves the latest report for each check type for a specific component
+func (r *Repository) GetLatestCheckReportsForComponent(ctx context.Context, componentID string) ([]CheckReport, error) {
+	// First verify the component exists
+	component, err := r.GetComponentByID(ctx, componentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var reports []CheckReport
+	err = r.DB.WithContext(ctx).
+		Preload("Check").
+		Where("component_id = ?", component.ID).
+		Where("id IN (?)",
+			r.DB.Table("check_reports").
+				Select("DISTINCT ON (check_id) id").
+				Where("component_id = ?", component.ID).
+				Order("check_id, timestamp DESC")).
+		Order("timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
+// GetCheckReportsByStatus retrieves check reports filtered by status
+func (r *Repository) GetCheckReportsByStatus(ctx context.Context, status CheckStatus) ([]CheckReport, error) {
+	var reports []CheckReport
+	err := r.DB.WithContext(ctx).
+		Preload("Check").
+		Preload("Component").
+		Where("status = ?", status).
+		Order("timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
+// GetCheckReportsByCheckSlug retrieves all reports for a specific check type
+func (r *Repository) GetCheckReportsByCheckSlug(ctx context.Context, checkSlug string) ([]CheckReport, error) {
+	var reports []CheckReport
+	err := r.DB.WithContext(ctx).
+		Preload("Check").
+		Preload("Component").
+		Joins("JOIN checks ON checks.id = check_reports.check_id").
+		Where("checks.slug = ?", checkSlug).
+		Order("check_reports.timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
 // HealthCheck implements the health.Checker interface
 func (r *Repository) HealthCheck(ctx context.Context) error {
 	return r.DB.WithContext(ctx).Raw("SELECT 1").Error
