@@ -8,12 +8,47 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
+// MockRepository is a mock implementation of storage.Repository for testing
+type MockRepository struct {
+	*storage.Repository
+}
+
+func NewMockRepository(t *testing.T) *MockRepository {
+	// Use SQLite for testing
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+
+	repo := &storage.Repository{DB: db}
+	// Run migrations to create tables
+	if err := repo.Migrate(t.Context()); err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	return &MockRepository{Repository: repo}
+}
+
 func TestSubmitReport_ValidRequest(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
+
+	// Create a test component first
+	component := storage.Component{
+		ComponentID: "auth-service",
+		Name:        "Auth Service",
+		Description: "Authentication service",
+	}
+	if err := mockRepo.Repository.DB.Create(&component).Error; err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
 
 	validReport := ReportSubmission{
 		Check: Check{
@@ -53,7 +88,8 @@ func TestSubmitReport_ValidRequest(t *testing.T) {
 }
 
 func TestSubmitReport_MissingRequiredFields(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
 
 	testCases := []struct {
 		name   string
@@ -118,7 +154,8 @@ func TestSubmitReport_MissingRequiredFields(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidCheckSlug(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
 
 	testCases := []struct {
 		name      string
@@ -153,7 +190,8 @@ func TestSubmitReport_InvalidCheckSlug(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidComponentId(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
 
 	testCases := []struct {
 		name        string
@@ -187,7 +225,8 @@ func TestSubmitReport_InvalidComponentId(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidStatus(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
 
 	report := ReportSubmission{
 		Check: Check{
@@ -214,7 +253,8 @@ func TestSubmitReport_InvalidStatus(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidTimestamp(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
 
 	report := ReportSubmission{
 		Check: Check{
@@ -241,7 +281,8 @@ func TestSubmitReport_InvalidTimestamp(t *testing.T) {
 }
 
 func TestSubmitReport_InvalidJSON(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
 
 	req := httptest.NewRequest("POST", "/reports", bytes.NewBufferString("invalid json"))
 	req.Header.Set("Content-Type", "application/json")
@@ -258,7 +299,18 @@ func TestSubmitReport_InvalidJSON(t *testing.T) {
 }
 
 func TestSubmitReport_ValidStatuses(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
+
+	// Create a test component first
+	component := storage.Component{
+		ComponentID: "auth-service",
+		Name:        "Auth Service",
+		Description: "Authentication service",
+	}
+	if err := mockRepo.CreateComponent(t.Context(), component); err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
 
 	validStatuses := []ReportSubmissionStatus{
 		ReportSubmissionStatusPass,
@@ -294,7 +346,18 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 }
 
 func TestSubmitReport_ValidSlugs(t *testing.T) {
-	server := NewReportsServer()
+	mockRepo := NewMockRepository(t)
+	server := NewReportsServer(mockRepo.Repository)
+
+	// Create a test component first
+	component := storage.Component{
+		ComponentID: "auth-service",
+		Name:        "Auth Service",
+		Description: "Authentication service",
+	}
+	if err := mockRepo.CreateComponent(t.Context(), component); err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
 
 	validSlugs := []string{
 		"unit-tests",

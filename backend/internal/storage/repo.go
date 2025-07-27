@@ -16,9 +16,6 @@ var ErrComponentNotFound = errors.New("component not found")
 // ErrCheckNotFound is returned when a check is not found
 var ErrCheckNotFound = errors.New("check not found")
 
-// ErrInvalidCheckReport is returned when a check report is invalid
-var ErrInvalidCheckReport = errors.New("invalid check report")
-
 type Repository struct {
 	DB *gorm.DB
 }
@@ -28,14 +25,22 @@ func ConnectAndMigrate(ctx context.Context, dsn string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Migrate all tables
 	if err := db.WithContext(ctx).AutoMigrate(&Component{}, &Check{}, &CheckReport{}); err != nil {
 		return nil, err
 	}
+
 	return &Repository{DB: db}, nil
 }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	return r.DB.WithContext(ctx).AutoMigrate(&Component{}, &Check{}, &CheckReport{})
+	// Migrate all tables
+	if err := r.DB.WithContext(ctx).AutoMigrate(&Component{}, &Check{}, &CheckReport{}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Component methods
@@ -163,14 +168,14 @@ type CreateCheckReportInput struct {
 func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input CreateCheckReportInput) error {
 	// Use transaction to ensure atomicity
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Verify component exists and get its UUID
-		component, err := r.GetComponentByID(ctx, input.ComponentID)
+		// Verify component exists and get its UUID using the transaction
+		component, err := r.getComponentInTransaction(ctx, tx, input.ComponentID)
 		if err != nil {
 			return err
 		}
 
-		// Get or create check by slug with provided name and description
-		checkID, err := r.GetOrCreateCheckBySlug(ctx, input.CheckSlug, input.CheckName, input.CheckDescription)
+		// Get or create check by slug with provided name and description using the transaction
+		checkID, err := r.getOrCreateCheckInTransaction(ctx, tx, input)
 		if err != nil {
 			return err
 		}
@@ -189,21 +194,125 @@ func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input 
 	})
 }
 
-// validateCheckReport validates a check report before creation
-func (r *Repository) validateCheckReport(ctx context.Context, report CheckReport) error {
-	if report.ComponentID == uuid.Nil {
-		return ErrInvalidCheckReport
+// getComponentInTransaction gets a component within a transaction
+func (r *Repository) getComponentInTransaction(ctx context.Context, tx *gorm.DB, componentID string) (*Component, error) {
+	var component Component
+	err := tx.WithContext(ctx).Where("component_id = ?", componentID).First(&component).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrComponentNotFound
+		}
+		return nil, err
 	}
-	if report.CheckID == uuid.Nil {
-		return ErrInvalidCheckReport
+	return &component, nil
+}
+
+// getOrCreateCheckInTransaction gets or creates a check within a transaction
+func (r *Repository) getOrCreateCheckInTransaction(ctx context.Context, tx *gorm.DB, input CreateCheckReportInput) (uuid.UUID, error) {
+	var check Check
+	err := tx.WithContext(ctx).Where("slug = ?", input.CheckSlug).First(&check).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return uuid.Nil, err
 	}
-	if report.Status == "" {
-		return ErrInvalidCheckReport
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return r.createCheckInTransaction(ctx, tx, input)
 	}
-	if report.Timestamp.IsZero() {
-		return ErrInvalidCheckReport
+
+	return check.ID, nil
+}
+
+// createCheckInTransaction creates a new check within a transaction
+func (r *Repository) createCheckInTransaction(ctx context.Context, tx *gorm.DB, input CreateCheckReportInput) (uuid.UUID, error) {
+	checkName := input.CheckSlug // Default name is slug
+	if input.CheckName != nil && *input.CheckName != "" {
+		checkName = *input.CheckName
 	}
-	return nil
+
+	checkDescription := "Auto-created check for slug: " + input.CheckSlug // Default description
+	if input.CheckDescription != nil && *input.CheckDescription != "" {
+		checkDescription = *input.CheckDescription
+	}
+
+	newCheck := Check{
+		Slug:        input.CheckSlug,
+		Name:        checkName,
+		Description: checkDescription,
+	}
+
+	if err := tx.WithContext(ctx).Create(&newCheck).Error; err != nil {
+		return uuid.Nil, err
+	}
+
+	return newCheck.ID, nil
+}
+
+// GetCheckReportsForComponent retrieves all check reports for a specific component
+func (r *Repository) GetCheckReportsForComponent(ctx context.Context, componentID string) ([]CheckReport, error) {
+	// First verify the component exists
+	component, err := r.GetComponentByID(ctx, componentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var reports []CheckReport
+	err = r.DB.WithContext(ctx).
+		Preload("Check").
+		Where("component_id = ?", component.ID).
+		Order("timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
+// GetLatestCheckReportsForComponent retrieves the latest report for each check type for a specific component
+func (r *Repository) GetLatestCheckReportsForComponent(ctx context.Context, componentID string) ([]CheckReport, error) {
+	// First verify the component exists
+	component, err := r.GetComponentByID(ctx, componentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var reports []CheckReport
+	err = r.DB.WithContext(ctx).
+		Preload("Check").
+		Where("component_id = ?", component.ID).
+		Where("id IN (?)",
+			r.DB.Table("check_reports").
+				Select("DISTINCT ON (check_id) id").
+				Where("component_id = ?", component.ID).
+				Order("check_id, timestamp DESC")).
+		Order("timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
+// GetCheckReportsByStatus retrieves check reports filtered by status
+func (r *Repository) GetCheckReportsByStatus(ctx context.Context, status CheckStatus) ([]CheckReport, error) {
+	var reports []CheckReport
+	err := r.DB.WithContext(ctx).
+		Preload("Check").
+		Preload("Component").
+		Where("status = ?", status).
+		Order("timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
+}
+
+// GetCheckReportsByCheckSlug retrieves all reports for a specific check type
+func (r *Repository) GetCheckReportsByCheckSlug(ctx context.Context, checkSlug string) ([]CheckReport, error) {
+	var reports []CheckReport
+	err := r.DB.WithContext(ctx).
+		Preload("Check").
+		Preload("Component").
+		Joins("JOIN checks ON checks.id = check_reports.check_id").
+		Where("checks.slug = ?", checkSlug).
+		Order("check_reports.timestamp DESC").
+		Find(&reports).Error
+
+	return reports, err
 }
 
 // HealthCheck implements the health.Checker interface
