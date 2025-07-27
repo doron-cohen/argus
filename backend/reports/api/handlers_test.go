@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
