@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+const jsonbType = "jsonb"
+
 // StringArray is a custom type to handle PostgreSQL JSONB arrays
 // This allows for powerful querying capabilities using PostgreSQL's JSONB operators:
 // - ? : Check if a string exists in the array
@@ -51,12 +53,12 @@ func (sa *StringArray) Scan(value interface{}) error {
 
 // GormDataType implements GormDataTypeInterface
 func (sa StringArray) GormDataType() string {
-	return "jsonb"
+	return jsonbType
 }
 
 // GormDBDataType implements GormDBDataTypeInterface
 func (sa StringArray) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	return "jsonb"
+	return jsonbType
 }
 
 // Contains checks if the array contains a specific string
