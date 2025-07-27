@@ -169,47 +169,15 @@ func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input 
 	// Use transaction to ensure atomicity
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Verify component exists and get its UUID using the transaction
-		var component Component
-		err := tx.WithContext(ctx).Where("component_id = ?", input.ComponentID).First(&component).Error
+		component, err := r.getComponentInTransaction(ctx, tx, input.ComponentID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrComponentNotFound
-			}
 			return err
 		}
 
 		// Get or create check by slug with provided name and description using the transaction
-		var check Check
-		err = tx.WithContext(ctx).Where("slug = ?", input.CheckSlug).First(&check).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		checkID, err := r.getOrCreateCheckInTransaction(ctx, tx, input)
+		if err != nil {
 			return err
-		}
-
-		var checkID uuid.UUID
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Check doesn't exist, create it
-			checkName := input.CheckSlug // Default name is slug
-			if input.CheckName != nil && *input.CheckName != "" {
-				checkName = *input.CheckName
-			}
-
-			checkDescription := "Auto-created check for slug: " + input.CheckSlug // Default description
-			if input.CheckDescription != nil && *input.CheckDescription != "" {
-				checkDescription = *input.CheckDescription
-			}
-
-			newCheck := Check{
-				Slug:        input.CheckSlug,
-				Name:        checkName,
-				Description: checkDescription,
-			}
-
-			if err := tx.WithContext(ctx).Create(&newCheck).Error; err != nil {
-				return err
-			}
-			checkID = newCheck.ID
-		} else {
-			checkID = check.ID
 		}
 
 		// Create the report
@@ -224,6 +192,59 @@ func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input 
 
 		return tx.Create(&report).Error
 	})
+}
+
+// getComponentInTransaction gets a component within a transaction
+func (r *Repository) getComponentInTransaction(ctx context.Context, tx *gorm.DB, componentID string) (*Component, error) {
+	var component Component
+	err := tx.WithContext(ctx).Where("component_id = ?", componentID).First(&component).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrComponentNotFound
+		}
+		return nil, err
+	}
+	return &component, nil
+}
+
+// getOrCreateCheckInTransaction gets or creates a check within a transaction
+func (r *Repository) getOrCreateCheckInTransaction(ctx context.Context, tx *gorm.DB, input CreateCheckReportInput) (uuid.UUID, error) {
+	var check Check
+	err := tx.WithContext(ctx).Where("slug = ?", input.CheckSlug).First(&check).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return uuid.Nil, err
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return r.createCheckInTransaction(ctx, tx, input)
+	}
+
+	return check.ID, nil
+}
+
+// createCheckInTransaction creates a new check within a transaction
+func (r *Repository) createCheckInTransaction(ctx context.Context, tx *gorm.DB, input CreateCheckReportInput) (uuid.UUID, error) {
+	checkName := input.CheckSlug // Default name is slug
+	if input.CheckName != nil && *input.CheckName != "" {
+		checkName = *input.CheckName
+	}
+
+	checkDescription := "Auto-created check for slug: " + input.CheckSlug // Default description
+	if input.CheckDescription != nil && *input.CheckDescription != "" {
+		checkDescription = *input.CheckDescription
+	}
+
+	newCheck := Check{
+		Slug:        input.CheckSlug,
+		Name:        checkName,
+		Description: checkDescription,
+	}
+
+	if err := tx.WithContext(ctx).Create(&newCheck).Error; err != nil {
+		return uuid.Nil, err
+	}
+
+	return newCheck.ID, nil
 }
 
 // GetCheckReportsForComponent retrieves all check reports for a specific component

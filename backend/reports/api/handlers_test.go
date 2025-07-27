@@ -308,7 +308,7 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 		Name:        "Auth Service",
 		Description: "Authentication service",
 	}
-	if err := mockRepo.Repository.CreateComponent(t.Context(), component); err != nil {
+	if err := mockRepo.CreateComponent(t.Context(), component); err != nil {
 		t.Fatalf("Failed to create test component: %v", err)
 	}
 
@@ -355,7 +355,7 @@ func TestSubmitReport_ValidSlugs(t *testing.T) {
 		Name:        "Auth Service",
 		Description: "Authentication service",
 	}
-	if err := mockRepo.Repository.CreateComponent(t.Context(), component); err != nil {
+	if err := mockRepo.CreateComponent(t.Context(), component); err != nil {
 		t.Fatalf("Failed to create test component: %v", err)
 	}
 
