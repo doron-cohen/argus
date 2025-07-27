@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 type APIServer struct {
@@ -145,76 +144,6 @@ func (s *APIServer) writeNotFoundError(w http.ResponseWriter) {
 		http.Error(w, "failed to encode error response", http.StatusInternalServerError)
 		return
 	}
-}
-
-func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams) {
-	ctx := r.Context()
-
-	var reports []storage.CheckReport
-	var err error
-
-	if params.LatestOnly != nil && *params.LatestOnly {
-		reports, err = s.Repo.GetLatestCheckReportsForComponent(ctx, componentId)
-	} else {
-		reports, err = s.Repo.GetCheckReportsForComponent(ctx, componentId)
-	}
-
-	if err != nil {
-		if err == storage.ErrComponentNotFound {
-			s.writeNotFoundError(w)
-			return
-		}
-		http.Error(w, "failed to fetch component reports", http.StatusInternalServerError)
-		return
-	}
-
-	// Convert storage reports to API reports
-	var apiReports []CheckReport
-	for _, report := range reports {
-		apiReport := s.convertToAPICheckReport(&report)
-		apiReports = append(apiReports, apiReport)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(apiReports); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-		return
-	}
-}
-
-func (s *APIServer) convertToAPICheckReport(report *storage.CheckReport) CheckReport {
-	// Convert UUID to openapi_types.UUID
-	reportID := openapi_types.UUID(report.ID)
-
-	apiReport := CheckReport{
-		Id:        reportID,
-		Status:    CheckReportStatus(report.Status),
-		Timestamp: report.Timestamp,
-		CreatedAt: &report.CreatedAt,
-	}
-
-	// Convert check information
-	checkID := openapi_types.UUID(report.Check.ID)
-	apiReport.Check = Check{
-		Id:          checkID,
-		Slug:        report.Check.Slug,
-		Name:        report.Check.Name,
-		Description: &report.Check.Description,
-		CreatedAt:   &report.Check.CreatedAt,
-	}
-
-	// Convert optional JSONB fields
-	if report.Details != nil {
-		details := map[string]interface{}(report.Details)
-		apiReport.Details = &details
-	}
-	if report.Metadata != nil {
-		metadata := map[string]interface{}(report.Metadata)
-		apiReport.Metadata = &metadata
-	}
-
-	return apiReport
 }
 
 func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
