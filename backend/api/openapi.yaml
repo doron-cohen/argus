@@ -119,6 +119,13 @@ paths:
             minimum: 0
             default: 0
           example: 0
+        - name: latest_per_check
+          in: query
+          required: false
+          description: Return only the latest report for each check type
+          schema:
+            type: boolean
+          example: true
       responses:
         "200":
           description: Component reports

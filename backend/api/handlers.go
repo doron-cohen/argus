@@ -163,6 +163,11 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 	// Apply filters
 	filteredReports := s.filterReports(reports, params)
 
+	// Apply latest_per_check filter if requested
+	if params.LatestPerCheck != nil && *params.LatestPerCheck {
+		filteredReports = s.getLatestPerCheck(filteredReports)
+	}
+
 	// Apply pagination
 	limit := 50 // default
 	if params.Limit != nil && *params.Limit > 0 && *params.Limit <= 100 {
@@ -264,6 +269,29 @@ func (s *APIServer) filterReports(reports []storage.CheckReport, params GetCompo
 	}
 
 	return filtered
+}
+
+// getLatestPerCheck returns only the latest report for each check type
+func (s *APIServer) getLatestPerCheck(reports []storage.CheckReport) []storage.CheckReport {
+	// Group reports by check slug
+	latestByCheck := make(map[string]storage.CheckReport)
+
+	for _, report := range reports {
+		checkSlug := report.Check.Slug
+
+		// If we haven't seen this check type yet, or if this report is newer
+		if existing, exists := latestByCheck[checkSlug]; !exists || report.Timestamp.After(existing.Timestamp) {
+			latestByCheck[checkSlug] = report
+		}
+	}
+
+	// Convert map back to slice
+	var result []storage.CheckReport
+	for _, report := range latestByCheck {
+		result = append(result, report)
+	}
+
+	return result
 }
 
 // convertToAPICheckReport converts a storage check report to an API check report
