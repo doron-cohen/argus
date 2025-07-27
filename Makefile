@@ -53,6 +53,10 @@ backend/test:
 backend/build:
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
+backend/build-with-deps: backend/go-mod-tidy
+	cd backend && go mod download
+	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
+
 backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 	@echo "Checking for uncommitted changes in go.sum or generated files..."
 	@if [ -n "$$(git status --porcelain backend/*/go.mod backend/*/go.sum)" ]; then \
