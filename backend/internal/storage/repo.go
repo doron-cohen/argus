@@ -3,7 +3,9 @@ package storage
 import (
 	"context"
 	"errors"
+	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -13,6 +15,9 @@ var ErrComponentNotFound = errors.New("component not found")
 
 // ErrCheckNotFound is returned when a check is not found
 var ErrCheckNotFound = errors.New("check not found")
+
+// ErrInvalidCheckReport is returned when a check report is invalid
+var ErrInvalidCheckReport = errors.New("invalid check report")
 
 type Repository struct {
 	DB *gorm.DB
@@ -98,9 +103,96 @@ func (r *Repository) CreateCheck(ctx context.Context, check Check) error {
 	return r.DB.WithContext(ctx).Create(&check).Error
 }
 
+// GetOrCreateCheckBySlug auto-creates a check if it doesn't exist, returns CheckID
+func (r *Repository) GetOrCreateCheckBySlug(ctx context.Context, slug string, name *string, description *string) (uuid.UUID, error) {
+	// First try to get existing check
+	check, err := r.GetCheckBySlug(ctx, slug)
+	if err == nil {
+		// Check exists, return its ID
+		return check.ID, nil
+	}
+	if !errors.Is(err, ErrCheckNotFound) {
+		// Some other error occurred
+		return uuid.Nil, err
+	}
+
+	// Check doesn't exist, create it with provided values or defaults
+	checkName := slug // Default name is slug
+	if name != nil && *name != "" {
+		checkName = *name
+	}
+
+	checkDescription := "Auto-created check for slug: " + slug // Default description
+	if description != nil && *description != "" {
+		checkDescription = *description
+	}
+
+	newCheck := Check{
+		Slug:        slug,
+		Name:        checkName,
+		Description: checkDescription,
+	}
+
+	err = r.CreateCheck(ctx, newCheck)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	// Get the created check to return its ID
+	createdCheck, err := r.GetCheckBySlug(ctx, slug)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return createdCheck.ID, nil
+}
+
 // CheckReport methods - only what's needed for handlers
-func (r *Repository) CreateCheckReport(ctx context.Context, report CheckReport) error {
-	return r.DB.WithContext(ctx).Create(&report).Error
+// CreateCheckReportFromSubmission creates a check report from API submission data
+func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, componentID string, checkSlug string, checkName *string, checkDescription *string, status CheckStatus, timestamp time.Time, details, metadata JSONB) error {
+	// Use transaction to ensure atomicity
+	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Verify component exists and get its UUID
+		component, err := r.GetComponentByID(ctx, componentID)
+		if err != nil {
+			return err
+		}
+
+		// Get or create check by slug with provided name and description
+		checkID, err := r.GetOrCreateCheckBySlug(ctx, checkSlug, checkName, checkDescription)
+		if err != nil {
+			return err
+		}
+
+		// Create the report
+		report := CheckReport{
+			CheckID:     checkID,
+			ComponentID: component.ID,
+			Status:      status,
+			Timestamp:   timestamp,
+			Details:     details,
+			Metadata:    metadata,
+		}
+
+		return tx.Create(&report).Error
+	})
+}
+
+// validateCheckReport validates a check report before creation
+func (r *Repository) validateCheckReport(ctx context.Context, report CheckReport) error {
+	if report.ComponentID == uuid.Nil {
+		return ErrInvalidCheckReport
+	}
+	if report.CheckID == uuid.Nil {
+		return ErrInvalidCheckReport
+	}
+	if report.Status == "" {
+		return ErrInvalidCheckReport
+	}
+	if report.Timestamp.IsZero() {
+		return ErrInvalidCheckReport
+	}
+	return nil
 }
 
 // HealthCheck implements the health.Checker interface
