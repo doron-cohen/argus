@@ -45,9 +45,6 @@ type Check struct {
 	Description string    `gorm:"type:text"`
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
-
-	// Relationships
-	Reports []CheckReport `gorm:"foreignKey:CheckID;constraint:OnDelete:CASCADE"`
 }
 
 // CheckReport represents a report of a check execution on a component
@@ -61,10 +58,6 @@ type CheckReport struct {
 	Metadata    JSONB       `gorm:"type:jsonb"`
 	CreatedAt   time.Time   `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time   `gorm:"autoUpdateTime"`
-
-	// Relationships
-	Check     Check     `gorm:"foreignKey:CheckID;constraint:OnDelete:CASCADE"`
-	Component Component `gorm:"foreignKey:ComponentID;constraint:OnDelete:CASCADE"`
 }
 
 // BeforeCreate hooks for automatic UUID generation
