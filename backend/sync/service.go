@@ -47,6 +47,9 @@ type Service struct {
 	statusMutex sync.RWMutex
 	statuses    map[int]*SourceStatus
 	running     map[int]bool
+
+	// Fetcher cache synchronization
+	fetchersMutex sync.RWMutex
 }
 
 // NewService creates a new sync service
@@ -297,6 +300,19 @@ func (s *Service) processComponent(ctx context.Context, component models.Compone
 
 // getFetcher returns a cached fetcher for the given type
 func (s *Service) getFetcher(sourceType string) (ComponentsFetcher, error) {
+	// Check cache first with read lock
+	s.fetchersMutex.RLock()
+	if fetcher, exists := s.fetchers[sourceType]; exists {
+		s.fetchersMutex.RUnlock()
+		return fetcher, nil
+	}
+	s.fetchersMutex.RUnlock()
+
+	// Create new fetcher with write lock
+	s.fetchersMutex.Lock()
+	defer s.fetchersMutex.Unlock()
+
+	// Double-check pattern: check again after acquiring write lock
 	if fetcher, exists := s.fetchers[sourceType]; exists {
 		return fetcher, nil
 	}

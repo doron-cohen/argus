@@ -1,7 +1,6 @@
 package storage_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -24,7 +23,7 @@ func setupTestRepo(t *testing.T) *storage.Repository {
 
 func TestRepository_Migration(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test that we can create a component
 	component := storage.Component{
@@ -63,7 +62,7 @@ func TestRepository_JSONBStorage(t *testing.T) {
 	require.NoError(t, err)
 
 	repo := &storage.Repository{DB: db}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test component with maintainers
 	component := storage.Component{
@@ -98,7 +97,7 @@ func TestRepository_JSONBStorage(t *testing.T) {
 
 func TestRepository_CreateCheckReportWithExistingCheck(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test component
 	component := storage.Component{
@@ -143,7 +142,7 @@ func TestRepository_CreateCheckReportWithExistingCheck(t *testing.T) {
 
 func TestRepository_CreateCheckReportWithAutoCreatedCheck(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test component with unique ID
 	component := storage.Component{
@@ -195,7 +194,7 @@ func TestRepository_CreateCheckReportWithAutoCreatedCheck(t *testing.T) {
 
 func TestRepository_CreateCheckReportWithNonExistentComponent(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	details := storage.JSONB{"test": "data"}
 	metadata := storage.JSONB{"env": "test"}
@@ -215,7 +214,7 @@ func TestRepository_CreateCheckReportWithNonExistentComponent(t *testing.T) {
 
 func TestRepository_GetOrCreateCheckBySlug(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("Get existing check", func(t *testing.T) {
 		// Create a check first with unique slug
@@ -286,7 +285,7 @@ func TestRepository_GetOrCreateCheckBySlug(t *testing.T) {
 
 func TestRepository_CheckMethods(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("Create and Get Check by Slug", func(t *testing.T) {
 		check := storage.Check{
@@ -316,7 +315,7 @@ func TestRepository_CheckMethods(t *testing.T) {
 
 func TestRepository_DatabaseSchema(t *testing.T) {
 	repo := setupTestRepo(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("Check table schema", func(t *testing.T) {
 		// Test that we can create a check with all required fields

@@ -30,7 +30,7 @@ type Component struct {
 	Team        string
 
 	// Relationships
-	CheckReports []CheckReport `gorm:"foreignKey:ComponentID;constraint:OnDelete:CASCADE"`
+	CheckReports []CheckReport
 }
 
 func (c *Component) BeforeCreate(tx *gorm.DB) (err error) {
@@ -70,8 +70,8 @@ type CheckReport struct {
 	UpdatedAt   time.Time   `gorm:"autoUpdateTime"`
 
 	// Relationships
-	Check     Check     `gorm:"foreignKey:CheckID;constraint:OnDelete:CASCADE"`
-	Component Component `gorm:"foreignKey:ComponentID;constraint:OnDelete:CASCADE"`
+	Check     Check
+	Component Component
 }
 
 func (cr *CheckReport) BeforeCreate(tx *gorm.DB) (err error) {
