@@ -1,4 +1,4 @@
-TOOLS_BIN := $(GOPATH)/bin
+TOOLS_BIN := $(shell go env GOPATH)/bin
 oapi-codegen := $(TOOLS_BIN)/oapi-codegen
 OPENAPI_SPEC := backend/api/openapi.yaml
 API_OUT := backend/api/api.gen.go
