@@ -14,8 +14,22 @@ This milestone establishes the foundation for Argus as a basic software catalog.
 
 - Define and run quality checks against components (code coverage, security scans, test results).
 - Store check results with status tracking (pass, fail, disabled, skipped).
-- Track historical check data with timestamps and metadata for analytics.
-- Group and filter results by metadata (team, environment, version) for insights.
-- Monitor check performance trends and success rates over time.
+- Track historical check data with timestamps and metadata.
+- Expose check results through the API for component details.
+- Support basic check status filtering and querying.
 
 This milestone adds quality monitoring capabilities to the software catalog.
+
+## Milestone 3: Basic Web UI
+
+- **Components List Page**: Display all components in a simple list view with basic metadata.
+- **Component Details Page**: Show individual component information including:
+  - All component metadata
+  - Latest check results with status indicators
+  - Complete list of all checks with their current statuses
+  - Historical timeline view of all submitted checks
+- **Settings Page**: Display repository configuration and sync settings.
+- **Navigation**: Basic navigation between pages starting from the root path.
+- **Simple Design**: Minimal, functional UI focused on usability over aesthetics.
+
+This milestone provides a basic web interface for interacting with the component registry and quality check data.
