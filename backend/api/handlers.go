@@ -169,54 +169,18 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// Apply pagination
-	limit := 50 // default
-	if params.Limit != nil && *params.Limit > 0 && *params.Limit <= 100 {
-		limit = *params.Limit
-	}
-
-	offset := 0 // default
-	if params.Offset != nil && *params.Offset >= 0 {
-		offset = *params.Offset
-	}
-
-	total := len(filteredReports)
-	hasMore := offset+limit < total
-
-	// Apply offset and limit
-	end := offset + limit
-	if end > total {
-		end = total
-	}
-
-	var paginatedReports []storage.CheckReport
-	if offset < total {
-		paginatedReports = filteredReports[offset:end]
-	}
+	paginatedReports, pagination := s.applyPagination(filteredReports, params)
 
 	// Convert storage reports to API reports
-	var apiReports []CheckReport
-	for _, report := range paginatedReports {
-		apiReport := s.convertToAPICheckReport(report)
-		apiReports = append(apiReports, apiReport)
-	}
+	apiReports := s.convertToAPICheckReports(paginatedReports)
 
 	// Create response
 	response := ComponentReportsResponse{
-		Reports: apiReports,
-		Pagination: Pagination{
-			Total:   total,
-			Limit:   limit,
-			Offset:  offset,
-			HasMore: hasMore,
-		},
+		Reports:    apiReports,
+		Pagination: pagination,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	s.writeJSONResponse(w, response)
 }
 
 // filterReports applies the query parameters to filter the reports
@@ -224,51 +188,62 @@ func (s *APIServer) filterReports(reports []storage.CheckReport, params GetCompo
 	var filtered []storage.CheckReport
 
 	for _, report := range reports {
-		// Filter by status
-		if params.Status != nil {
-			var reportStatus storage.CheckStatus
-			switch *params.Status {
-			case GetComponentReportsParamsStatusPass:
-				reportStatus = storage.CheckStatusPass
-			case GetComponentReportsParamsStatusFail:
-				reportStatus = storage.CheckStatusFail
-			case GetComponentReportsParamsStatusDisabled:
-				reportStatus = storage.CheckStatusDisabled
-			case GetComponentReportsParamsStatusSkipped:
-				reportStatus = storage.CheckStatusSkipped
-			case GetComponentReportsParamsStatusUnknown:
-				reportStatus = storage.CheckStatusUnknown
-			case GetComponentReportsParamsStatusError:
-				reportStatus = storage.CheckStatusError
-			case GetComponentReportsParamsStatusCompleted:
-				reportStatus = storage.CheckStatusCompleted
-			default:
-				continue // skip if status doesn't match
-			}
-
-			if report.Status != reportStatus {
-				continue
-			}
+		if s.shouldIncludeReport(report, params) {
+			filtered = append(filtered, report)
 		}
-
-		// Filter by check slug
-		if params.CheckSlug != nil && *params.CheckSlug != "" {
-			if report.Check.Slug != *params.CheckSlug {
-				continue
-			}
-		}
-
-		// Filter by since timestamp
-		if params.Since != nil {
-			if report.Timestamp.Before(*params.Since) {
-				continue
-			}
-		}
-
-		filtered = append(filtered, report)
 	}
 
 	return filtered
+}
+
+// shouldIncludeReport determines if a report should be included based on the filter parameters
+func (s *APIServer) shouldIncludeReport(report storage.CheckReport, params GetComponentReportsParams) bool {
+	// Filter by status
+	if params.Status != nil && !s.matchesStatus(report, *params.Status) {
+		return false
+	}
+
+	// Filter by check slug
+	if params.CheckSlug != nil && *params.CheckSlug != "" && !s.matchesCheckSlug(report, *params.CheckSlug) {
+		return false
+	}
+
+	// Filter by since timestamp
+	if params.Since != nil && report.Timestamp.Before(*params.Since) {
+		return false
+	}
+
+	return true
+}
+
+// matchesStatus checks if the report status matches the filter status
+func (s *APIServer) matchesStatus(report storage.CheckReport, status GetComponentReportsParamsStatus) bool {
+	var reportStatus storage.CheckStatus
+	switch status {
+	case GetComponentReportsParamsStatusPass:
+		reportStatus = storage.CheckStatusPass
+	case GetComponentReportsParamsStatusFail:
+		reportStatus = storage.CheckStatusFail
+	case GetComponentReportsParamsStatusDisabled:
+		reportStatus = storage.CheckStatusDisabled
+	case GetComponentReportsParamsStatusSkipped:
+		reportStatus = storage.CheckStatusSkipped
+	case GetComponentReportsParamsStatusUnknown:
+		reportStatus = storage.CheckStatusUnknown
+	case GetComponentReportsParamsStatusError:
+		reportStatus = storage.CheckStatusError
+	case GetComponentReportsParamsStatusCompleted:
+		reportStatus = storage.CheckStatusCompleted
+	default:
+		return false
+	}
+
+	return report.Status == reportStatus
+}
+
+// matchesCheckSlug checks if the report check slug matches the filter check slug
+func (s *APIServer) matchesCheckSlug(report storage.CheckReport, checkSlug string) bool {
+	return report.Check.Slug == checkSlug
 }
 
 // getLatestPerCheck returns only the latest report for each check type
@@ -325,6 +300,67 @@ func (s *APIServer) convertToAPICheckReport(report storage.CheckReport) CheckRep
 	}
 
 	return apiReport
+}
+
+// applyPagination applies pagination to the reports and returns the paginated reports and pagination metadata
+func (s *APIServer) applyPagination(reports []storage.CheckReport, params GetComponentReportsParams) ([]storage.CheckReport, Pagination) {
+	limit := s.getLimit(params)
+	offset := s.getOffset(params)
+	total := len(reports)
+	hasMore := offset+limit < total
+
+	// Apply offset and limit
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+
+	var paginatedReports []storage.CheckReport
+	if offset < total {
+		paginatedReports = reports[offset:end]
+	}
+
+	return paginatedReports, Pagination{
+		Total:   total,
+		Limit:   limit,
+		Offset:  offset,
+		HasMore: hasMore,
+	}
+}
+
+// getLimit returns the limit parameter with validation
+func (s *APIServer) getLimit(params GetComponentReportsParams) int {
+	if params.Limit != nil && *params.Limit > 0 && *params.Limit <= 100 {
+		return *params.Limit
+	}
+	return 50 // default
+}
+
+// getOffset returns the offset parameter with validation
+func (s *APIServer) getOffset(params GetComponentReportsParams) int {
+	if params.Offset != nil && *params.Offset >= 0 {
+		return *params.Offset
+	}
+	return 0 // default
+}
+
+// convertToAPICheckReports converts a slice of storage check reports to API check reports
+func (s *APIServer) convertToAPICheckReports(reports []storage.CheckReport) []CheckReport {
+	apiReports := make([]CheckReport, len(reports))
+	for i, report := range reports {
+		apiReports[i] = s.convertToAPICheckReport(report)
+	}
+	return apiReports
+}
+
+// writeJSONResponse writes a JSON response to the HTTP response writer
+func (s *APIServer) writeJSONResponse(w http.ResponseWriter, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {

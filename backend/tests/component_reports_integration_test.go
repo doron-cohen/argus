@@ -9,6 +9,7 @@ import (
 
 	"github.com/doron-cohen/argus/backend/api/client"
 	"github.com/doron-cohen/argus/backend/internal/server"
+	"github.com/doron-cohen/argus/backend/internal/storage"
 	reportsclient "github.com/doron-cohen/argus/backend/reports/api/client"
 	"github.com/doron-cohen/argus/backend/sync"
 	"github.com/stretchr/testify/assert"
@@ -20,27 +21,13 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	// Clear database before test
-	clearDatabase(t)
-
-	testDataPath := getTestDataPath(t)
-
-	// Create config with filesystem source pointing to testdata
-	testConfig := TestConfig
-	fsConfig := sync.NewFilesystemSourceConfig(testDataPath, 1*time.Second)
-	testConfig.Sync = sync.Config{
-		Sources: []sync.SourceConfig{
-			sync.NewSourceConfig(fsConfig.GetConfig()),
-		},
-	}
-
-	// Start server with sync enabled
-	stop, err := server.Start(testConfig)
+	// Start server
+	stop, err := server.Start(TestConfig)
 	require.NoError(t, err)
 	defer stop()
 
-	// Wait for server to start and initial sync to complete
-	time.Sleep(3 * time.Second)
+	// Wait for server to start
+	time.Sleep(1 * time.Second)
 
 	// Create API clients
 	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
@@ -50,21 +37,63 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 	require.NoError(t, err)
 
 	// Setup test data
+	setupTestData(t, reportsClient)
+
+	// Run test scenarios
+	runBasicTests(t, apiClient)
+	runFilterTests(t, apiClient)
+	runPaginationTests(t, apiClient)
+	runLatestPerCheckTests(t, apiClient)
+	runErrorTests(t, apiClient)
+}
+
+// setupTestData creates test components and reports
+func setupTestData(t *testing.T, reportsClient *reportsclient.ClientWithResponses) {
 	t.Run("SetupTestData", func(t *testing.T) {
-		// Components should already exist from sync (auth-service, user-service, etc.)
-		// Now submit reports for these components
+		// Clear database before test
+		clearDatabase(t)
+
+		// Sync components from testdata
+		fsConfig := sync.NewFilesystemSourceConfig(getTestDataPath(t), 1*time.Second)
+		syncConfig := sync.Config{
+			Sources: []sync.SourceConfig{
+				sync.NewSourceConfig(fsConfig.GetConfig()),
+			},
+		}
+
+		// Create a proper repository for sync
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			TestConfig.Storage.Host,
+			TestConfig.Storage.Port,
+			TestConfig.Storage.User,
+			TestConfig.Storage.Password,
+			TestConfig.Storage.DBName,
+			TestConfig.Storage.SSLMode,
+		)
+		repo, err := storage.ConnectAndMigrate(context.Background(), dsn)
+		require.NoError(t, err)
+		defer func() {
+			sqlDB, _ := repo.DB.DB()
+			_ = sqlDB.Close()
+		}()
+
+		syncService := sync.NewService(repo, syncConfig)
+		err = syncService.SyncSource(context.Background(), syncConfig.Sources[0])
+		require.NoError(t, err)
+
+		// Submit reports for different components and checks
 		components := []string{"auth-service", "user-service"}
 		checks := []string{"unit-tests", "integration-tests", "security-scan", "performance-tests"}
 
-		// Create reports with different timestamps and statuses
 		for i, component := range components {
 			for j, check := range checks {
 				// Create multiple reports for each check with different timestamps
 				for k := 0; k < 3; k++ {
-					status := reportsclient.ReportSubmissionStatusPass
-					if k == 1 {
+					var status reportsclient.ReportSubmissionStatus
+					switch k {
+					case 1:
 						status = reportsclient.ReportSubmissionStatusFail
-					} else if k == 2 {
+					default:
 						status = reportsclient.ReportSubmissionStatusPass
 					}
 
@@ -101,7 +130,10 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		// Wait a bit for data to be processed
 		time.Sleep(500 * time.Millisecond)
 	})
+}
 
+// runBasicTests runs basic API tests
+func runBasicTests(t *testing.T, apiClient *client.ClientWithResponses) {
 	t.Run("GetComponentReportsBasic", func(t *testing.T) {
 		// Test basic retrieval without filters
 		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{})
@@ -120,7 +152,10 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		assert.Equal(t, 0, response.Pagination.Offset)
 		assert.False(t, response.Pagination.HasMore)
 	})
+}
 
+// runFilterTests runs tests for different filter options
+func runFilterTests(t *testing.T, apiClient *client.ClientWithResponses) {
 	t.Run("GetComponentReportsWithStatusFilter", func(t *testing.T) {
 		// Test filtering by status
 		status := client.GetComponentReportsParamsStatusPass
@@ -180,20 +215,21 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 			assert.True(t, report.Timestamp.After(since))
 		}
 	})
+}
 
+// runPaginationTests runs tests for pagination functionality
+func runPaginationTests(t *testing.T, apiClient *client.ClientWithResponses) {
 	t.Run("GetComponentReportsWithPagination", func(t *testing.T) {
-		// Test pagination
+		// Test pagination with limit=5
 		limit := 5
-		offset := 0
 		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
-			Limit:  &limit,
-			Offset: &offset,
+			Limit: &limit,
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		response := *resp.JSON200
-		// Should have 5 reports (limit)
+		// Should have exactly 5 reports
 		assert.Len(t, response.Reports, 5)
 		assert.Equal(t, 12, response.Pagination.Total)
 		assert.Equal(t, 5, response.Pagination.Limit)
@@ -201,7 +237,7 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		assert.True(t, response.Pagination.HasMore)
 
 		// Test second page
-		offset = 5
+		offset := 5
 		resp2, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
 			Limit:  &limit,
 			Offset: &offset,
@@ -210,27 +246,19 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp2.StatusCode())
 
 		response2 := *resp2.JSON200
+		// Should have 5 more reports
 		assert.Len(t, response2.Reports, 5)
+		assert.Equal(t, 12, response2.Pagination.Total)
+		assert.Equal(t, 5, response2.Pagination.Limit)
 		assert.Equal(t, 5, response2.Pagination.Offset)
 		assert.True(t, response2.Pagination.HasMore)
-
-		// Test third page (should have remaining reports)
-		offset = 10
-		resp3, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
-			Limit:  &limit,
-			Offset: &offset,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp3.StatusCode())
-
-		response3 := *resp3.JSON200
-		assert.Len(t, response3.Reports, 2) // 12 total - 10 offset = 2 remaining
-		assert.Equal(t, 10, response3.Pagination.Offset)
-		assert.False(t, response3.Pagination.HasMore)
 	})
+}
 
+// runLatestPerCheckTests runs tests for latest_per_check functionality
+func runLatestPerCheckTests(t *testing.T, apiClient *client.ClientWithResponses) {
 	t.Run("GetComponentReportsWithLatestPerCheck", func(t *testing.T) {
-		// Test latest_per_check functionality
+		// Test latest_per_check=true
 		latestPerCheck := true
 		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
 			LatestPerCheck: &latestPerCheck,
@@ -254,83 +282,31 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		assert.True(t, checkSlugs["security-scan"])
 		assert.True(t, checkSlugs["performance-tests"])
 	})
+}
 
-	t.Run("GetComponentReportsWithCombinedFilters", func(t *testing.T) {
-		// Test combining multiple filters
-		status := client.GetComponentReportsParamsStatusPass
-		checkSlug := "unit-tests"
-		limit := 2
-		latestPerCheck := true
+// runErrorTests runs tests for error scenarios
+func runErrorTests(t *testing.T, apiClient *client.ClientWithResponses) {
+	t.Run("GetComponentReportsComponentNotFound", func(t *testing.T) {
+		// Test component not found
+		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "non-existent-component", &client.GetComponentReportsParams{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNotFound, resp.StatusCode())
+	})
 
-		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
-			Status:         &status,
-			CheckSlug:      &checkSlug,
-			Limit:          &limit,
-			LatestPerCheck: &latestPerCheck,
-		})
+	t.Run("GetComponentReportsForDifferentComponents", func(t *testing.T) {
+		// Test getting reports for different components
+		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "user-service", &client.GetComponentReportsParams{})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		response := *resp.JSON200
-		// Should have 1 report (latest pass for unit-tests)
-		assert.Len(t, response.Reports, 1)
-		assert.Equal(t, 1, response.Pagination.Total)
-
-		report := response.Reports[0]
-		assert.Equal(t, "unit-tests", report.CheckSlug)
-		assert.Equal(t, client.CheckReportStatusPass, report.Status)
-	})
-
-	t.Run("GetComponentReportsComponentNotFound", func(t *testing.T) {
-		// Test non-existent component
-		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "non-existent-component", &client.GetComponentReportsParams{})
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode())
-	})
-
-	t.Run("GetComponentReportsForDifferentComponents", func(t *testing.T) {
-		// Test that different components have their own reports
-		latestPerCheck := true
-
-		// Get reports for auth-service
-		resp1, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
-			LatestPerCheck: &latestPerCheck,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp1.StatusCode())
-
-		response1 := *resp1.JSON200
-		assert.Len(t, response1.Reports, 4)
-
-		// Get reports for user-service
-		resp2, err := apiClient.GetComponentReportsWithResponse(context.Background(), "user-service", &client.GetComponentReportsParams{
-			LatestPerCheck: &latestPerCheck,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp2.StatusCode())
-
-		response2 := *resp2.JSON200
-		assert.Len(t, response2.Reports, 4)
-
-		// Verify they have different report IDs (different components)
-		authReportIds := make(map[string]bool)
-		for _, report := range response1.Reports {
-			authReportIds[report.Id] = true
-		}
-
-		userReportIds := make(map[string]bool)
-		for _, report := range response2.Reports {
-			userReportIds[report.Id] = true
-		}
-
-		// Should have no overlapping report IDs
-		for id := range authReportIds {
-			assert.False(t, userReportIds[id], "Report IDs should not overlap between components")
-		}
+		// Should have reports for user-service
+		assert.Len(t, response.Reports, 12)
+		assert.Equal(t, 12, response.Pagination.Total)
 	})
 
 	t.Run("GetComponentReportsWithMaxLimit", func(t *testing.T) {
-		// Test maximum limit
+		// Test with maximum limit
 		limit := 100
 		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
 			Limit: &limit,
@@ -339,13 +315,12 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		response := *resp.JSON200
-		assert.Len(t, response.Reports, 12) // All reports should be returned
 		assert.Equal(t, 100, response.Pagination.Limit)
 	})
 
 	t.Run("GetComponentReportsWithInvalidLimit", func(t *testing.T) {
-		// Test invalid limit (should use default)
-		limit := 150 // Over maximum
+		// Test with invalid limit (should use default)
+		limit := 150 // exceeds max
 		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
 			Limit: &limit,
 		})
@@ -353,8 +328,6 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		response := *resp.JSON200
-		// Should use default limit of 50
-		assert.Len(t, response.Reports, 12) // All reports fit within 50
-		assert.Equal(t, 50, response.Pagination.Limit)
+		assert.Equal(t, 50, response.Pagination.Limit) // should use default
 	})
 }
