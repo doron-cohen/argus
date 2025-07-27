@@ -16,9 +16,6 @@ var ErrComponentNotFound = errors.New("component not found")
 // ErrCheckNotFound is returned when a check is not found
 var ErrCheckNotFound = errors.New("check not found")
 
-// ErrInvalidCheckReport is returned when a check report is invalid
-var ErrInvalidCheckReport = errors.New("invalid check report")
-
 type Repository struct {
 	DB *gorm.DB
 }
@@ -187,23 +184,6 @@ func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input 
 
 		return tx.Create(&report).Error
 	})
-}
-
-// validateCheckReport validates a check report before creation
-func (r *Repository) validateCheckReport(ctx context.Context, report CheckReport) error {
-	if report.ComponentID == uuid.Nil {
-		return ErrInvalidCheckReport
-	}
-	if report.CheckID == uuid.Nil {
-		return ErrInvalidCheckReport
-	}
-	if report.Status == "" {
-		return ErrInvalidCheckReport
-	}
-	if report.Timestamp.IsZero() {
-		return ErrInvalidCheckReport
-	}
-	return nil
 }
 
 // GetCheckReportsForComponent retrieves all check reports for a specific component
