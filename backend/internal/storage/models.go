@@ -47,6 +47,13 @@ type Check struct {
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
 
+func (c *Check) BeforeCreate(tx *gorm.DB) (err error) {
+	if c.ID == uuid.Nil {
+		c.ID, err = uuid.NewV7()
+	}
+	return
+}
+
 // CheckReport represents a report of a check execution on a component
 type CheckReport struct {
 	ID          uuid.UUID   `gorm:"type:uuid;primaryKey"`
@@ -58,14 +65,6 @@ type CheckReport struct {
 	Metadata    JSONB       `gorm:"type:jsonb"`
 	CreatedAt   time.Time   `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time   `gorm:"autoUpdateTime"`
-}
-
-// BeforeCreate hooks for automatic UUID generation
-func (c *Check) BeforeCreate(tx *gorm.DB) (err error) {
-	if c.ID == uuid.Nil {
-		c.ID, err = uuid.NewV7()
-	}
-	return
 }
 
 func (cr *CheckReport) BeforeCreate(tx *gorm.DB) (err error) {
