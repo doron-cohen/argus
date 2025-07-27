@@ -20,6 +20,23 @@ const (
 	CheckStatusCompleted CheckStatus = "completed"
 )
 
+// Component represents a component stored in the database.
+type Component struct {
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ComponentID string    `gorm:"not null;uniqueIndex"` // Unique identifier from manifest
+	Name        string    `gorm:"not null"`
+	Description string
+	Maintainers StringArray `gorm:"type:jsonb"`
+	Team        string
+}
+
+func (c *Component) BeforeCreate(tx *gorm.DB) (err error) {
+	if c.ID == uuid.Nil {
+		c.ID, err = uuid.NewV7()
+	}
+	return
+}
+
 // Check represents a quality check that can be performed on components
 type Check struct {
 	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`

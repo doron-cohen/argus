@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -14,23 +13,6 @@ var ErrComponentNotFound = errors.New("component not found")
 
 // ErrCheckNotFound is returned when a check is not found
 var ErrCheckNotFound = errors.New("check not found")
-
-// Component represents a component stored in the database.
-type Component struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
-	ComponentID string    `gorm:"not null;uniqueIndex"` // Unique identifier from manifest
-	Name        string    `gorm:"not null"`
-	Description string
-	Maintainers StringArray `gorm:"type:jsonb"`
-	Team        string
-}
-
-func (c *Component) BeforeCreate(tx *gorm.DB) (err error) {
-	if c.ID == uuid.Nil {
-		c.ID, err = uuid.NewV7()
-	}
-	return
-}
 
 type Repository struct {
 	DB *gorm.DB
