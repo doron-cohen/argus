@@ -9,9 +9,6 @@
 # Build output
 *.out
 
-# Go modules
-/go.sum
-
 # IDE/editor files
 .vscode/
 .idea/

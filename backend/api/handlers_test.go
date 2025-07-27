@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	_ "modernc.org/sqlite"
 )
 
 func TestGetComponentReports(t *testing.T) {
@@ -68,7 +69,7 @@ func TestGetComponentReports(t *testing.T) {
 // setupTestEnvironment creates a test database and server
 func setupTestEnvironment(t *testing.T) (*storage.Repository, *APIServer) {
 	// Create in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	require.NoError(t, err)
 
 	// Run migrations
