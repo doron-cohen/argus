@@ -147,19 +147,30 @@ func (r *Repository) GetOrCreateCheckBySlug(ctx context.Context, slug string, na
 	return createdCheck.ID, nil
 }
 
-// CheckReport methods - only what's needed for handlers
+// CreateCheckReportInput represents the input data for creating a check report
+type CreateCheckReportInput struct {
+	ComponentID      string
+	CheckSlug        string
+	CheckName        *string
+	CheckDescription *string
+	Status           CheckStatus
+	Timestamp        time.Time
+	Details          JSONB
+	Metadata         JSONB
+}
+
 // CreateCheckReportFromSubmission creates a check report from API submission data
-func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, componentID string, checkSlug string, checkName *string, checkDescription *string, status CheckStatus, timestamp time.Time, details, metadata JSONB) error {
+func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input CreateCheckReportInput) error {
 	// Use transaction to ensure atomicity
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Verify component exists and get its UUID
-		component, err := r.GetComponentByID(ctx, componentID)
+		component, err := r.GetComponentByID(ctx, input.ComponentID)
 		if err != nil {
 			return err
 		}
 
 		// Get or create check by slug with provided name and description
-		checkID, err := r.GetOrCreateCheckBySlug(ctx, checkSlug, checkName, checkDescription)
+		checkID, err := r.GetOrCreateCheckBySlug(ctx, input.CheckSlug, input.CheckName, input.CheckDescription)
 		if err != nil {
 			return err
 		}
@@ -168,10 +179,10 @@ func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, compon
 		report := CheckReport{
 			CheckID:     checkID,
 			ComponentID: component.ID,
-			Status:      status,
-			Timestamp:   timestamp,
-			Details:     details,
-			Metadata:    metadata,
+			Status:      input.Status,
+			Timestamp:   input.Timestamp,
+			Details:     input.Details,
+			Metadata:    input.Metadata,
 		}
 
 		return tx.Create(&report).Error

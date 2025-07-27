@@ -41,6 +41,61 @@ func TestRepository_Migration(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 }
 
+func TestRepository_GetComponents_Empty(t *testing.T) {
+	// Use a completely isolated database to ensure it's truly empty
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	repo := &storage.Repository{DB: db}
+	require.NoError(t, repo.Migrate(t.Context()))
+
+	components, err := repo.GetComponents(t.Context())
+	require.NoError(t, err)
+	require.Empty(t, components)
+}
+
+func TestRepository_JSONBStorage(t *testing.T) {
+	// Use SQLite for testing since it's simpler to set up
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	require.NoError(t, err)
+
+	// Auto-migrate the schema
+	err = db.AutoMigrate(&storage.Component{})
+	require.NoError(t, err)
+
+	repo := &storage.Repository{DB: db}
+	ctx := context.Background()
+
+	// Create test component with maintainers
+	component := storage.Component{
+		ComponentID: "auth-service",
+		Name:        "Authentication Service",
+		Description: "Handles authentication",
+		Maintainers: storage.StringArray{"alice@company.com", "@auth-team"},
+		Team:        "Security Team",
+	}
+
+	err = repo.CreateComponent(ctx, component)
+	require.NoError(t, err)
+
+	// Retrieve and verify the component
+	retrieved, err := repo.GetComponentByID(ctx, "auth-service")
+	require.NoError(t, err)
+	assert.Equal(t, "auth-service", retrieved.ComponentID)
+	assert.Equal(t, "Authentication Service", retrieved.Name)
+	assert.Len(t, retrieved.Maintainers, 2)
+	assert.Contains(t, retrieved.Maintainers, "alice@company.com")
+	assert.Contains(t, retrieved.Maintainers, "@auth-team")
+	assert.Equal(t, "Security Team", retrieved.Team)
+
+	t.Run("GetComponentsByTeam", func(t *testing.T) {
+		// Test finding components by team (this works with any database)
+		results, err := repo.GetComponentsByTeam(ctx, "Security Team")
+		require.NoError(t, err)
+		assert.Len(t, results, 1)
+		assert.Equal(t, "auth-service", results[0].ComponentID)
+	})
+}
+
 func TestRepository_CreateCheckReportWithExistingCheck(t *testing.T) {
 	repo := setupTestRepo(t)
 	ctx := context.Background()
@@ -68,7 +123,15 @@ func TestRepository_CreateCheckReportWithExistingCheck(t *testing.T) {
 	metadata := storage.JSONB{"ci_job_id": "12345", "branch": "main"}
 	timestamp := time.Now().Add(-1 * time.Hour)
 
-	err = repo.CreateCheckReportFromSubmission(ctx, "test-service", "unit-tests", nil, nil, storage.CheckStatusPass, timestamp, details, metadata)
+	input := storage.CreateCheckReportInput{
+		ComponentID: "test-service",
+		CheckSlug:   "unit-tests",
+		Status:      storage.CheckStatusPass,
+		Timestamp:   timestamp,
+		Details:     details,
+		Metadata:    metadata,
+	}
+	err = repo.CreateCheckReportFromSubmission(ctx, input)
 	require.NoError(t, err)
 
 	// Verify the report was created
@@ -103,7 +166,17 @@ func TestRepository_CreateCheckReportWithAutoCreatedCheck(t *testing.T) {
 	checkName := "Build Check"
 	checkDescription := "Runs build process"
 
-	err = repo.CreateCheckReportFromSubmission(ctx, "test-service-auto", "build-check-auto", &checkName, &checkDescription, storage.CheckStatusPass, timestamp, details, metadata)
+	input := storage.CreateCheckReportInput{
+		ComponentID:      "test-service-auto",
+		CheckSlug:        "build-check-auto",
+		CheckName:        &checkName,
+		CheckDescription: &checkDescription,
+		Status:           storage.CheckStatusPass,
+		Timestamp:        timestamp,
+		Details:          details,
+		Metadata:         metadata,
+	}
+	err = repo.CreateCheckReportFromSubmission(ctx, input)
 	require.NoError(t, err)
 
 	// Verify the check was auto-created with provided values
@@ -128,7 +201,15 @@ func TestRepository_CreateCheckReportWithNonExistentComponent(t *testing.T) {
 	metadata := storage.JSONB{"env": "test"}
 	timestamp := time.Now()
 
-	err := repo.CreateCheckReportFromSubmission(ctx, "non-existent-service", "unit-tests", nil, nil, storage.CheckStatusPass, timestamp, details, metadata)
+	input := storage.CreateCheckReportInput{
+		ComponentID: "non-existent-service",
+		CheckSlug:   "unit-tests",
+		Status:      storage.CheckStatusPass,
+		Timestamp:   timestamp,
+		Details:     details,
+		Metadata:    metadata,
+	}
+	err := repo.CreateCheckReportFromSubmission(ctx, input)
 	assert.ErrorIs(t, err, storage.ErrComponentNotFound)
 }
 
@@ -200,5 +281,107 @@ func TestRepository_GetOrCreateCheckBySlug(t *testing.T) {
 		checkID, err := repo.GetOrCreateCheckBySlug(ctx, "error-test-handling", nil, nil)
 		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, checkID)
+	})
+}
+
+func TestRepository_CheckMethods(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := context.Background()
+
+	t.Run("Create and Get Check by Slug", func(t *testing.T) {
+		check := storage.Check{
+			Slug:        "unit-tests-check-methods",
+			Name:        "Unit Tests",
+			Description: "Runs unit tests for the component",
+		}
+
+		// Create check
+		err := repo.CreateCheck(ctx, check)
+		require.NoError(t, err)
+
+		// Get check by slug
+		retrieved, err := repo.GetCheckBySlug(ctx, "unit-tests-check-methods")
+		require.NoError(t, err)
+		assert.NotEqual(t, uuid.Nil, retrieved.ID)
+		assert.Equal(t, check.Slug, retrieved.Slug)
+		assert.Equal(t, check.Name, retrieved.Name)
+		assert.Equal(t, check.Description, retrieved.Description)
+	})
+
+	t.Run("Get Check Not Found", func(t *testing.T) {
+		_, err := repo.GetCheckBySlug(ctx, "nonexistent")
+		assert.ErrorIs(t, err, storage.ErrCheckNotFound)
+	})
+}
+
+func TestRepository_DatabaseSchema(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := context.Background()
+
+	t.Run("Check table schema", func(t *testing.T) {
+		// Test that we can create a check with all required fields
+		check := storage.Check{
+			Slug:        "schema-test-db",
+			Name:        "Schema Test",
+			Description: "Test schema validation",
+		}
+
+		err := repo.CreateCheck(ctx, check)
+		require.NoError(t, err)
+
+		// Test unique constraint on slug
+		duplicateCheck := storage.Check{
+			Slug:        "schema-test-db", // Same slug
+			Name:        "Duplicate Test",
+			Description: "Should fail",
+		}
+
+		err = repo.CreateCheck(ctx, duplicateCheck)
+		assert.Error(t, err) // Should fail due to unique constraint
+	})
+
+	t.Run("CheckReport table schema", func(t *testing.T) {
+		// Create required dependencies
+		component := storage.Component{
+			ComponentID: "schema-test-service-db",
+			Name:        "Schema Test Service",
+		}
+		err := repo.CreateComponent(ctx, component)
+		require.NoError(t, err)
+
+		check := storage.Check{
+			Slug: "schema-test-check-db",
+			Name: "Schema Test Check",
+		}
+		err = repo.CreateCheck(ctx, check)
+		require.NoError(t, err)
+
+		// Test that we can create a report with all required fields using the new method
+		input := storage.CreateCheckReportInput{
+			ComponentID: "schema-test-service-db",
+			CheckSlug:   "schema-test-check-db",
+			Status:      storage.CheckStatusPass,
+			Timestamp:   time.Now(),
+			Details: storage.JSONB{
+				"test": "data",
+			},
+			Metadata: storage.JSONB{
+				"env": "test",
+			},
+		}
+
+		// Get initial count
+		var initialCount int64
+		err = repo.DB.WithContext(ctx).Model(&storage.CheckReport{}).Count(&initialCount).Error
+		require.NoError(t, err)
+
+		err = repo.CreateCheckReportFromSubmission(ctx, input)
+		require.NoError(t, err)
+
+		// Verify exactly one new report was created
+		var finalCount int64
+		err = repo.DB.WithContext(ctx).Model(&storage.CheckReport{}).Count(&finalCount).Error
+		require.NoError(t, err)
+		assert.Equal(t, initialCount+1, finalCount)
 	})
 }
