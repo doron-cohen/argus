@@ -25,10 +25,40 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Cache Go build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+
+      - name: Cache tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/bin
+          key: ${{ runner.os }}-tools-${{ hashFiles('**/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-tools-
+
       - name: Install tools
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.3.0
           go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+
+      - name: Cache generated files
+        uses: actions/cache@v4
+        with:
+          path: |
+            backend/api/api.gen.go
+            backend/reports/api/api.gen.go
+            backend/sync/api/api.gen.go
+          key: ${{ runner.os }}-generated-${{ hashFiles('backend/api/openapi.yaml', 'backend/reports/api/openapi.yaml', 'backend/sync/api/openapi.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-generated-
 
       - name: Check generated code and dependencies
         run: |
@@ -57,6 +87,16 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Cache Go build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+
       - name: Build binary
         run: |
-          make backend/build
+          make backend/build-with-deps

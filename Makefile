@@ -1,4 +1,4 @@
-TOOLS_BIN := $(GOPATH)/bin
+TOOLS_BIN := $(shell go env GOPATH)/bin
 oapi-codegen := $(TOOLS_BIN)/oapi-codegen
 OPENAPI_SPEC := backend/api/openapi.yaml
 API_OUT := backend/api/api.gen.go
@@ -48,9 +48,13 @@ backend/lint:
 	cd backend && golangci-lint run --timeout=5m
 
 backend/test:
-	cd backend && go test -v -race -coverprofile=coverage.out ./...
+	cd backend && go test -v $(if $(filter 1,$(CGO_ENABLED)),-race,) -coverprofile=coverage.out ./...
 
 backend/build:
+	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
+
+backend/build-with-deps: backend/go-mod-tidy
+	cd backend && go mod download
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
 backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
