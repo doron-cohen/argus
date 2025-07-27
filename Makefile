@@ -48,7 +48,7 @@ backend/lint:
 	cd backend && golangci-lint run --timeout=5m
 
 backend/test:
-	cd backend && go test -v -race -coverprofile=coverage.out ./...
+	cd backend && go test -v $(if $(filter 1,$(CGO_ENABLED)),-race,) -coverprofile=coverage.out ./...
 
 backend/build:
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
