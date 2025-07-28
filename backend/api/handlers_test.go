@@ -497,3 +497,127 @@ func createMultipleTestReports(t *testing.T, repo *storage.Repository) {
 		}
 	}
 }
+
+func TestGetComponentReports_PaginationLimit(t *testing.T) {
+	// Setup database and server
+	repo, server := setupTestEnvironment(t)
+	defer cleanupTestEnvironment(t, repo)
+
+	// Create test component first
+	component := storage.Component{
+		ComponentID: "test-component-limit",
+		Name:        "Test Component Limit",
+		Description: "A test component for limit testing",
+	}
+	if err := repo.DB.Create(&component).Error; err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
+
+	t.Run("ExcessiveLimitShouldBeCapped", func(t *testing.T) {
+		// Create request with excessive limit (should be capped to 100)
+		req := httptest.NewRequest("GET", "/components/test-component-limit/reports?limit=10000", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		limit := 10000
+		server.GetComponentReports(w, req, "test-component-limit", GetComponentReportsParams{
+			Limit: &limit,
+		})
+
+		// Should return 200 OK (not 400 Bad Request)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		// Should use the default limit of 50 instead of 10000 (since 10000 > 100, it's invalid)
+		assert.Equal(t, 50, response.Pagination.Limit)
+		assert.Equal(t, 0, response.Pagination.Total)
+	})
+
+	t.Run("ValidLimitShouldBeRespected", func(t *testing.T) {
+		// Create request with valid limit
+		req := httptest.NewRequest("GET", "/components/test-component-limit/reports?limit=25", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		limit := 25
+		server.GetComponentReports(w, req, "test-component-limit", GetComponentReportsParams{
+			Limit: &limit,
+		})
+
+		// Should return 200 OK
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		// Should use the requested limit
+		assert.Equal(t, 25, response.Pagination.Limit)
+		assert.Equal(t, 0, response.Pagination.Total)
+	})
+}
+
+func TestGetComponentReports_InvalidStatusParameter(t *testing.T) {
+	// Setup database and server
+	repo, server := setupTestEnvironment(t)
+	defer cleanupTestEnvironment(t, repo)
+
+	// Create test component first
+	component := storage.Component{
+		ComponentID: "test-component-status",
+		Name:        "Test Component Status",
+		Description: "A test component for status testing",
+	}
+	if err := repo.DB.Create(&component).Error; err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
+
+	t.Run("InvalidStatusReturns200Not400", func(t *testing.T) {
+		// Create request with invalid status parameter
+		req := httptest.NewRequest("GET", "/components/test-component-status/reports?status=invalid-status", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler with invalid status
+		invalidStatus := GetComponentReportsParamsStatus("invalid-status")
+		server.GetComponentReports(w, req, "test-component-status", GetComponentReportsParams{
+			Status: &invalidStatus,
+		})
+
+		// Should return 200 OK instead of 400 Bad Request
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		// Should return empty results instead of error
+		assert.Len(t, response.Reports, 0)
+		assert.Equal(t, 0, response.Pagination.Total)
+	})
+
+	t.Run("ValidStatusReturns200", func(t *testing.T) {
+		// Create request with valid status parameter
+		req := httptest.NewRequest("GET", "/components/test-component-status/reports?status=pass", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler with valid status
+		validStatus := GetComponentReportsParamsStatusPass
+		server.GetComponentReports(w, req, "test-component-status", GetComponentReportsParams{
+			Status: &validStatus,
+		})
+
+		// Should return 200 OK
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		// Should return empty results (no reports exist)
+		assert.Len(t, response.Reports, 0)
+		assert.Equal(t, 0, response.Pagination.Total)
+	})
+}

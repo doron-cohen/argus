@@ -104,6 +104,7 @@ func TestSubmitReport_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Report submitted successfully", *response.Message)
 	assert.NotNil(t, response.ReportId)
+	assert.NotEqual(t, "report-id", *response.ReportId, "Report ID should not be hardcoded")
 	assert.NotNil(t, response.Timestamp)
 }
 

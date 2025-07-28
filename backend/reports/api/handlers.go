@@ -83,7 +83,8 @@ func (s *APIServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the report
-	if err := s.Repo.CreateCheckReportFromSubmission(ctx, input); err != nil {
+	reportID, err := s.Repo.CreateCheckReportFromSubmission(ctx, input)
+	if err != nil {
 		if err == storage.ErrComponentNotFound {
 			s.sendErrorResponse(w, "Component not found", "NOT_FOUND", http.StatusNotFound)
 			return
@@ -95,7 +96,7 @@ func (s *APIServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 	// Return success response
 	response := client.ReportSubmissionResponse{
 		Message:   utils.ToPointer("Report submitted successfully"),
-		ReportId:  utils.ToPointer("report-id"), // TODO: return actual report ID
+		ReportId:  utils.ToPointer(reportID.String()),
 		Timestamp: utils.ToPointer(time.Now()),
 	}
 

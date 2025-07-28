@@ -165,9 +165,11 @@ type CreateCheckReportInput struct {
 }
 
 // CreateCheckReportFromSubmission creates a check report from API submission data
-func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input CreateCheckReportInput) error {
+func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input CreateCheckReportInput) (uuid.UUID, error) {
+	var reportID uuid.UUID
+
 	// Use transaction to ensure atomicity
-	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Verify component exists and get its UUID using the transaction
 		component, err := r.getComponentInTransaction(ctx, tx, input.ComponentID)
 		if err != nil {
@@ -190,8 +192,15 @@ func (r *Repository) CreateCheckReportFromSubmission(ctx context.Context, input 
 			Metadata:    input.Metadata,
 		}
 
-		return tx.Create(&report).Error
+		if err := tx.Create(&report).Error; err != nil {
+			return err
+		}
+
+		reportID = report.ID
+		return nil
 	})
+
+	return reportID, err
 }
 
 // getComponentInTransaction gets a component within a transaction
