@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doron-cohen/argus/backend/internal/server"
 	"github.com/doron-cohen/argus/backend/internal/utils"
 	reportsclient "github.com/doron-cohen/argus/backend/reports/api/client"
+	"github.com/doron-cohen/argus/backend/sync"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,20 +19,25 @@ func TestReportsAPIEndpoints(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	// Start server
-	stop, err := server.Start(TestConfig)
-	require.NoError(t, err)
-	defer stop()
+	// Clear database before test
+	clearDatabase(t)
 
-	// Wait for server to start
-	time.Sleep(1 * time.Second)
+	// Set up test config with sync enabled
+	testConfig := TestConfig
+	fsConfig := sync.NewFilesystemSourceConfig(getTestDataPath(t), 1*time.Second)
+	testConfig.Sync = sync.Config{
+		Sources: []sync.SourceConfig{
+			sync.NewSourceConfig(fsConfig.GetConfig()),
+		},
+	}
+
+	// Start server with sync enabled
+	stop := startServerAndWaitForHealth(t, testConfig)
+	defer stop()
 
 	// Create API client
 	client, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")
 	require.NoError(t, err)
-
-	// Clear database before test
-	clearDatabase(t)
 
 	// Test submitting a valid report
 	t.Run("SubmitValidReport", func(t *testing.T) {
@@ -180,12 +185,8 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 	}
 
 	// Start server
-	stop, err := server.Start(TestConfig)
-	require.NoError(t, err)
+	stop := startServerAndWaitForHealth(t, TestConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(1 * time.Second)
 
 	// Create reports API client
 	reportsClient, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")
@@ -337,18 +338,14 @@ func TestReportsAPIValidationErrors(t *testing.T) {
 	})
 }
 
-func TestReportsAPIWithDirectHTTP(t *testing.T) {
+func TestReportsAPI_InvalidRequests(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
 
 	// Start server
-	stop, err := server.Start(TestConfig)
-	require.NoError(t, err)
+	stop := startServerAndWaitForHealth(t, TestConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(1 * time.Second)
 
 	t.Run("InvalidJSON", func(t *testing.T) {
 		// Test with invalid JSON

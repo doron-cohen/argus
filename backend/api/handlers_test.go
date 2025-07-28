@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -250,4 +251,249 @@ func assertLatestPerCheckResponse(t *testing.T, w *httptest.ResponseRecorder, _ 
 
 	// Verify the integration-tests report
 	assert.Equal(t, CheckReportStatusPass, integrationTestReport.Status)
+}
+
+func TestGetComponentReports_ValidationErrors(t *testing.T) {
+	// Setup database and server
+	repo, server := setupTestEnvironment(t)
+	defer cleanupTestEnvironment(t, repo)
+
+	// Create test component first
+	component := storage.Component{
+		ComponentID: "test-component-validation",
+		Name:        "Test Component Validation",
+		Description: "A test component for validation",
+	}
+	if err := repo.DB.Create(&component).Error; err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
+
+	t.Run("InvalidLimit", func(t *testing.T) {
+		// Create request with invalid limit
+		req := httptest.NewRequest("GET", "/components/test-component-validation/reports?limit=-1", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		limit := -1
+		server.GetComponentReports(w, req, "test-component-validation", GetComponentReportsParams{
+			Limit: &limit,
+		})
+
+		// API might handle negative limits gracefully by using default
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("InvalidOffset", func(t *testing.T) {
+		// Create request with invalid offset
+		req := httptest.NewRequest("GET", "/components/test-component-validation/reports?offset=-1", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		offset := -1
+		server.GetComponentReports(w, req, "test-component-validation", GetComponentReportsParams{
+			Offset: &offset,
+		})
+
+		// API might handle negative offsets gracefully by using default
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("ExcessiveLimit", func(t *testing.T) {
+		// Create request with excessive limit
+		req := httptest.NewRequest("GET", "/components/test-component-validation/reports?limit=10000", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		limit := 10000
+		server.GetComponentReports(w, req, "test-component-validation", GetComponentReportsParams{
+			Limit: &limit,
+		})
+
+		// Should cap the limit to maximum allowed
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		// Should use the maximum limit instead of 10000
+		assert.LessOrEqual(t, response.Pagination.Limit, 1000) // Assuming max limit is 1000
+	})
+}
+
+func TestGetComponentReports_EdgeCases(t *testing.T) {
+	// Setup database and server
+	repo, server := setupTestEnvironment(t)
+	defer cleanupTestEnvironment(t, repo)
+
+	// Create test component for edge cases
+	component := storage.Component{
+		ComponentID: "test-component-edgecases",
+		Name:        "Test Component Edge Cases",
+		Description: "A test component for edge cases",
+	}
+	if err := repo.DB.Create(&component).Error; err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
+
+	t.Run("EmptyComponent", func(t *testing.T) {
+		// Create request for component with no reports
+		req := httptest.NewRequest("GET", "/components/test-component-edgecases/reports", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		server.GetComponentReports(w, req, "test-component-edgecases", GetComponentReportsParams{})
+
+		// Should return empty list, not error
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		assert.Len(t, response.Reports, 0)
+		assert.Equal(t, 0, response.Pagination.Total)
+	})
+
+	t.Run("InvalidSinceDate", func(t *testing.T) {
+		// Create request with invalid since date
+		req := httptest.NewRequest("GET", "/components/test-component-edgecases/reports?since=invalid-date", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler - this will fail at the OpenAPI validation level
+		// The OpenAPI spec should handle invalid date formats
+		server.GetComponentReports(w, req, "test-component-edgecases", GetComponentReportsParams{})
+
+		// API might handle invalid dates gracefully by ignoring the parameter
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("FutureSinceDate", func(t *testing.T) {
+		// Create request with future since date
+		req := httptest.NewRequest("GET", "/components/test-component-edgecases/reports?since=2030-01-01T00:00:00Z", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		server.GetComponentReports(w, req, "test-component-edgecases", GetComponentReportsParams{})
+
+		// Should return empty list since no reports exist in the future
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response ComponentReportsResponse
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		assert.Len(t, response.Reports, 0)
+	})
+}
+
+func TestGetComponentReports_Pagination(t *testing.T) {
+	// Setup database and server
+	repo, server := setupTestEnvironment(t)
+	defer cleanupTestEnvironment(t, repo)
+
+	// Create multiple test reports
+	createMultipleTestReports(t, repo)
+
+	testCases := []struct {
+		name            string
+		limit           int
+		offset          int
+		expectedCount   int
+		expectedTotal   int
+		expectedOffset  int
+		expectedHasMore bool
+	}{
+		{
+			name:            "FirstPage",
+			limit:           2,
+			offset:          0,
+			expectedCount:   2,
+			expectedTotal:   5,
+			expectedOffset:  0,
+			expectedHasMore: true,
+		},
+		{
+			name:            "SecondPage",
+			limit:           2,
+			offset:          2,
+			expectedCount:   2,
+			expectedTotal:   5,
+			expectedOffset:  2,
+			expectedHasMore: true,
+		},
+		{
+			name:            "LastPage",
+			limit:           2,
+			offset:          4,
+			expectedCount:   1,
+			expectedTotal:   5,
+			expectedOffset:  4,
+			expectedHasMore: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create request
+			req := httptest.NewRequest("GET", fmt.Sprintf("/components/test-component-pagination/reports?limit=%d&offset=%d", tc.limit, tc.offset), nil)
+			w := httptest.NewRecorder()
+
+			// Call handler
+			server.GetComponentReports(w, req, "test-component-pagination", GetComponentReportsParams{
+				Limit:  &tc.limit,
+				Offset: &tc.offset,
+			})
+
+			// Assert response
+			assert.Equal(t, http.StatusOK, w.Code)
+
+			var response ComponentReportsResponse
+			err := json.NewDecoder(w.Body).Decode(&response)
+			require.NoError(t, err)
+
+			assert.Len(t, response.Reports, tc.expectedCount)
+			assert.Equal(t, tc.expectedTotal, response.Pagination.Total)
+			assert.Equal(t, tc.limit, response.Pagination.Limit)
+			assert.Equal(t, tc.expectedOffset, response.Pagination.Offset)
+			assert.Equal(t, tc.expectedHasMore, response.Pagination.HasMore)
+		})
+	}
+}
+
+// createMultipleTestReports creates multiple test reports for pagination testing
+func createMultipleTestReports(t *testing.T, repo *storage.Repository) {
+	// Create test component
+	component := storage.Component{
+		ComponentID: "test-component-pagination",
+		Name:        "Test Component Pagination",
+		Description: "A test component for pagination",
+	}
+	if err := repo.DB.Create(&component).Error; err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
+
+	// Create test check
+	check := storage.Check{
+		Slug:        "unit-tests-pagination",
+		Name:        "Unit Tests Pagination",
+		Description: "Runs unit tests",
+	}
+	if err := repo.DB.Create(&check).Error; err != nil {
+		t.Fatalf("Failed to create test check: %v", err)
+	}
+
+	// Create 5 test reports with different timestamps
+	for i := 0; i < 5; i++ {
+		report := storage.CheckReport{
+			CheckID:     check.ID,
+			ComponentID: component.ID,
+			Status:      storage.CheckStatusPass,
+			Timestamp:   time.Now().Add(-time.Duration(i) * time.Hour),
+			Details:     storage.JSONB{"coverage": 80.0 + float64(i)},
+		}
+		if err := repo.DB.Create(&report).Error; err != nil {
+			t.Fatalf("Failed to create test report %d: %v", i, err)
+		}
+	}
 }

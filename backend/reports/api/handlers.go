@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
@@ -49,17 +50,13 @@ func (s *APIServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 
 	var submission client.ReportSubmission
 	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		s.sendErrorResponse(w, "Invalid JSON format", "VALIDATION_ERROR", http.StatusBadRequest)
 		return
 	}
 
-	// Validate required fields
-	if submission.Check.Slug == "" {
-		http.Error(w, "check slug is required", http.StatusBadRequest)
-		return
-	}
-	if submission.ComponentId == "" {
-		http.Error(w, "component ID is required", http.StatusBadRequest)
+	// Validate using OpenAPI spec constraints
+	if err := validateReportSubmission(submission); err != nil {
+		s.sendErrorResponse(w, err.Error(), "VALIDATION_ERROR", http.StatusBadRequest)
 		return
 	}
 
@@ -87,6 +84,10 @@ func (s *APIServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 
 	// Create the report
 	if err := s.Repo.CreateCheckReportFromSubmission(ctx, input); err != nil {
+		if err == storage.ErrComponentNotFound {
+			s.sendErrorResponse(w, "Component not found", "NOT_FOUND", http.StatusNotFound)
+			return
+		}
 		http.Error(w, fmt.Sprintf("failed to create report: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -100,5 +101,65 @@ func (s *APIServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// sendErrorResponse sends a JSON error response
+func (s *APIServer) sendErrorResponse(w http.ResponseWriter, message, code string, statusCode int) {
+	errorResponse := client.Error{
+		Error: utils.ToPointer(message),
+		Code:  utils.ToPointer(code),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+		http.Error(w, "Failed to encode error response", http.StatusInternalServerError)
+	}
+}
+
+// validateReportSubmission validates a report submission against OpenAPI spec constraints
+func validateReportSubmission(submission client.ReportSubmission) error {
+	// Validate required fields (OpenAPI spec already enforces this via struct tags)
+	if submission.Check.Slug == "" {
+		return fmt.Errorf("check slug is required")
+	}
+	if submission.ComponentId == "" {
+		return fmt.Errorf("component ID is required")
+	}
+	if submission.Timestamp.IsZero() {
+		return fmt.Errorf("timestamp is required")
+	}
+
+	// Validate timestamp is not in the future
+	if submission.Timestamp.After(time.Now()) {
+		return fmt.Errorf("timestamp cannot be in the future")
+	}
+
+	// Validate check slug format using existing utility
+	if !utils.IsValidSlug(submission.Check.Slug) {
+		return fmt.Errorf("check slug can only contain alphanumeric characters, hyphens, and underscores")
+	}
+
+	// Validate component ID format (no leading/trailing whitespace)
+	if strings.TrimSpace(submission.ComponentId) != submission.ComponentId {
+		return fmt.Errorf("component ID cannot have leading or trailing whitespace")
+	}
+
+	// Validate status is one of the allowed values (OpenAPI enum already enforces this)
+	switch submission.Status {
+	case client.ReportSubmissionStatusPass,
+		client.ReportSubmissionStatusFail,
+		client.ReportSubmissionStatusDisabled,
+		client.ReportSubmissionStatusSkipped,
+		client.ReportSubmissionStatusUnknown,
+		client.ReportSubmissionStatusError,
+		client.ReportSubmissionStatusCompleted:
+		// Valid status
+	default:
+		return fmt.Errorf("status must be one of: pass, fail, disabled, skipped, unknown, error, completed")
+	}
+
+	return nil
 }

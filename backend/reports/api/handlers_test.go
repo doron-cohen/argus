@@ -35,13 +35,6 @@ func NewMockRepository(t *testing.T) *MockRepository {
 	return &MockRepository{Repository: repo}
 }
 
-// clearDatabase clears all data from the database
-func (m *MockRepository) clearDatabase() {
-	m.DB.Exec("DELETE FROM check_reports")
-	m.DB.Exec("DELETE FROM checks")
-	m.DB.Exec("DELETE FROM components")
-}
-
 func TestSubmitReport_Success(t *testing.T) {
 	// Create a test database using SQLite
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -181,12 +174,9 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 	mockRepo := NewMockRepository(t)
 	server := NewAPIServer(mockRepo.Repository)
 
-	// Clear database to ensure clean state
-	mockRepo.clearDatabase()
-
 	// Create a test component first
 	component := storage.Component{
-		ComponentID: "auth-service",
+		ComponentID: "auth-service-valid-statuses",
 		Name:        "Auth Service",
 		Description: "Authentication service",
 	}
@@ -212,7 +202,7 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 					Name:        utils.ToPointer("Unit Tests"),
 					Description: utils.ToPointer("Runs unit tests"),
 				},
-				ComponentId: "auth-service",
+				ComponentId: "auth-service-valid-statuses",
 				Status:      status,
 				Timestamp:   time.Now(),
 				Details: &map[string]interface{}{
@@ -233,4 +223,184 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 			assert.Equal(t, http.StatusOK, w.Code)
 		})
 	}
+}
+
+func TestSubmitReport_ValidationErrors(t *testing.T) {
+	mockRepo := NewMockRepository(t)
+	server := NewAPIServer(mockRepo.Repository)
+
+	// Create a test component for valid cases
+	component := storage.Component{
+		ComponentID: "auth-service-validation",
+		Name:        "Auth Service",
+		Description: "Authentication service",
+	}
+	if err := mockRepo.CreateComponent(context.Background(), component); err != nil {
+		t.Fatalf("Failed to create test component: %v", err)
+	}
+
+	testCases := []struct {
+		name           string
+		report         reportsclient.ReportSubmission
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "empty_check_slug",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "",
+				},
+				ComponentId: "auth-service-validation",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Now(),
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "check slug is required",
+		},
+		{
+			name: "empty_component_id",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit-tests",
+				},
+				ComponentId: "",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Now(),
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "component ID is required",
+		},
+		{
+			name: "zero_timestamp",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit-tests",
+				},
+				ComponentId: "auth-service-validation",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Time{}, // zero time
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "timestamp is required",
+		},
+		{
+			name: "future_timestamp",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit-tests",
+				},
+				ComponentId: "auth-service-validation",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Now().Add(1 * time.Hour), // future time
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "timestamp cannot be in the future",
+		},
+		{
+			name: "check_slug_with_spaces",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit tests",
+				},
+				ComponentId: "auth-service-validation",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Now(),
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "check slug can only contain alphanumeric characters, hyphens, and underscores",
+		},
+		{
+			name: "check_slug_with_invalid_chars",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit-tests@",
+				},
+				ComponentId: "auth-service-validation",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Now(),
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "check slug can only contain alphanumeric characters, hyphens, and underscores",
+		},
+		{
+			name: "component_id_with_whitespace",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit-tests",
+				},
+				ComponentId: " auth-service-validation ",
+				Status:      reportsclient.ReportSubmissionStatusPass,
+				Timestamp:   time.Now(),
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "component ID cannot have leading or trailing whitespace",
+		},
+		{
+			name: "invalid_status",
+			report: reportsclient.ReportSubmission{
+				Check: reportsclient.Check{
+					Slug: "unit-tests",
+				},
+				ComponentId: "auth-service-validation",
+				Status:      "invalid-status",
+				Timestamp:   time.Now(),
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "status must be one of: pass, fail, disabled, skipped, unknown, error, completed",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			body, _ := json.Marshal(tc.report)
+			req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			server.SubmitReport(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			// Check error response format
+			var errorResp reportsclient.Error
+			err := json.Unmarshal(w.Body.Bytes(), &errorResp)
+			require.NoError(t, err)
+			assert.Equal(t, "VALIDATION_ERROR", *errorResp.Code)
+			assert.Contains(t, *errorResp.Error, tc.expectedError)
+		})
+	}
+}
+
+func TestSubmitReport_ComponentNotFound(t *testing.T) {
+	mockRepo := NewMockRepository(t)
+	server := NewAPIServer(mockRepo.Repository)
+
+	// Test with non-existent component
+	report := reportsclient.ReportSubmission{
+		Check: reportsclient.Check{
+			Slug:        "unit-tests",
+			Name:        utils.ToPointer("Unit Tests"),
+			Description: utils.ToPointer("Runs unit tests"),
+		},
+		ComponentId: "non-existent-component",
+		Status:      reportsclient.ReportSubmissionStatusPass,
+		Timestamp:   time.Now(),
+	}
+
+	body, _ := json.Marshal(report)
+	req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.SubmitReport(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	// Check error response format
+	var errorResp reportsclient.Error
+	err := json.Unmarshal(w.Body.Bytes(), &errorResp)
+	require.NoError(t, err)
+	assert.Equal(t, "NOT_FOUND", *errorResp.Code)
+	assert.Equal(t, "Component not found", *errorResp.Error)
 }
