@@ -130,7 +130,7 @@ func TestRepository_CreateCheckReportWithExistingCheck(t *testing.T) {
 		Details:     details,
 		Metadata:    metadata,
 	}
-	err = repo.CreateCheckReportFromSubmission(ctx, input)
+	_, err = repo.CreateCheckReportFromSubmission(ctx, input)
 	require.NoError(t, err)
 
 	// Verify the report was created
@@ -175,7 +175,7 @@ func TestRepository_CreateCheckReportWithAutoCreatedCheck(t *testing.T) {
 		Details:          details,
 		Metadata:         metadata,
 	}
-	err = repo.CreateCheckReportFromSubmission(ctx, input)
+	_, err = repo.CreateCheckReportFromSubmission(ctx, input)
 	require.NoError(t, err)
 
 	// Verify the check was auto-created with provided values
@@ -208,7 +208,7 @@ func TestRepository_CreateCheckReportWithNonExistentComponent(t *testing.T) {
 		Details:     details,
 		Metadata:    metadata,
 	}
-	err := repo.CreateCheckReportFromSubmission(ctx, input)
+	_, err := repo.CreateCheckReportFromSubmission(ctx, input)
 	assert.ErrorIs(t, err, storage.ErrComponentNotFound)
 }
 
@@ -374,7 +374,7 @@ func TestRepository_DatabaseSchema(t *testing.T) {
 		err = repo.DB.WithContext(ctx).Model(&storage.CheckReport{}).Count(&initialCount).Error
 		require.NoError(t, err)
 
-		err = repo.CreateCheckReportFromSubmission(ctx, input)
+		_, err = repo.CreateCheckReportFromSubmission(ctx, input)
 		require.NoError(t, err)
 
 		// Verify exactly one new report was created

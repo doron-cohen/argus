@@ -318,6 +318,110 @@ func runLatestPerCheckTests(t *testing.T, apiClient *client.ClientWithResponses)
 		assert.True(t, checkSlugs["security-scan"])
 		assert.True(t, checkSlugs["performance-tests"])
 	})
+
+	t.Run("GetComponentReportsWithLatestPerCheckAndPagination", func(t *testing.T) {
+		// Test latest_per_check=true with pagination
+		latestPerCheck := true
+		limit := 2
+		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
+			LatestPerCheck: &latestPerCheck,
+			Limit:          &limit,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		response := *resp.JSON200
+		// Should have exactly 2 reports (limited by pagination)
+		assert.Len(t, response.Reports, 2)
+		assert.Equal(t, 4, response.Pagination.Total) // total should be 4 (one per check)
+		assert.Equal(t, 2, response.Pagination.Limit)
+		assert.Equal(t, 0, response.Pagination.Offset)
+		assert.True(t, response.Pagination.HasMore)
+
+		// Test second page
+		offset := 2
+		resp2, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
+			LatestPerCheck: &latestPerCheck,
+			Limit:          &limit,
+			Offset:         &offset,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp2.StatusCode())
+
+		response2 := *resp2.JSON200
+		// Should have 2 more reports
+		assert.Len(t, response2.Reports, 2)
+		assert.Equal(t, 4, response2.Pagination.Total)
+		assert.Equal(t, 2, response2.Pagination.Limit)
+		assert.Equal(t, 2, response2.Pagination.Offset)
+		assert.False(t, response2.Pagination.HasMore)
+	})
+
+	t.Run("GetComponentReportsWithLatestPerCheckAndFilters", func(t *testing.T) {
+		// Test latest_per_check=true with status filter
+		latestPerCheck := true
+		status := client.GetComponentReportsParamsStatusPass
+		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
+			LatestPerCheck: &latestPerCheck,
+			Status:         &status,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		response := *resp.JSON200
+		// Should have exactly 4 reports (one per check type, all with pass status)
+		assert.Len(t, response.Reports, 4)
+		assert.Equal(t, 4, response.Pagination.Total)
+
+		// Verify all reports have pass status
+		for _, report := range response.Reports {
+			assert.Equal(t, client.CheckReportStatusPass, report.Status)
+		}
+
+		// Test with check slug filter
+		checkSlug := "unit-tests"
+		resp2, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
+			LatestPerCheck: &latestPerCheck,
+			CheckSlug:      &checkSlug,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp2.StatusCode())
+
+		response2 := *resp2.JSON200
+		// Should have exactly 1 report (latest for unit-tests only)
+		assert.Len(t, response2.Reports, 1)
+		assert.Equal(t, 1, response2.Pagination.Total)
+
+		// Verify it's for unit-tests
+		assert.Equal(t, "unit-tests", response2.Reports[0].CheckSlug)
+	})
+
+	t.Run("GetComponentReportsWithLatestPerCheckPaginationAndFilters", func(t *testing.T) {
+		// Test latest_per_check=true with pagination and filters combined
+		latestPerCheck := true
+		status := client.GetComponentReportsParamsStatusPass
+		limit := 2
+		resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), "auth-service", &client.GetComponentReportsParams{
+			LatestPerCheck: &latestPerCheck,
+			Status:         &status,
+			Limit:          &limit,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		response := *resp.JSON200
+		// Should have exactly 2 reports (limited by pagination)
+		assert.Len(t, response.Reports, 2)
+		assert.Equal(t, 4, response.Pagination.Total) // total should be 4 (one per check with pass status)
+		assert.Equal(t, 2, response.Pagination.Limit)
+		assert.Equal(t, 0, response.Pagination.Offset)
+		assert.True(t, response.Pagination.HasMore)
+
+		// Verify all reports have pass status
+		for _, report := range response.Reports {
+			assert.Equal(t, client.CheckReportStatusPass, report.Status)
+		}
+	})
 }
 
 // runErrorTests runs tests for error scenarios

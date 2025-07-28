@@ -9,7 +9,6 @@ import (
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/doron-cohen/argus/backend/internal/utils"
-	"github.com/google/uuid"
 )
 
 // Service orchestrates the reports process
@@ -73,7 +72,8 @@ func (s *Service) SubmitReport(ctx context.Context, input SubmitReportInput) (*S
 	}
 
 	// Store the report in the database
-	if err := s.repo.CreateCheckReportFromSubmission(ctx, storageInput); err != nil {
+	reportID, err := s.repo.CreateCheckReportFromSubmission(ctx, storageInput)
+	if err != nil {
 		if err == storage.ErrComponentNotFound {
 			return nil, fmt.Errorf("component not found: %s", input.ComponentID)
 		}
@@ -82,7 +82,7 @@ func (s *Service) SubmitReport(ctx context.Context, input SubmitReportInput) (*S
 
 	// Generate result
 	result := &SubmitReportResult{
-		ReportID:  uuid.New().String(),
+		ReportID:  reportID.String(),
 		Timestamp: time.Now(),
 	}
 
