@@ -265,6 +265,40 @@ func (r *Repository) GetCheckReportsForComponent(ctx context.Context, componentI
 	return reports, err
 }
 
+// GetCheckReportsForComponentWithFilters retrieves check reports for a component with database-level filtering
+func (r *Repository) GetCheckReportsForComponentWithFilters(ctx context.Context, componentID string, status *CheckStatus, checkSlug *string, since *time.Time) ([]CheckReport, error) {
+	// First verify the component exists
+	component, err := r.GetComponentByID(ctx, componentID)
+	if err != nil {
+		return nil, err
+	}
+
+	query := r.DB.WithContext(ctx).
+		Preload("Check").
+		Where("component_id = ?", component.ID)
+
+	// Apply status filter
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+
+	// Apply check slug filter
+	if checkSlug != nil && *checkSlug != "" {
+		query = query.Joins("JOIN checks ON check_reports.check_id = checks.id").
+			Where("checks.slug = ?", *checkSlug)
+	}
+
+	// Apply since timestamp filter
+	if since != nil {
+		query = query.Where("timestamp >= ?", *since)
+	}
+
+	var reports []CheckReport
+	err = query.Order("timestamp DESC").Find(&reports).Error
+
+	return reports, err
+}
+
 // GetLatestCheckReportsForComponent retrieves the latest report for each check type for a specific component
 func (r *Repository) GetLatestCheckReportsForComponent(ctx context.Context, componentID string) ([]CheckReport, error) {
 	// First verify the component exists

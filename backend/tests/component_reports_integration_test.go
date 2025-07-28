@@ -16,6 +16,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// generateComponentReports is a helper function to create test reports for a component
+func generateComponentReports(t *testing.T, reportsClient *reportsclient.ClientWithResponses, componentID string, checkSlug string, status reportsclient.ReportSubmissionStatus, count int) {
+	for i := 0; i < count; i++ {
+		report := reportsclient.ReportSubmission{
+			Check: reportsclient.Check{
+				Slug:        checkSlug,
+				Name:        &[]string{fmt.Sprintf("%s Check", checkSlug)}[0],
+				Description: &[]string{fmt.Sprintf("Runs %s for %s", checkSlug, componentID)}[0],
+			},
+			ComponentId: componentID,
+			Status:      status,
+			Timestamp:   time.Now().Add(-time.Duration(i) * time.Hour),
+			Details: &map[string]interface{}{
+				"coverage_percentage": 80 + i,
+				"tests_passed":        100 + i,
+				"tests_failed":        i,
+				"duration_seconds":    30 + i,
+			},
+			Metadata: &map[string]interface{}{
+				"ci_job_id":   fmt.Sprintf("job-%s-%d", checkSlug, i),
+				"environment": "staging",
+				"branch":      "main",
+				"commit_sha":  fmt.Sprintf("abc%s%d", checkSlug, i),
+			},
+		}
+
+		resp, err := reportsClient.SubmitReportWithResponse(context.Background(), report)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+	}
+}
+
 func TestComponentReportsAPIEndpoints(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -45,6 +77,7 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 	runPaginationTests(t, apiClient)
 	runLatestPerCheckTests(t, apiClient)
 	runErrorTests(t, apiClient)
+	runLargeDatasetTests(t, apiClient, reportsClient)
 }
 
 // setupTestData creates test components and reports
@@ -329,5 +362,134 @@ func runErrorTests(t *testing.T, apiClient *client.ClientWithResponses) {
 
 		response := *resp.JSON200
 		assert.Equal(t, 50, response.Pagination.Limit) // should use default
+	})
+}
+
+// runLargeDatasetTests tests the API with a large dataset (100 reports for 2 components)
+func runLargeDatasetTests(t *testing.T, apiClient *client.ClientWithResponses, reportsClient *reportsclient.ClientWithResponses) {
+	t.Run("LargeDatasetTests", func(t *testing.T) {
+		// Clear database and setup fresh data
+		clearDatabase(t)
+
+		// Sync components
+		fsConfig := sync.NewFilesystemSourceConfig(getTestDataPath(t), 1*time.Second)
+		syncConfig := sync.Config{
+			Sources: []sync.SourceConfig{
+				sync.NewSourceConfig(fsConfig.GetConfig()),
+			},
+		}
+
+		// Create repository and sync components
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			TestConfig.Storage.Host,
+			TestConfig.Storage.Port,
+			TestConfig.Storage.User,
+			TestConfig.Storage.Password,
+			TestConfig.Storage.DBName,
+			TestConfig.Storage.SSLMode,
+		)
+		repo, err := storage.ConnectAndMigrate(context.Background(), dsn)
+		require.NoError(t, err)
+		defer func() {
+			sqlDB, _ := repo.DB.DB()
+			_ = sqlDB.Close()
+		}()
+
+		syncService := sync.NewService(repo, syncConfig)
+		err = syncService.SyncSource(context.Background(), syncConfig.Sources[0])
+		require.NoError(t, err)
+
+		// Generate 100 reports for 2 components with different check types
+		components := []string{"auth-service", "user-service"}
+		checks := []string{"unit-tests", "integration-tests", "security-scan", "performance-tests"}
+
+		for _, component := range components {
+			for _, check := range checks {
+				// Generate 25 reports per check (4 checks * 25 = 100 total per component)
+				generateComponentReports(t, reportsClient, component, check, reportsclient.ReportSubmissionStatusPass, 25)
+			}
+		}
+
+		// Test various filter combinations
+		testCases := []struct {
+			name          string
+			componentID   string
+			status        *client.GetComponentReportsParamsStatus
+			checkSlug     *string
+			limit         *int
+			offset        *int
+			expectedCount int
+			expectedTotal int
+		}{
+			{
+				name:          "AllReportsForComponent",
+				componentID:   "auth-service",
+				expectedCount: 50, // default limit
+				expectedTotal: 100,
+			},
+			{
+				name:          "FilterByStatus",
+				componentID:   "auth-service",
+				status:        &[]client.GetComponentReportsParamsStatus{client.GetComponentReportsParamsStatusPass}[0],
+				expectedCount: 50,
+				expectedTotal: 100,
+			},
+			{
+				name:          "FilterByCheckSlug",
+				componentID:   "auth-service",
+				checkSlug:     &[]string{"unit-tests"}[0],
+				expectedCount: 25,
+				expectedTotal: 25,
+			},
+			{
+				name:          "CombinedFilters",
+				componentID:   "auth-service",
+				status:        &[]client.GetComponentReportsParamsStatus{client.GetComponentReportsParamsStatusPass}[0],
+				checkSlug:     &[]string{"integration-tests"}[0],
+				expectedCount: 25,
+				expectedTotal: 25,
+			},
+			{
+				name:          "PaginationFirstPage",
+				componentID:   "auth-service",
+				limit:         &[]int{10}[0],
+				offset:        &[]int{0}[0],
+				expectedCount: 10,
+				expectedTotal: 100,
+			},
+			{
+				name:          "PaginationSecondPage",
+				componentID:   "auth-service",
+				limit:         &[]int{10}[0],
+				offset:        &[]int{10}[0],
+				expectedCount: 10,
+				expectedTotal: 100,
+			},
+			{
+				name:          "MaxLimit",
+				componentID:   "auth-service",
+				limit:         &[]int{100}[0],
+				expectedCount: 100,
+				expectedTotal: 100,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				resp, err := apiClient.GetComponentReportsWithResponse(context.Background(), tc.componentID, &client.GetComponentReportsParams{
+					Status:    tc.status,
+					CheckSlug: tc.checkSlug,
+					Limit:     tc.limit,
+					Offset:    tc.offset,
+				})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
+
+				response := resp.JSON200
+				require.NotNil(t, response)
+				assert.Len(t, response.Reports, tc.expectedCount)
+				assert.Equal(t, tc.expectedTotal, response.Pagination.Total)
+			})
+		}
 	})
 }

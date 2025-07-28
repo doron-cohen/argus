@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -146,11 +147,51 @@ func (s *APIServer) writeNotFoundError(w http.ResponseWriter) {
 	}
 }
 
+// convertAPISStatusToStorageStatus converts API status to storage status
+func (s *APIServer) convertAPISStatusToStorageStatus(status GetComponentReportsParamsStatus) (*storage.CheckStatus, error) {
+	var statusValue storage.CheckStatus
+	switch status {
+	case GetComponentReportsParamsStatusPass:
+		statusValue = storage.CheckStatusPass
+	case GetComponentReportsParamsStatusFail:
+		statusValue = storage.CheckStatusFail
+	case GetComponentReportsParamsStatusDisabled:
+		statusValue = storage.CheckStatusDisabled
+	case GetComponentReportsParamsStatusSkipped:
+		statusValue = storage.CheckStatusSkipped
+	case GetComponentReportsParamsStatusUnknown:
+		statusValue = storage.CheckStatusUnknown
+	case GetComponentReportsParamsStatusError:
+		statusValue = storage.CheckStatusError
+	case GetComponentReportsParamsStatusCompleted:
+		statusValue = storage.CheckStatusCompleted
+	default:
+		return nil, fmt.Errorf("invalid status: %v", status)
+	}
+	return &statusValue, nil
+}
+
 func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams) {
 	ctx := r.Context()
 
-	// Get reports for the component
-	reports, err := s.Repo.GetCheckReportsForComponent(ctx, componentId)
+	// Convert API parameters to storage types for database filtering
+	var status *storage.CheckStatus
+	if params.Status != nil {
+		var err error
+		status, err = s.convertAPISStatusToStorageStatus(*params.Status)
+		if err != nil {
+			// Invalid status, return empty results
+			response := ComponentReportsResponse{
+				Reports:    []CheckReport{},
+				Pagination: Pagination{Total: 0, Limit: 50, Offset: 0, HasMore: false},
+			}
+			s.writeJSONResponse(w, response)
+			return
+		}
+	}
+
+	// Get reports with database-level filtering
+	reports, err := s.Repo.GetCheckReportsForComponentWithFilters(ctx, componentId, status, params.CheckSlug, params.Since)
 	if err != nil {
 		if err == storage.ErrComponentNotFound {
 			s.writeNotFoundError(w)
@@ -160,16 +201,13 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	// Apply filters
-	filteredReports := s.filterReports(reports, params)
-
 	// Apply latest_per_check filter if requested
 	if params.LatestPerCheck != nil && *params.LatestPerCheck {
-		filteredReports = s.getLatestPerCheck(filteredReports)
+		reports = s.getLatestPerCheck(reports)
 	}
 
 	// Apply pagination
-	paginatedReports, pagination := s.applyPagination(filteredReports, params)
+	paginatedReports, pagination := s.applyPagination(reports, params)
 
 	// Convert storage reports to API reports
 	apiReports := s.convertToAPICheckReports(paginatedReports)
@@ -181,69 +219,6 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 	}
 
 	s.writeJSONResponse(w, response)
-}
-
-// filterReports applies the query parameters to filter the reports
-func (s *APIServer) filterReports(reports []storage.CheckReport, params GetComponentReportsParams) []storage.CheckReport {
-	var filtered []storage.CheckReport
-
-	for _, report := range reports {
-		if s.shouldIncludeReport(report, params) {
-			filtered = append(filtered, report)
-		}
-	}
-
-	return filtered
-}
-
-// shouldIncludeReport determines if a report should be included based on the filter parameters
-func (s *APIServer) shouldIncludeReport(report storage.CheckReport, params GetComponentReportsParams) bool {
-	// Filter by status
-	if params.Status != nil && !s.matchesStatus(report, *params.Status) {
-		return false
-	}
-
-	// Filter by check slug
-	if params.CheckSlug != nil && *params.CheckSlug != "" && !s.matchesCheckSlug(report, *params.CheckSlug) {
-		return false
-	}
-
-	// Filter by since timestamp
-	if params.Since != nil && report.Timestamp.Before(*params.Since) {
-		return false
-	}
-
-	return true
-}
-
-// matchesStatus checks if the report status matches the filter status
-func (s *APIServer) matchesStatus(report storage.CheckReport, status GetComponentReportsParamsStatus) bool {
-	var reportStatus storage.CheckStatus
-	switch status {
-	case GetComponentReportsParamsStatusPass:
-		reportStatus = storage.CheckStatusPass
-	case GetComponentReportsParamsStatusFail:
-		reportStatus = storage.CheckStatusFail
-	case GetComponentReportsParamsStatusDisabled:
-		reportStatus = storage.CheckStatusDisabled
-	case GetComponentReportsParamsStatusSkipped:
-		reportStatus = storage.CheckStatusSkipped
-	case GetComponentReportsParamsStatusUnknown:
-		reportStatus = storage.CheckStatusUnknown
-	case GetComponentReportsParamsStatusError:
-		reportStatus = storage.CheckStatusError
-	case GetComponentReportsParamsStatusCompleted:
-		reportStatus = storage.CheckStatusCompleted
-	default:
-		return false
-	}
-
-	return report.Status == reportStatus
-}
-
-// matchesCheckSlug checks if the report check slug matches the filter check slug
-func (s *APIServer) matchesCheckSlug(report storage.CheckReport, checkSlug string) bool {
-	return report.Check.Slug == checkSlug
 }
 
 // getLatestPerCheck returns only the latest report for each check type
