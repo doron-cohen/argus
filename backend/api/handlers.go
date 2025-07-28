@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
 )
@@ -286,20 +285,6 @@ func (s *APIServer) writeJSONResponse(w http.ResponseWriter, response interface{
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-		return
-	}
-}
-
-func (s *APIServer) GetHealth(w http.ResponseWriter, r *http.Request) {
-	health := Health{
-		Status:    Healthy,
-		Timestamp: time.Now(),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(health); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		return
 	}

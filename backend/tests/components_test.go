@@ -26,7 +26,7 @@ func TestGetComponentsIntegration(t *testing.T) {
 	// Wait briefly for the server to start
 	time.Sleep(100 * time.Millisecond)
 
-	client, err := client.NewClientWithResponses("http://localhost:8080/api")
+	client, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	resp, err := client.GetComponentsWithResponse(context.Background())
@@ -44,7 +44,7 @@ func TestGetComponentByIdIntegration(t *testing.T) {
 	// Wait briefly for the server to start
 	time.Sleep(100 * time.Millisecond)
 
-	client, err := client.NewClientWithResponses("http://localhost:8080/api")
+	client, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Test getting a non-existent component
@@ -82,7 +82,7 @@ func TestGetComponentByIdWithSyncIntegration(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Test getting an existing component

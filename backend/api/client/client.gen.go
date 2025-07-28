@@ -27,12 +27,6 @@ const (
 	CheckReportStatusUnknown   CheckReportStatus = "unknown"
 )
 
-// Defines values for HealthStatus.
-const (
-	Healthy   HealthStatus = "healthy"
-	Unhealthy HealthStatus = "unhealthy"
-)
-
 // Defines values for GetComponentReportsParamsStatus.
 const (
 	GetComponentReportsParamsStatusCompleted GetComponentReportsParamsStatus = "completed"
@@ -94,18 +88,6 @@ type Error struct {
 	// Error Error message
 	Error string `json:"error"`
 }
-
-// Health Health status of the service
-type Health struct {
-	// Status Health status
-	Status HealthStatus `json:"status"`
-
-	// Timestamp Timestamp of the health check
-	Timestamp time.Time `json:"timestamp"`
-}
-
-// HealthStatus Health status
-type HealthStatus string
 
 // Owners Ownership information for a component
 type Owners struct {
@@ -236,9 +218,6 @@ type ClientInterface interface {
 
 	// GetComponentReports request
 	GetComponentReports(ctx context.Context, componentId string, params *GetComponentReportsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetHealth request
-	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetComponents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -277,18 +256,6 @@ func (c *Client) GetComponentReports(ctx context.Context, componentId string, pa
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetHealthRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 // NewGetComponentsRequest generates requests for GetComponents
 func NewGetComponentsRequest(server string) (*http.Request, error) {
 	var err error
@@ -298,7 +265,7 @@ func NewGetComponentsRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/components")
+	operationPath := fmt.Sprintf("/catalog/v1/components")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -332,7 +299,7 @@ func NewGetComponentByIdRequest(server string, componentId string) (*http.Reques
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/components/%s", pathParam0)
+	operationPath := fmt.Sprintf("/catalog/v1/components/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -366,7 +333,7 @@ func NewGetComponentReportsRequest(server string, componentId string, params *Ge
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/components/%s/reports", pathParam0)
+	operationPath := fmt.Sprintf("/catalog/v1/components/%s/reports", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -486,33 +453,6 @@ func NewGetComponentReportsRequest(server string, componentId string, params *Ge
 	return req, nil
 }
 
-// NewGetHealthRequest generates requests for GetHealth
-func NewGetHealthRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/healthz")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -564,9 +504,6 @@ type ClientWithResponsesInterface interface {
 
 	// GetComponentReportsWithResponse request
 	GetComponentReportsWithResponse(ctx context.Context, componentId string, params *GetComponentReportsParams, reqEditors ...RequestEditorFn) (*GetComponentReportsResponse, error)
-
-	// GetHealthWithResponse request
-	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
 }
 
 type GetComponentsResponse struct {
@@ -640,28 +577,6 @@ func (r GetComponentReportsResponse) StatusCode() int {
 	return 0
 }
 
-type GetHealthResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Health
-}
-
-// Status returns HTTPResponse.Status
-func (r GetHealthResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetHealthResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 // GetComponentsWithResponse request returning *GetComponentsResponse
 func (c *ClientWithResponses) GetComponentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetComponentsResponse, error) {
 	rsp, err := c.GetComponents(ctx, reqEditors...)
@@ -687,15 +602,6 @@ func (c *ClientWithResponses) GetComponentReportsWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseGetComponentReportsResponse(rsp)
-}
-
-// GetHealthWithResponse request returning *GetHealthResponse
-func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error) {
-	rsp, err := c.GetHealth(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetHealthResponse(rsp)
 }
 
 // ParseGetComponentsResponse parses an HTTP response from a GetComponentsWithResponse call
@@ -805,32 +711,6 @@ func ParseGetComponentReportsResponse(rsp *http.Response) (*GetComponentReportsR
 			return nil, err
 		}
 		response.JSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetHealthResponse parses an HTTP response from a GetHealthWithResponse call
-func ParseGetHealthResponse(rsp *http.Response) (*GetHealthResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetHealthResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Health
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
 
 	}
 
