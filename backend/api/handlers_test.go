@@ -316,8 +316,8 @@ func TestGetComponentReports_ValidationErrors(t *testing.T) {
 		err := json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 
-		// Should use the maximum limit instead of 10000
-		assert.LessOrEqual(t, response.Pagination.Limit, 1000) // Assuming max limit is 1000
+		// Should use the default limit of 50 when limit > 100 (invalid)
+		assert.Equal(t, 50, response.Pagination.Limit) // Default when limit exceeds max of 100
 	})
 }
 
