@@ -186,8 +186,13 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 		}
 	}
 
-	// Get reports with database-level filtering
-	reports, err := s.Repo.GetCheckReportsForComponentWithFilters(ctx, componentId, status, params.CheckSlug, params.Since)
+	// Get pagination parameters
+	limit := s.getLimit(params)
+	offset := s.getOffset(params)
+	latestPerCheck := params.LatestPerCheck != nil && *params.LatestPerCheck
+
+	// Get reports with database-level filtering, pagination, and latest per check
+	reports, total, err := s.Repo.GetCheckReportsForComponentWithPagination(ctx, componentId, status, params.CheckSlug, params.Since, limit, offset, latestPerCheck)
 	if err != nil {
 		if err == storage.ErrComponentNotFound {
 			s.writeNotFoundError(w)
@@ -197,16 +202,17 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	// Apply latest_per_check filter if requested
-	if params.LatestPerCheck != nil && *params.LatestPerCheck {
-		reports = s.getLatestPerCheck(reports)
-	}
-
-	// Apply pagination
-	paginatedReports, pagination := s.applyPagination(reports, params)
-
 	// Convert storage reports to API reports
-	apiReports := s.convertToAPICheckReports(paginatedReports)
+	apiReports := s.convertToAPICheckReports(reports)
+
+	// Create pagination metadata
+	hasMore := offset+limit < int(total)
+	pagination := Pagination{
+		Total:   int(total),
+		Limit:   limit,
+		Offset:  offset,
+		HasMore: hasMore,
+	}
 
 	// Create response
 	response := ComponentReportsResponse{
@@ -215,29 +221,6 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 	}
 
 	s.writeJSONResponse(w, response)
-}
-
-// getLatestPerCheck returns only the latest report for each check type
-func (s *APIServer) getLatestPerCheck(reports []storage.CheckReport) []storage.CheckReport {
-	// Group reports by check slug
-	latestByCheck := make(map[string]storage.CheckReport)
-
-	for _, report := range reports {
-		checkSlug := report.Check.Slug
-
-		// If we haven't seen this check type yet, or if this report is newer
-		if existing, exists := latestByCheck[checkSlug]; !exists || report.Timestamp.After(existing.Timestamp) {
-			latestByCheck[checkSlug] = report
-		}
-	}
-
-	// Convert map back to slice
-	var result []storage.CheckReport
-	for _, report := range latestByCheck {
-		result = append(result, report)
-	}
-
-	return result
 }
 
 // convertToAPICheckReport converts a storage check report to an API check report
@@ -271,32 +254,6 @@ func (s *APIServer) convertToAPICheckReport(report storage.CheckReport) CheckRep
 	}
 
 	return apiReport
-}
-
-// applyPagination applies pagination to the reports and returns the paginated reports and pagination metadata
-func (s *APIServer) applyPagination(reports []storage.CheckReport, params GetComponentReportsParams) ([]storage.CheckReport, Pagination) {
-	limit := s.getLimit(params)
-	offset := s.getOffset(params)
-	total := len(reports)
-	hasMore := offset+limit < total
-
-	// Apply offset and limit
-	end := offset + limit
-	if end > total {
-		end = total
-	}
-
-	var paginatedReports []storage.CheckReport
-	if offset < total {
-		paginatedReports = reports[offset:end]
-	}
-
-	return paginatedReports, Pagination{
-		Total:   total,
-		Limit:   limit,
-		Offset:  offset,
-		HasMore: hasMore,
-	}
 }
 
 // getLimit returns the limit parameter with validation
