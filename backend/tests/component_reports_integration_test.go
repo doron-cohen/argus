@@ -10,6 +10,7 @@ import (
 	"github.com/doron-cohen/argus/backend/api/client"
 	"github.com/doron-cohen/argus/backend/internal/server"
 	"github.com/doron-cohen/argus/backend/internal/storage"
+	"github.com/doron-cohen/argus/backend/internal/utils"
 	reportsclient "github.com/doron-cohen/argus/backend/reports/api/client"
 	"github.com/doron-cohen/argus/backend/sync"
 	"github.com/stretchr/testify/assert"
@@ -22,8 +23,8 @@ func generateComponentReports(t *testing.T, reportsClient *reportsclient.ClientW
 		report := reportsclient.ReportSubmission{
 			Check: reportsclient.Check{
 				Slug:        checkSlug,
-				Name:        &[]string{fmt.Sprintf("%s Check", checkSlug)}[0],
-				Description: &[]string{fmt.Sprintf("Runs %s for %s", checkSlug, componentID)}[0],
+				Name:        utils.ToPointer(fmt.Sprintf("%s Check", checkSlug)),
+				Description: utils.ToPointer(fmt.Sprintf("Runs %s for %s", checkSlug, componentID)),
 			},
 			ComponentId: componentID,
 			Status:      status,
@@ -130,11 +131,13 @@ func setupTestData(t *testing.T, reportsClient *reportsclient.ClientWithResponse
 						status = reportsclient.ReportSubmissionStatusPass
 					}
 
+					name := fmt.Sprintf("%s Check", check)
+					description := fmt.Sprintf("Runs %s for %s", check, component)
 					report := reportsclient.ReportSubmission{
 						Check: reportsclient.Check{
 							Slug:        check,
-							Name:        &[]string{fmt.Sprintf("%s Check", check)}[0],
-							Description: &[]string{fmt.Sprintf("Runs %s for %s", check, component)}[0],
+							Name:        utils.ToPointer(name),
+							Description: utils.ToPointer(description),
 						},
 						ComponentId: component,
 						Status:      status,
@@ -430,45 +433,45 @@ func runLargeDatasetTests(t *testing.T, apiClient *client.ClientWithResponses, r
 			{
 				name:          "FilterByStatus",
 				componentID:   "auth-service",
-				status:        &[]client.GetComponentReportsParamsStatus{client.GetComponentReportsParamsStatusPass}[0],
+				status:        utils.ToPointer(client.GetComponentReportsParamsStatusPass),
 				expectedCount: 50,
 				expectedTotal: 100,
 			},
 			{
 				name:          "FilterByCheckSlug",
 				componentID:   "auth-service",
-				checkSlug:     &[]string{"unit-tests"}[0],
+				checkSlug:     utils.ToPointer("unit-tests"),
 				expectedCount: 25,
 				expectedTotal: 25,
 			},
 			{
 				name:          "CombinedFilters",
 				componentID:   "auth-service",
-				status:        &[]client.GetComponentReportsParamsStatus{client.GetComponentReportsParamsStatusPass}[0],
-				checkSlug:     &[]string{"integration-tests"}[0],
+				status:        utils.ToPointer(client.GetComponentReportsParamsStatusPass),
+				checkSlug:     utils.ToPointer("integration-tests"),
 				expectedCount: 25,
 				expectedTotal: 25,
 			},
 			{
 				name:          "PaginationFirstPage",
 				componentID:   "auth-service",
-				limit:         &[]int{10}[0],
-				offset:        &[]int{0}[0],
+				limit:         utils.ToPointer(10),
+				offset:        utils.ToPointer(0),
 				expectedCount: 10,
 				expectedTotal: 100,
 			},
 			{
 				name:          "PaginationSecondPage",
 				componentID:   "auth-service",
-				limit:         &[]int{10}[0],
-				offset:        &[]int{10}[0],
+				limit:         utils.ToPointer(10),
+				offset:        utils.ToPointer(10),
 				expectedCount: 10,
 				expectedTotal: 100,
 			},
 			{
 				name:          "MaxLimit",
 				componentID:   "auth-service",
-				limit:         &[]int{100}[0],
+				limit:         utils.ToPointer(100),
 				expectedCount: 100,
 				expectedTotal: 100,
 			},

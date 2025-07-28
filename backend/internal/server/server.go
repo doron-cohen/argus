@@ -34,7 +34,7 @@ func Start(cfg config.Config) (stop func(), err error) {
 	mux.Mount("/api", api.Handler(api.NewAPIServer(repo)))
 
 	// Mount reports API under /reports
-	mux.Mount("/reports", reportsapi.Handler(reportsapi.NewReportsServer(repo)))
+	mux.Mount("/reports", reportsapi.Handler(reportsapi.NewAPIServer(repo)))
 
 	// Initialize sync service (always create, but may not start if no sources configured)
 	// Cast to sync.Repository interface since storage.Repository implements it

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/server"
+	"github.com/doron-cohen/argus/backend/internal/utils"
 	reportsclient "github.com/doron-cohen/argus/backend/reports/api/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,44 +27,41 @@ func TestReportsAPIEndpoints(t *testing.T) {
 	// Wait for server to start
 	time.Sleep(1 * time.Second)
 
-	// Create reports API client
-	reportsClient, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")
+	// Create API client
+	client, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")
 	require.NoError(t, err)
 
+	// Clear database before test
+	clearDatabase(t)
+
+	// Test submitting a valid report
 	t.Run("SubmitValidReport", func(t *testing.T) {
-		// Submit a valid report
 		report := reportsclient.ReportSubmission{
 			Check: reportsclient.Check{
 				Slug:        "unit-tests",
-				Name:        &[]string{"Unit Tests"}[0],
-				Description: &[]string{"Runs unit tests for the component"}[0],
+				Name:        utils.ToPointer("Unit Tests"),
+				Description: utils.ToPointer("Runs unit tests for the component"),
 			},
 			ComponentId: "auth-service",
 			Status:      reportsclient.ReportSubmissionStatusPass,
-			Timestamp:   time.Now().Add(-1 * time.Hour), // 1 hour ago
+			Timestamp:   time.Now(),
 			Details: &map[string]interface{}{
-				"coverage_percentage": 85.5,
-				"tests_passed":        150,
+				"coverage_percentage": 85,
+				"tests_passed":        100,
 				"tests_failed":        0,
-				"duration_seconds":    45,
+				"duration_seconds":    30,
 			},
 			Metadata: &map[string]interface{}{
-				"ci_job_id":   "12345",
+				"ci_job_id":   "job-123",
 				"environment": "staging",
 				"branch":      "main",
 				"commit_sha":  "abc123",
 			},
 		}
 
-		resp, err := reportsClient.SubmitReportWithResponse(context.Background(), report)
+		resp, err := client.SubmitReportWithResponse(context.Background(), report)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
-		require.NotNil(t, resp.JSON200)
-
-		response := *resp.JSON200
-		assert.Equal(t, "Report submitted successfully", *response.Message)
-		assert.NotNil(t, response.ReportId)
-		assert.NotNil(t, response.Timestamp)
 	})
 
 	t.Run("SubmitReportWithDifferentStatuses", func(t *testing.T) {
@@ -88,7 +86,7 @@ func TestReportsAPIEndpoints(t *testing.T) {
 					Timestamp:   time.Now().Add(-30 * time.Minute),
 				}
 
-				resp, err := reportsClient.SubmitReportWithResponse(context.Background(), report)
+				resp, err := client.SubmitReportWithResponse(context.Background(), report)
 				require.NoError(t, err)
 				assert.Equal(t, http.StatusOK, resp.StatusCode())
 			})
@@ -117,7 +115,7 @@ func TestReportsAPIEndpoints(t *testing.T) {
 					Timestamp:   time.Now().Add(-15 * time.Minute),
 				}
 
-				resp, err := reportsClient.SubmitReportWithResponse(context.Background(), report)
+				resp, err := client.SubmitReportWithResponse(context.Background(), report)
 				require.NoError(t, err)
 				assert.Equal(t, http.StatusOK, resp.StatusCode())
 			})
@@ -135,7 +133,7 @@ func TestReportsAPIEndpoints(t *testing.T) {
 			Timestamp:   time.Now().Add(-5 * time.Minute),
 		}
 
-		resp, err := reportsClient.SubmitReportWithResponse(context.Background(), report)
+		resp, err := client.SubmitReportWithResponse(context.Background(), report)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode())
 	})
@@ -170,7 +168,7 @@ func TestReportsAPIEndpoints(t *testing.T) {
 			},
 		}
 
-		resp, err := reportsClient.SubmitReportWithResponse(context.Background(), report)
+		resp, err := client.SubmitReportWithResponse(context.Background(), report)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode())
 	})

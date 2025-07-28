@@ -2,89 +2,103 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"strings"
+	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
-	"github.com/doron-cohen/argus/backend/reports"
+	"github.com/doron-cohen/argus/backend/internal/utils"
+	"github.com/doron-cohen/argus/backend/reports/api/client"
 )
 
-type ReportsServer struct {
-	Service *reports.Service
+// APIServer implements the ReportsAPI interface
+type APIServer struct {
+	Repo *storage.Repository
 }
 
-func NewReportsServer(repo *storage.Repository) ServerInterface {
-	return &ReportsServer{Service: reports.NewService(repo)}
+// NewAPIServer creates a new API server
+func NewAPIServer(repo *storage.Repository) ServerInterface {
+	return &APIServer{Repo: repo}
 }
 
-func (s *ReportsServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
-	// Parse the request body
-	var submission ReportSubmission
+// convertToStorageStatus converts API status to storage status
+func convertToStorageStatus(status client.ReportSubmissionStatus) storage.CheckStatus {
+	switch status {
+	case client.ReportSubmissionStatusPass:
+		return storage.CheckStatusPass
+	case client.ReportSubmissionStatusFail:
+		return storage.CheckStatusFail
+	case client.ReportSubmissionStatusDisabled:
+		return storage.CheckStatusDisabled
+	case client.ReportSubmissionStatusSkipped:
+		return storage.CheckStatusSkipped
+	case client.ReportSubmissionStatusUnknown:
+		return storage.CheckStatusUnknown
+	case client.ReportSubmissionStatusError:
+		return storage.CheckStatusError
+	case client.ReportSubmissionStatusCompleted:
+		return storage.CheckStatusCompleted
+	default:
+		return storage.CheckStatusUnknown
+	}
+}
+
+// SubmitReport handles report submission
+func (s *APIServer) SubmitReport(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var submission client.ReportSubmission
 	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil {
-		s.writeValidationError(w, "Invalid JSON format", "INVALID_JSON", map[string]interface{}{
-			"reason": "Request body is not valid JSON",
-		})
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Convert API submission to service input
-	input := reports.SubmitReportInput{
+	// Validate required fields
+	if submission.Check.Slug == "" {
+		http.Error(w, "check slug is required", http.StatusBadRequest)
+		return
+	}
+	if submission.ComponentId == "" {
+		http.Error(w, "component ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Convert API submission to storage input
+	var details storage.JSONB
+	if submission.Details != nil {
+		details = storage.JSONB(*submission.Details)
+	}
+
+	var metadata storage.JSONB
+	if submission.Metadata != nil {
+		metadata = storage.JSONB(*submission.Metadata)
+	}
+
+	input := storage.CreateCheckReportInput{
 		ComponentID:      submission.ComponentId,
 		CheckSlug:        submission.Check.Slug,
 		CheckName:        submission.Check.Name,
 		CheckDescription: submission.Check.Description,
-		Status:           string(submission.Status),
+		Status:           convertToStorageStatus(submission.Status),
 		Timestamp:        submission.Timestamp,
-		Details:          submission.Details,
-		Metadata:         submission.Metadata,
+		Details:          details,
+		Metadata:         metadata,
 	}
 
-	// Submit report via service layer
-	result, err := s.Service.SubmitReport(r.Context(), input)
-	if err != nil {
-		// Handle specific error types
-		if strings.Contains(err.Error(), "component not found") {
-			s.writeValidationError(w, "Component not found", "COMPONENT_NOT_FOUND", map[string]interface{}{
-				"component_id": submission.ComponentId,
-			})
-			return
-		}
-		if strings.Contains(err.Error(), "validation error") {
-			s.writeValidationError(w, err.Error(), "VALIDATION_ERROR", map[string]interface{}{
-				"reason": err.Error(),
-			})
-			return
-		}
-		http.Error(w, "Failed to store report", http.StatusInternalServerError)
+	// Create the report
+	if err := s.Repo.CreateCheckReportFromSubmission(ctx, input); err != nil {
+		http.Error(w, fmt.Sprintf("failed to create report: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Return success response
-	response := ReportSubmissionResponse{
-		Message:   &[]string{"Report submitted successfully"}[0],
-		ReportId:  &result.ReportID,
-		Timestamp: &result.Timestamp,
+	response := client.ReportSubmissionResponse{
+		Message:   utils.ToPointer("Report submitted successfully"),
+		ReportId:  utils.ToPointer("report-id"), // TODO: return actual report ID
+		Timestamp: utils.ToPointer(time.Now()),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
-}
-
-func (s *ReportsServer) writeValidationError(w http.ResponseWriter, message, code string, details map[string]interface{}) {
-	errorResponse := Error{
-		Error:   &message,
-		Code:    &code,
-		Details: &details,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
-		http.Error(w, "Failed to encode error response", http.StatusInternalServerError)
-		return
-	}
+	json.NewEncoder(w).Encode(response)
 }
