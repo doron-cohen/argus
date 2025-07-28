@@ -412,8 +412,9 @@ func (r *Repository) applyLatestPerCheckFilters(query *gorm.DB, status *CheckSta
 		filteredQuery = filteredQuery.Where("check_reports.status = ?", *status)
 	}
 	if checkSlug != nil && *checkSlug != "" {
-		filteredQuery = filteredQuery.Joins("JOIN checks ON check_reports.check_id = checks.id").
-			Where("checks.slug = ?", *checkSlug)
+		// Since the main query already includes checks join through WithPreloads,
+		// we can directly filter on checks.slug
+		filteredQuery = filteredQuery.Where("checks.slug = ?", *checkSlug)
 	}
 	if since != nil {
 		filteredQuery = filteredQuery.Where("check_reports.timestamp >= ?", *since)
