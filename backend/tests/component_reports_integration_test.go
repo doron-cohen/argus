@@ -63,7 +63,7 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// Create API clients
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	reportsClient, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")

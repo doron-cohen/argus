@@ -99,7 +99,7 @@ func TestFilesystemSyncIntegration(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Get components via API
@@ -181,7 +181,7 @@ func TestFilesystemSyncWithSpecificPath(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Get components via API
@@ -242,7 +242,7 @@ func TestGitSyncIntegration(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Get components via API
@@ -316,7 +316,7 @@ func TestMixedSourcesIntegration(t *testing.T) {
 	time.Sleep(12 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Get components via API
@@ -378,7 +378,7 @@ func TestSyncWithNoSources(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Get components via API - should be empty since no sync occurred
@@ -417,7 +417,7 @@ func TestSyncErrorHandling(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Create API client
-	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api")
+	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
 	// Get components via API - should be empty due to sync failures

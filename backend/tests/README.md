@@ -102,7 +102,7 @@ testdata/
 ### **API Validation**
 - Server starts with real sync configuration
 - Tests wait for sync completion (1-10 seconds)
-- API client validates components via GET /api/components
+- API client validates components via GET /api/catalog/v1/components
 - Component names and counts verified
 
 ## Test Scenarios

@@ -30,12 +30,6 @@ const (
 	CheckReportStatusUnknown   CheckReportStatus = "unknown"
 )
 
-// Defines values for HealthStatus.
-const (
-	Healthy   HealthStatus = "healthy"
-	Unhealthy HealthStatus = "unhealthy"
-)
-
 // Defines values for GetComponentReportsParamsStatus.
 const (
 	GetComponentReportsParamsStatusCompleted GetComponentReportsParamsStatus = "completed"
@@ -98,18 +92,6 @@ type Error struct {
 	Error string `json:"error"`
 }
 
-// Health Health status of the service
-type Health struct {
-	// Status Health status
-	Status HealthStatus `json:"status"`
-
-	// Timestamp Timestamp of the health check
-	Timestamp time.Time `json:"timestamp"`
-}
-
-// HealthStatus Health status
-type HealthStatus string
-
 // Owners Ownership information for a component
 type Owners struct {
 	// Maintainers List of user identifiers responsible for maintaining this component
@@ -161,17 +143,14 @@ type GetComponentReportsParamsStatus string
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get all components
-	// (GET /components)
+	// (GET /catalog/v1/components)
 	GetComponents(w http.ResponseWriter, r *http.Request)
 	// Get component by ID
-	// (GET /components/{componentId})
+	// (GET /catalog/v1/components/{componentId})
 	GetComponentById(w http.ResponseWriter, r *http.Request, componentId string)
 	// Get reports for component
-	// (GET /components/{componentId}/reports)
+	// (GET /catalog/v1/components/{componentId}/reports)
 	GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams)
-	// Health check
-	// (GET /healthz)
-	GetHealth(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -179,26 +158,20 @@ type ServerInterface interface {
 type Unimplemented struct{}
 
 // Get all components
-// (GET /components)
+// (GET /catalog/v1/components)
 func (_ Unimplemented) GetComponents(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get component by ID
-// (GET /components/{componentId})
+// (GET /catalog/v1/components/{componentId})
 func (_ Unimplemented) GetComponentById(w http.ResponseWriter, r *http.Request, componentId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get reports for component
-// (GET /components/{componentId}/reports)
+// (GET /catalog/v1/components/{componentId}/reports)
 func (_ Unimplemented) GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Health check
-// (GET /healthz)
-func (_ Unimplemented) GetHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -326,20 +299,6 @@ func (siw *ServerInterfaceWrapper) GetComponentReports(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
-// GetHealth operation middleware
-func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetHealth(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -454,16 +413,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/components", wrapper.GetComponents)
+		r.Get(options.BaseURL+"/catalog/v1/components", wrapper.GetComponents)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/components/{componentId}", wrapper.GetComponentById)
+		r.Get(options.BaseURL+"/catalog/v1/components/{componentId}", wrapper.GetComponentById)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/components/{componentId}/reports", wrapper.GetComponentReports)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
+		r.Get(options.BaseURL+"/catalog/v1/components/{componentId}/reports", wrapper.GetComponentReports)
 	})
 
 	return r
@@ -472,34 +428,32 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"u/0jAAD//0/nrrZdGQAA",
+	"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",
+	"qCvo/+2obUfd9pB0u/rDnwEAAP//DS63aRIXAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

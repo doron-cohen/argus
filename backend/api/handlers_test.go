@@ -25,7 +25,7 @@ func TestGetComponentReports(t *testing.T) {
 		_, _, report := createTestData(t, repo)
 
 		// Create request
-		req := httptest.NewRequest("GET", "/components/test-component/reports", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component/reports", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -41,7 +41,7 @@ func TestGetComponentReports(t *testing.T) {
 
 	t.Run("ComponentNotFound", func(t *testing.T) {
 		// Create request for non-existent component
-		req := httptest.NewRequest("GET", "/components/non-existent/reports", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/non-existent/reports", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -154,7 +154,7 @@ func TestGetComponentReports_ValidationErrors(t *testing.T) {
 
 	t.Run("InvalidLimit", func(t *testing.T) {
 		// Create request with invalid limit
-		req := httptest.NewRequest("GET", "/components/test-component-validation/reports?limit=-1", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-validation/reports?limit=-1", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -169,7 +169,7 @@ func TestGetComponentReports_ValidationErrors(t *testing.T) {
 
 	t.Run("InvalidOffset", func(t *testing.T) {
 		// Create request with invalid offset
-		req := httptest.NewRequest("GET", "/components/test-component-validation/reports?offset=-1", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-validation/reports?offset=-1", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -184,7 +184,7 @@ func TestGetComponentReports_ValidationErrors(t *testing.T) {
 
 	t.Run("ExcessiveLimit", func(t *testing.T) {
 		// Create request with excessive limit
-		req := httptest.NewRequest("GET", "/components/test-component-validation/reports?limit=10000", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-validation/reports?limit=10000", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -222,7 +222,7 @@ func TestGetComponentReports_EdgeCases(t *testing.T) {
 
 	t.Run("EmptyComponent", func(t *testing.T) {
 		// Create request for component with no reports
-		req := httptest.NewRequest("GET", "/components/test-component-edgecases/reports", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-edgecases/reports", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -241,7 +241,7 @@ func TestGetComponentReports_EdgeCases(t *testing.T) {
 
 	t.Run("InvalidSinceDate", func(t *testing.T) {
 		// Create request with invalid since date
-		req := httptest.NewRequest("GET", "/components/test-component-edgecases/reports?since=invalid-date", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-edgecases/reports?since=invalid-date", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler - this will fail at the OpenAPI validation level
@@ -254,7 +254,7 @@ func TestGetComponentReports_EdgeCases(t *testing.T) {
 
 	t.Run("FutureSinceDate", func(t *testing.T) {
 		// Create request with future since date
-		req := httptest.NewRequest("GET", "/components/test-component-edgecases/reports?since=2030-01-01T00:00:00Z", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-edgecases/reports?since=2030-01-01T00:00:00Z", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -320,7 +320,7 @@ func TestGetComponentReports_Pagination(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest("GET", fmt.Sprintf("/components/test-component-pagination/reports?limit=%d&offset=%d", tc.limit, tc.offset), nil)
+			req := httptest.NewRequest("GET", fmt.Sprintf("/catalog/v1/components/test-component-pagination/reports?limit=%d&offset=%d", tc.limit, tc.offset), nil)
 			w := httptest.NewRecorder()
 
 			// Call handler
@@ -399,7 +399,7 @@ func TestGetComponentReports_PaginationLimit(t *testing.T) {
 
 	t.Run("ExcessiveLimitShouldBeCapped", func(t *testing.T) {
 		// Create request with excessive limit (should be capped to 100)
-		req := httptest.NewRequest("GET", "/components/test-component-limit/reports?limit=10000", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-limit/reports?limit=10000", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -422,7 +422,7 @@ func TestGetComponentReports_PaginationLimit(t *testing.T) {
 
 	t.Run("ValidLimitShouldBeRespected", func(t *testing.T) {
 		// Create request with valid limit
-		req := httptest.NewRequest("GET", "/components/test-component-limit/reports?limit=25", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-limit/reports?limit=25", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler
@@ -461,7 +461,7 @@ func TestGetComponentReports_InvalidStatusParameter(t *testing.T) {
 
 	t.Run("InvalidStatusReturns200Not400", func(t *testing.T) {
 		// Create request with invalid status parameter
-		req := httptest.NewRequest("GET", "/components/test-component-status/reports?status=invalid-status", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-status/reports?status=invalid-status", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler with invalid status
@@ -480,7 +480,7 @@ func TestGetComponentReports_InvalidStatusParameter(t *testing.T) {
 
 	t.Run("ValidStatusReturns200", func(t *testing.T) {
 		// Create request with valid status parameter
-		req := httptest.NewRequest("GET", "/components/test-component-status/reports?status=pass", nil)
+		req := httptest.NewRequest("GET", "/catalog/v1/components/test-component-status/reports?status=pass", nil)
 		w := httptest.NewRecorder()
 
 		// Call handler with valid status

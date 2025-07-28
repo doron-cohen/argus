@@ -30,8 +30,8 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Mount healthz
 	mux.Get("/healthz", health.HealthHandler(repo))
 
-	// Mount OpenAPI-generated handlers under /api
-	mux.Mount("/api", api.Handler(api.NewAPIServer(repo)))
+	// Mount catalog API under /api/catalog/v1
+	mux.Mount("/api/catalog/v1", api.Handler(api.NewAPIServer(repo)))
 
 	// Mount reports API under /reports
 	mux.Mount("/reports", reportsapi.Handler(reportsapi.NewAPIServer(repo)))
