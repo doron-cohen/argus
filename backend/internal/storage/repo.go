@@ -404,6 +404,24 @@ func (r *Repository) GetCheckReportsForComponentWithPagination(ctx context.Conte
 	return reports, total, err
 }
 
+// applyLatestPerCheckFilters applies filters consistently for latest per check logic
+func (r *Repository) applyLatestPerCheckFilters(query *gorm.DB, status *CheckStatus, checkSlug *string, since *time.Time) *gorm.DB {
+	filteredQuery := query
+
+	if status != nil {
+		filteredQuery = filteredQuery.Where("check_reports.status = ?", *status)
+	}
+	if checkSlug != nil && *checkSlug != "" {
+		filteredQuery = filteredQuery.Joins("JOIN checks ON check_reports.check_id = checks.id").
+			Where("checks.slug = ?", *checkSlug)
+	}
+	if since != nil {
+		filteredQuery = filteredQuery.Where("check_reports.timestamp >= ?", *since)
+	}
+
+	return filteredQuery
+}
+
 // getLatestPerCheckReportsPostgreSQL handles latest per check logic for PostgreSQL
 func (r *Repository) getLatestPerCheckReportsPostgreSQL(ctx context.Context, query *gorm.DB, component Component, status *CheckStatus, checkSlug *string, since *time.Time, limit int, offset int) ([]CheckReport, int64, error) {
 	// We need to use a subquery to get the latest report for each check
@@ -413,17 +431,8 @@ func (r *Repository) getLatestPerCheckReportsPostgreSQL(ctx context.Context, que
 		Where("check_reports.component_id = ?", component.ID).
 		Order("check_id, timestamp DESC")
 
-	// Apply the same filters to the subquery
-	if status != nil {
-		subQuery = subQuery.Where("check_reports.status = ?", *status)
-	}
-	if checkSlug != nil && *checkSlug != "" {
-		subQuery = subQuery.Joins("JOIN checks ON check_reports.check_id = checks.id").
-			Where("checks.slug = ?", *checkSlug)
-	}
-	if since != nil {
-		subQuery = subQuery.Where("check_reports.timestamp >= ?", *since)
-	}
+	// Apply the same filters to the subquery using the shared helper
+	subQuery = r.applyLatestPerCheckFilters(subQuery, status, checkSlug, since)
 
 	// Use the subquery to filter the main query
 	query = query.Where("check_reports.id IN (?)", subQuery)
@@ -456,11 +465,14 @@ func (r *Repository) getLatestPerCheckReportsPostgreSQL(ctx context.Context, que
 }
 
 // getLatestPerCheckReportsSQLite handles latest per check logic for SQLite and other databases
-func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *gorm.DB, limit int, offset int) ([]CheckReport, int64, error) {
+func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *gorm.DB, component Component, status *CheckStatus, checkSlug *string, since *time.Time, limit int, offset int) ([]CheckReport, int64, error) {
+	// Apply the same filters as PostgreSQL for consistency
+	filteredQuery := r.applyLatestPerCheckFilters(query, status, checkSlug, since)
+
 	// Fetch all reports and filter in Go
 	// This is simpler and more reliable than complex subqueries
 	var allReports []CheckReport
-	err := query.Find(&allReports).Error
+	err := filteredQuery.Find(&allReports).Error
 	if err != nil {
 		return nil, 0, fmt.Errorf("find query failed: %w", err)
 	}
@@ -501,6 +513,6 @@ func (r *Repository) getLatestPerCheckReports(ctx context.Context, query *gorm.D
 	if dialectorName == "postgres" {
 		return r.getLatestPerCheckReportsPostgreSQL(ctx, query, component, status, checkSlug, since, limit, offset)
 	} else {
-		return r.getLatestPerCheckReportsSQLite(ctx, query, limit, offset)
+		return r.getLatestPerCheckReportsSQLite(ctx, query, component, status, checkSlug, since, limit, offset)
 	}
 }
