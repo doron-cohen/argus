@@ -405,19 +405,23 @@ func (r *Repository) GetCheckReportsForComponentWithPagination(ctx context.Conte
 }
 
 // applyLatestPerCheckFilters applies filters consistently for latest per check logic
-func (r *Repository) applyLatestPerCheckFilters(query *gorm.DB, status *CheckStatus, checkSlug *string, since *time.Time) *gorm.DB {
+
+// applyLatestPerCheckSubqueryFilters applies filters to subqueries (without check_slug join)
+func (r *Repository) applyLatestPerCheckSubqueryFilters(query *gorm.DB, status *CheckStatus, checkSlug *string, since *time.Time) *gorm.DB {
 	filteredQuery := query
 
 	if status != nil {
 		filteredQuery = filteredQuery.Where("check_reports.status = ?", *status)
 	}
-	if checkSlug != nil && *checkSlug != "" {
-		// Since the main query already includes checks join through WithPreloads,
-		// we can directly filter on checks.slug
-		filteredQuery = filteredQuery.Where("checks.slug = ?", *checkSlug)
-	}
 	if since != nil {
 		filteredQuery = filteredQuery.Where("check_reports.timestamp >= ?", *since)
+	}
+
+	// For check_slug filtering in subqueries, we need to join checks table manually
+	// since we can't use WithCheckSlug scope in subqueries
+	if checkSlug != nil && *checkSlug != "" {
+		filteredQuery = filteredQuery.Joins("JOIN checks ON check_reports.check_id = checks.id").
+			Where("checks.slug = ?", *checkSlug)
 	}
 
 	return filteredQuery
@@ -469,12 +473,12 @@ func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *
 	// First, get the latest report ID for each check
 	latestIDsQuery := r.DB.WithContext(ctx).
 		Model(&CheckReport{}).
-		Select("MAX(id) as id").
-		Where("component_id = ?", component.ID).
-		Group("check_id")
+		Select("MAX(check_reports.id) as id").
+		Where("check_reports.component_id = ?", component.ID).
+		Group("check_reports.check_id")
 
-	// Apply filters to the latest IDs query
-	latestIDsQuery = r.applyLatestPerCheckFilters(latestIDsQuery, status, checkSlug, since)
+	// Apply filters to the latest IDs query (subquery)
+	latestIDsQuery = r.applyLatestPerCheckSubqueryFilters(latestIDsQuery, status, checkSlug, since)
 
 	// Get the actual reports using the latest IDs
 	latestQuery := r.DB.WithContext(ctx).
@@ -486,6 +490,10 @@ func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *
 		Limit(limit).
 		Offset(offset)
 
+	// Apply check_slug filter to main query if needed
+	// Note: The subquery already filters by check_slug, so we don't need to filter again here
+	// The subquery will only return IDs for reports that match the check_slug filter
+
 	var reports []CheckReport
 	err := latestQuery.Find(&reports).Error
 	if err != nil {
@@ -493,16 +501,21 @@ func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *
 	}
 
 	// Count total for pagination
+	// Use the same subquery approach to get accurate count
+	countSubquery := r.DB.WithContext(ctx).
+		Model(&CheckReport{}).
+		Select("MAX(check_reports.id) as id").
+		Where("check_reports.component_id = ?", component.ID).
+		Group("check_reports.check_id")
+
+	// Apply filters to the count subquery
+	countSubquery = r.applyLatestPerCheckSubqueryFilters(countSubquery, status, checkSlug, since)
+
+	// Count the number of latest reports
 	countQuery := r.DB.WithContext(ctx).
 		Model(&CheckReport{}).
-		Select("COUNT(DISTINCT check_id)").
-		Where("component_id = ?", component.ID)
-
-	// Apply filters to count query - need to join checks table if filtering by check_slug
-	if checkSlug != nil && *checkSlug != "" {
-		countQuery = countQuery.Joins("JOIN checks ON check_reports.check_id = checks.id")
-	}
-	countQuery = r.applyLatestPerCheckFilters(countQuery, status, checkSlug, since)
+		Select("COUNT(*)").
+		Where("check_reports.id IN (?)", countSubquery)
 
 	var total int64
 	err = countQuery.Scan(&total).Error
