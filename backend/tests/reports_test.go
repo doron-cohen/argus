@@ -35,6 +35,9 @@ func TestReportsAPIEndpoints(t *testing.T) {
 	stop := startServerAndWaitForHealth(t, testConfig)
 	defer stop()
 
+	// Wait for initial sync to complete (components need to be created)
+	waitForSyncCompletion(t, 10*time.Second)
+
 	// Create API client
 	client, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")
 	require.NoError(t, err)

@@ -426,16 +426,14 @@ func (r *Repository) applyLatestPerCheckFilters(query *gorm.DB, status *CheckSta
 // getLatestPerCheckReportsPostgreSQL handles latest per check logic for PostgreSQL
 func (r *Repository) getLatestPerCheckReportsPostgreSQL(ctx context.Context, query *gorm.DB, component Component, status *CheckStatus, checkSlug *string, since *time.Time, limit int, offset int) ([]CheckReport, int64, error) {
 	// We need to use a subquery to get the latest report for each check
+	// The main query already has filters applied, so we only need to filter by component_id in the subquery
 	subQuery := r.DB.WithContext(ctx).
 		Model(&CheckReport{}).
 		Select("DISTINCT ON (check_id) check_reports.id").
 		Where("check_reports.component_id = ?", component.ID).
 		Order("check_id, timestamp DESC")
 
-	// Apply the same filters to the subquery using the shared helper
-	subQuery = r.applyLatestPerCheckFilters(subQuery, status, checkSlug, since)
-
-	// Use the subquery to filter the main query
+	// Use the subquery to filter the main query (which already has filters applied)
 	query = query.Where("check_reports.id IN (?)", subQuery)
 
 	// Apply pagination and ordering
@@ -467,44 +465,52 @@ func (r *Repository) getLatestPerCheckReportsPostgreSQL(ctx context.Context, que
 
 // getLatestPerCheckReportsSQLite handles latest per check logic for SQLite and other databases
 func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *gorm.DB, component Component, status *CheckStatus, checkSlug *string, since *time.Time, limit int, offset int) ([]CheckReport, int64, error) {
-	// Apply the same filters as PostgreSQL for consistency
-	filteredQuery := r.applyLatestPerCheckFilters(query, status, checkSlug, since)
+	// Build a more efficient query that handles sorting and pagination at the database level
+	// First, get the latest report ID for each check
+	latestIDsQuery := r.DB.WithContext(ctx).
+		Model(&CheckReport{}).
+		Select("MAX(id) as id").
+		Where("component_id = ?", component.ID).
+		Group("check_id")
 
-	// Fetch all reports and filter in Go
-	// This is simpler and more reliable than complex subqueries
-	var allReports []CheckReport
-	err := filteredQuery.Find(&allReports).Error
+	// Apply filters to the latest IDs query
+	latestIDsQuery = r.applyLatestPerCheckFilters(latestIDsQuery, status, checkSlug, since)
+
+	// Get the actual reports using the latest IDs
+	latestQuery := r.DB.WithContext(ctx).
+		Model(&CheckReport{}).
+		Joins("JOIN checks ON check_reports.check_id = checks.id").
+		Where("check_reports.id IN (?)", latestIDsQuery).
+		Preload("Check").
+		Order("check_reports.timestamp DESC").
+		Limit(limit).
+		Offset(offset)
+
+	var reports []CheckReport
+	err := latestQuery.Find(&reports).Error
 	if err != nil {
 		return nil, 0, fmt.Errorf("find query failed: %w", err)
 	}
 
-	// Group by check and keep only the latest
-	latestByCheck := make(map[string]CheckReport)
-	for _, report := range allReports {
-		checkSlug := report.Check.Slug
-		if existing, exists := latestByCheck[checkSlug]; !exists || report.Timestamp.After(existing.Timestamp) {
-			latestByCheck[checkSlug] = report
-		}
+	// Count total for pagination
+	countQuery := r.DB.WithContext(ctx).
+		Model(&CheckReport{}).
+		Select("COUNT(DISTINCT check_id)").
+		Where("component_id = ?", component.ID)
+
+	// Apply filters to count query - need to join checks table if filtering by check_slug
+	if checkSlug != nil && *checkSlug != "" {
+		countQuery = countQuery.Joins("JOIN checks ON check_reports.check_id = checks.id")
+	}
+	countQuery = r.applyLatestPerCheckFilters(countQuery, status, checkSlug, since)
+
+	var total int64
+	err = countQuery.Scan(&total).Error
+	if err != nil {
+		return nil, 0, fmt.Errorf("count query failed: %w", err)
 	}
 
-	// Convert back to slice
-	var latestReports []CheckReport
-	for _, report := range latestByCheck {
-		latestReports = append(latestReports, report)
-	}
-
-	// Apply pagination to the filtered results
-	total := int64(len(latestReports))
-	start := offset
-	end := offset + limit
-	if start >= len(latestReports) {
-		return []CheckReport{}, total, nil
-	}
-	if end > len(latestReports) {
-		end = len(latestReports)
-	}
-
-	return latestReports[start:end], total, nil
+	return reports, total, nil
 }
 
 // getLatestPerCheckReports handles the latest per check logic for different database types

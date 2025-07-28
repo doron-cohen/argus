@@ -59,7 +59,7 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 	require.NoError(t, err)
 	defer stop()
 
-	// Wait for server to start
+	// Wait for server to start and be healthy
 	time.Sleep(1 * time.Second)
 
 	// Create API clients
