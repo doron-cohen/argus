@@ -38,14 +38,6 @@ func (m *MockRepository) GetComponentByID(ctx context.Context, componentID strin
 	return args.Get(0).(*storage.Component), args.Error(1)
 }
 
-func (m *MockRepository) GetComponentByName(ctx context.Context, name string) (*storage.Component, error) {
-	args := m.Called(ctx, name)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*storage.Component), args.Error(1)
-}
-
 func (m *MockRepository) CreateComponent(ctx context.Context, component storage.Component) error {
 	args := m.Called(ctx, component)
 	return args.Error(0)

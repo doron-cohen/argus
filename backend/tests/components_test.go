@@ -16,6 +16,9 @@ import (
 var TestConfig config.Config
 
 func TestGetComponentsIntegration(t *testing.T) {
+	// Clear database before test
+	clearDatabase(t)
+
 	stop, err := server.Start(TestConfig)
 	require.NoError(t, err)
 	defer stop()

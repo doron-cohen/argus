@@ -130,7 +130,7 @@ func TestRepository_CreateCheckReportWithExistingCheck(t *testing.T) {
 		Details:     details,
 		Metadata:    metadata,
 	}
-	err = repo.CreateCheckReportFromSubmission(ctx, input)
+	_, err = repo.CreateCheckReportFromSubmission(ctx, input)
 	require.NoError(t, err)
 
 	// Verify the report was created
@@ -175,7 +175,7 @@ func TestRepository_CreateCheckReportWithAutoCreatedCheck(t *testing.T) {
 		Details:          details,
 		Metadata:         metadata,
 	}
-	err = repo.CreateCheckReportFromSubmission(ctx, input)
+	_, err = repo.CreateCheckReportFromSubmission(ctx, input)
 	require.NoError(t, err)
 
 	// Verify the check was auto-created with provided values
@@ -208,7 +208,7 @@ func TestRepository_CreateCheckReportWithNonExistentComponent(t *testing.T) {
 		Details:     details,
 		Metadata:    metadata,
 	}
-	err := repo.CreateCheckReportFromSubmission(ctx, input)
+	_, err := repo.CreateCheckReportFromSubmission(ctx, input)
 	assert.ErrorIs(t, err, storage.ErrComponentNotFound)
 }
 
@@ -374,7 +374,7 @@ func TestRepository_DatabaseSchema(t *testing.T) {
 		err = repo.DB.WithContext(ctx).Model(&storage.CheckReport{}).Count(&initialCount).Error
 		require.NoError(t, err)
 
-		err = repo.CreateCheckReportFromSubmission(ctx, input)
+		_, err = repo.CreateCheckReportFromSubmission(ctx, input)
 		require.NoError(t, err)
 
 		// Verify exactly one new report was created
@@ -382,5 +382,461 @@ func TestRepository_DatabaseSchema(t *testing.T) {
 		err = repo.DB.WithContext(ctx).Model(&storage.CheckReport{}).Count(&finalCount).Error
 		require.NoError(t, err)
 		assert.Equal(t, initialCount+1, finalCount)
+	})
+}
+
+func TestRepository_GetCheckReportsForComponentWithPagination(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := t.Context()
+
+	// Setup test data
+	component := storage.Component{
+		ComponentID: "pagination-test-service",
+		Name:        "Pagination Test Service",
+	}
+	err := repo.CreateComponent(ctx, component)
+	require.NoError(t, err)
+
+	// Create multiple checks with unique slugs
+	checks := []storage.Check{
+		{Slug: "unit-tests-pagination", Name: "Unit Tests"},
+		{Slug: "integration-tests-pagination", Name: "Integration Tests"},
+		{Slug: "security-scan-pagination", Name: "Security Scan"},
+	}
+	for _, check := range checks {
+		err = repo.CreateCheck(ctx, check)
+		require.NoError(t, err)
+	}
+
+	// Create multiple reports with different timestamps
+	now := time.Now()
+	reports := []storage.CreateCheckReportInput{
+		{
+			ComponentID: "pagination-test-service",
+			CheckSlug:   "unit-tests-pagination",
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-1 * time.Hour),
+			Details:     storage.JSONB{"coverage": 85},
+			Metadata:    storage.JSONB{"env": "test"},
+		},
+		{
+			ComponentID: "pagination-test-service",
+			CheckSlug:   "unit-tests-pagination",
+			Status:      storage.CheckStatusFail,
+			Timestamp:   now.Add(-2 * time.Hour),
+			Details:     storage.JSONB{"coverage": 75},
+			Metadata:    storage.JSONB{"env": "test"},
+		},
+		{
+			ComponentID: "pagination-test-service",
+			CheckSlug:   "integration-tests-pagination",
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-30 * time.Minute),
+			Details:     storage.JSONB{"tests": 100},
+			Metadata:    storage.JSONB{"env": "test"},
+		},
+		{
+			ComponentID: "pagination-test-service",
+			CheckSlug:   "security-scan-pagination",
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-15 * time.Minute),
+			Details:     storage.JSONB{"vulnerabilities": 0},
+			Metadata:    storage.JSONB{"env": "test"},
+		},
+	}
+
+	for _, report := range reports {
+		_, err = repo.CreateCheckReportFromSubmission(ctx, report)
+		require.NoError(t, err)
+	}
+
+	const unitTestsSlug = "unit-tests-pagination"
+
+	t.Run("Basic pagination without filters", func(t *testing.T) {
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, nil, nil, 2, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), total)
+		assert.Len(t, reports, 2)
+	})
+
+	t.Run("Pagination with offset", func(t *testing.T) {
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, nil, nil, 2, 2, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), total)
+		assert.Len(t, reports, 2)
+	})
+
+	t.Run("Filter by status", func(t *testing.T) {
+		status := storage.CheckStatusPass
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", &status, nil, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), total) // 3 pass reports
+		assert.Len(t, reports, 3)
+		for _, report := range reports {
+			assert.Equal(t, storage.CheckStatusPass, report.Status)
+		}
+	})
+
+	t.Run("Filter by check slug", func(t *testing.T) {
+		checkSlug := unitTestsSlug
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, &checkSlug, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), total) // 2 unit-tests reports
+		assert.Len(t, reports, 2)
+		for _, report := range reports {
+			assert.Equal(t, unitTestsSlug, report.Check.Slug)
+		}
+	})
+
+	t.Run("Filter by since timestamp", func(t *testing.T) {
+		since := now.Add(-45 * time.Minute)
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, nil, &since, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), total) // 2 recent reports
+		assert.Len(t, reports, 2)
+		for _, report := range reports {
+			assert.True(t, report.Timestamp.After(since))
+		}
+	})
+
+	t.Run("Latest per check without filters", func(t *testing.T) {
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, nil, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), total) // 3 unique checks
+		assert.Len(t, reports, 3)
+
+		// Verify we have one report per check
+		checkSlugs := make(map[string]bool)
+		for _, report := range reports {
+			checkSlugs[report.Check.Slug] = true
+		}
+		assert.Len(t, checkSlugs, 3)
+		assert.True(t, checkSlugs[unitTestsSlug])
+		assert.True(t, checkSlugs["integration-tests-pagination"])
+		assert.True(t, checkSlugs["security-scan-pagination"])
+	})
+
+	t.Run("Latest per check with status filter", func(t *testing.T) {
+		status := storage.CheckStatusPass
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", &status, nil, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), total) // 3 unique checks with pass status
+		assert.Len(t, reports, 3)
+		for _, report := range reports {
+			assert.Equal(t, storage.CheckStatusPass, report.Status)
+		}
+	})
+
+	t.Run("Latest per check with check slug filter", func(t *testing.T) {
+		checkSlug := unitTestsSlug
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total) // 1 unique check
+		assert.Len(t, reports, 1)
+		assert.Equal(t, unitTestsSlug, reports[0].Check.Slug)
+	})
+
+	t.Run("Latest per check with pagination", func(t *testing.T) {
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", nil, nil, nil, 2, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), total) // 3 unique checks
+		assert.Len(t, reports, 2)        // limited by pagination
+	})
+
+	t.Run("Component not found", func(t *testing.T) {
+		_, _, err := repo.GetCheckReportsForComponentWithPagination(ctx, "non-existent-service", nil, nil, nil, 10, 0, false)
+		assert.ErrorIs(t, err, storage.ErrComponentNotFound)
+	})
+
+	t.Run("Combined filters with latest per check", func(t *testing.T) {
+		status := storage.CheckStatusPass
+		checkSlug := unitTestsSlug
+		since := now.Add(-90 * time.Minute)
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "pagination-test-service", &status, &checkSlug, &since, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total) // 1 report matching all filters
+		assert.Len(t, reports, 1)
+		assert.Equal(t, unitTestsSlug, reports[0].Check.Slug)
+		assert.Equal(t, storage.CheckStatusPass, reports[0].Status)
+		assert.True(t, reports[0].Timestamp.After(since))
+	})
+}
+
+func TestRepository_CheckSlugFilterWithLatestPerCheck(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := t.Context()
+
+	const (
+		unitTestsSlug    = "unit-tests-filter"
+		integrationSlug  = "integration-tests-filter"
+		securityScanSlug = "security-scan-filter"
+	)
+
+	// Setup test data with multiple components and checks to test JOIN scenarios
+	components := []storage.Component{
+		{ComponentID: "service-a", Name: "Service A"},
+		{ComponentID: "service-b", Name: "Service B"},
+	}
+	for _, component := range components {
+		err := repo.CreateComponent(ctx, component)
+		require.NoError(t, err)
+	}
+
+	// Create checks with same slug across different components to test JOIN behavior
+	checks := []storage.Check{
+		{Slug: unitTestsSlug, Name: "Unit Tests"},
+		{Slug: integrationSlug, Name: "Integration Tests"},
+		{Slug: securityScanSlug, Name: "Security Scan"},
+	}
+	for _, check := range checks {
+		err := repo.CreateCheck(ctx, check)
+		require.NoError(t, err)
+	}
+
+	// Create reports with overlapping check slugs across components
+	now := time.Now()
+	reports := []storage.CreateCheckReportInput{
+		// Service A reports
+		{
+			ComponentID: "service-a",
+			CheckSlug:   unitTestsSlug,
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-1 * time.Hour),
+			Details:     storage.JSONB{"coverage": 85},
+		},
+		{
+			ComponentID: "service-a",
+			CheckSlug:   unitTestsSlug,
+			Status:      storage.CheckStatusFail,
+			Timestamp:   now.Add(-3 * time.Hour), // Make this older to ensure pass is latest
+			Details:     storage.JSONB{"coverage": 75},
+		},
+		{
+			ComponentID: "service-a",
+			CheckSlug:   integrationSlug,
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-30 * time.Minute),
+			Details:     storage.JSONB{"tests": 100},
+		},
+		// Service B reports with same check slugs
+		{
+			ComponentID: "service-b",
+			CheckSlug:   unitTestsSlug,
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-45 * time.Minute),
+			Details:     storage.JSONB{"coverage": 90},
+		},
+		{
+			ComponentID: "service-b",
+			CheckSlug:   integrationSlug,
+			Status:      storage.CheckStatusFail,
+			Timestamp:   now.Add(-60 * time.Minute),
+			Details:     storage.JSONB{"tests": 50},
+		},
+		{
+			ComponentID: "service-b",
+			CheckSlug:   securityScanSlug,
+			Status:      storage.CheckStatusPass,
+			Timestamp:   now.Add(-15 * time.Minute),
+			Details:     storage.JSONB{"vulnerabilities": 0},
+		},
+	}
+
+	for _, report := range reports {
+		_, err := repo.CreateCheckReportFromSubmission(ctx, report)
+		require.NoError(t, err)
+	}
+
+	t.Run("Check slug filter with latest per check - Service A", func(t *testing.T) {
+		checkSlug := unitTestsSlug
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", nil, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total) // 1 latest report for unit-tests-filter in service-a
+		assert.Len(t, reports, 1)
+		assert.Equal(t, unitTestsSlug, reports[0].Check.Slug)
+		assert.Equal(t, "service-a", reports[0].Component.ComponentID)
+		// Should return the latest (most recent) report
+		assert.Equal(t, storage.CheckStatusPass, reports[0].Status)
+	})
+
+	t.Run("Check slug filter with latest per check - Service B", func(t *testing.T) {
+		checkSlug := unitTestsSlug
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-b", nil, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total) // 1 latest report for unit-tests-filter in service-b
+		assert.Len(t, reports, 1)
+		assert.Equal(t, unitTestsSlug, reports[0].Check.Slug)
+		assert.Equal(t, "service-b", reports[0].Component.ComponentID)
+		// Should return the latest (most recent) report
+		assert.Equal(t, storage.CheckStatusPass, reports[0].Status)
+	})
+
+	t.Run("Check slug filter with latest per check - Non-existent check", func(t *testing.T) {
+		checkSlug := "non-existent-check"
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", nil, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), total) // No reports for non-existent check
+		assert.Len(t, reports, 0)
+	})
+
+	t.Run("Check slug filter with latest per check and status filter", func(t *testing.T) {
+		checkSlug := integrationSlug
+		status := storage.CheckStatusPass
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", &status, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total) // 1 latest pass report for integration-tests-filter in service-a
+		assert.Len(t, reports, 1)
+		assert.Equal(t, integrationSlug, reports[0].Check.Slug)
+		assert.Equal(t, storage.CheckStatusPass, reports[0].Status)
+	})
+
+	t.Run("Check slug filter with latest per check and since filter", func(t *testing.T) {
+		checkSlug := unitTestsSlug
+		since := now.Add(-90 * time.Minute) // Should include the pass report but not the fail report
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", nil, &checkSlug, &since, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total) // 1 latest report within time range
+		assert.Len(t, reports, 1)
+		assert.Equal(t, unitTestsSlug, reports[0].Check.Slug)
+		assert.True(t, reports[0].Timestamp.After(since))
+	})
+
+	t.Run("Check slug filter with latest per check and pagination", func(t *testing.T) {
+		// Get all reports for service-a with latest per check
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", nil, nil, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), total) // 2 unique checks in service-a
+		assert.Len(t, reports, 2)
+
+		// Now filter by check slug with pagination
+		checkSlug := unitTestsSlug
+		filteredReports, filteredTotal, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", nil, &checkSlug, nil, 1, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), filteredTotal) // 1 unique check
+		assert.Len(t, filteredReports, 1)
+		assert.Equal(t, unitTestsSlug, filteredReports[0].Check.Slug)
+	})
+
+	t.Run("Multiple components with same check slug - verify isolation", func(t *testing.T) {
+		checkSlug := unitTestsSlug
+
+		// Get reports for service-a
+		reportsA, totalA, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-a", nil, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), totalA)
+		assert.Len(t, reportsA, 1)
+		assert.Equal(t, "service-a", reportsA[0].Component.ComponentID)
+
+		// Get reports for service-b
+		reportsB, totalB, err := repo.GetCheckReportsForComponentWithPagination(ctx, "service-b", nil, &checkSlug, nil, 10, 0, true)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), totalB)
+		assert.Len(t, reportsB, 1)
+		assert.Equal(t, "service-b", reportsB[0].Component.ComponentID)
+
+		// Verify they are different reports
+		assert.NotEqual(t, reportsA[0].ID, reportsB[0].ID)
+	})
+}
+
+func TestRepository_ApplyLatestPerCheckFilters(t *testing.T) {
+	repo := setupTestRepo(t)
+	ctx := t.Context()
+
+	// Create test data
+	component := storage.Component{
+		ComponentID: "filter-test-service",
+		Name:        "Filter Test Service",
+	}
+	err := repo.CreateComponent(ctx, component)
+	require.NoError(t, err)
+
+	check := storage.Check{
+		Slug: "test-check",
+		Name: "Test Check",
+	}
+	err = repo.CreateCheck(ctx, check)
+	require.NoError(t, err)
+
+	// Create a report
+	input := storage.CreateCheckReportInput{
+		ComponentID: "filter-test-service",
+		CheckSlug:   "test-check",
+		Status:      storage.CheckStatusPass,
+		Timestamp:   time.Now(),
+		Details:     storage.JSONB{"test": "data"},
+		Metadata:    storage.JSONB{"env": "test"},
+	}
+	_, err = repo.CreateCheckReportFromSubmission(ctx, input)
+	require.NoError(t, err)
+
+	// Test filtering through the public interface
+	t.Run("No filters", func(t *testing.T) {
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", nil, nil, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		assert.Len(t, reports, 1)
+	})
+
+	t.Run("Status filter", func(t *testing.T) {
+		status := storage.CheckStatusPass
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", &status, nil, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		assert.Len(t, reports, 1)
+		assert.Equal(t, storage.CheckStatusPass, reports[0].Status)
+	})
+
+	t.Run("Status filter no match", func(t *testing.T) {
+		status := storage.CheckStatusFail
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", &status, nil, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), total)
+		assert.Len(t, reports, 0)
+	})
+
+	t.Run("Check slug filter", func(t *testing.T) {
+		checkSlug := "test-check"
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", nil, &checkSlug, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		assert.Len(t, reports, 1)
+		assert.Equal(t, "test-check", reports[0].Check.Slug)
+	})
+
+	t.Run("Check slug filter no match", func(t *testing.T) {
+		checkSlug := "non-existent-check"
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", nil, &checkSlug, nil, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), total)
+		assert.Len(t, reports, 0)
+	})
+
+	t.Run("Since filter", func(t *testing.T) {
+		since := time.Now().Add(-1 * time.Hour)
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", nil, nil, &since, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		assert.Len(t, reports, 1)
+	})
+
+	t.Run("Since filter no match", func(t *testing.T) {
+		since := time.Now().Add(1 * time.Hour) // Future time
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", nil, nil, &since, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), total)
+		assert.Len(t, reports, 0)
+	})
+
+	t.Run("Combined filters", func(t *testing.T) {
+		status := storage.CheckStatusPass
+		checkSlug := "test-check"
+		since := time.Now().Add(-1 * time.Hour)
+		reports, total, err := repo.GetCheckReportsForComponentWithPagination(ctx, "filter-test-service", &status, &checkSlug, &since, 10, 0, false)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		assert.Len(t, reports, 1)
+		assert.Equal(t, storage.CheckStatusPass, reports[0].Status)
+		assert.Equal(t, "test-check", reports[0].Check.Slug)
 	})
 }

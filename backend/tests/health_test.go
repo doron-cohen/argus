@@ -8,17 +8,12 @@ import (
 	"time"
 
 	"github.com/doron-cohen/argus/backend/internal/health"
-	"github.com/doron-cohen/argus/backend/internal/server"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHealthzIntegration(t *testing.T) {
-	stop, err := server.Start(TestConfig)
-	require.NoError(t, err)
+	stop := startServerAndWaitForHealth(t, TestConfig)
 	defer stop()
-
-	// Wait briefly for the server to start
-	time.Sleep(100 * time.Millisecond)
 
 	resp, err := http.Get("http://localhost:8080/healthz")
 	require.NoError(t, err)

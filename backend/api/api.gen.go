@@ -19,11 +19,51 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for CheckReportStatus.
+const (
+	CheckReportStatusCompleted CheckReportStatus = "completed"
+	CheckReportStatusDisabled  CheckReportStatus = "disabled"
+	CheckReportStatusError     CheckReportStatus = "error"
+	CheckReportStatusFail      CheckReportStatus = "fail"
+	CheckReportStatusPass      CheckReportStatus = "pass"
+	CheckReportStatusSkipped   CheckReportStatus = "skipped"
+	CheckReportStatusUnknown   CheckReportStatus = "unknown"
+)
+
 // Defines values for HealthStatus.
 const (
 	Healthy   HealthStatus = "healthy"
 	Unhealthy HealthStatus = "unhealthy"
 )
+
+// Defines values for GetComponentReportsParamsStatus.
+const (
+	GetComponentReportsParamsStatusCompleted GetComponentReportsParamsStatus = "completed"
+	GetComponentReportsParamsStatusDisabled  GetComponentReportsParamsStatus = "disabled"
+	GetComponentReportsParamsStatusError     GetComponentReportsParamsStatus = "error"
+	GetComponentReportsParamsStatusFail      GetComponentReportsParamsStatus = "fail"
+	GetComponentReportsParamsStatusPass      GetComponentReportsParamsStatus = "pass"
+	GetComponentReportsParamsStatusSkipped   GetComponentReportsParamsStatus = "skipped"
+	GetComponentReportsParamsStatusUnknown   GetComponentReportsParamsStatus = "unknown"
+)
+
+// CheckReport A quality check report for a component
+type CheckReport struct {
+	// CheckSlug Unique identifier for the check type
+	CheckSlug string `json:"check_slug"`
+
+	// Id Unique identifier for the report
+	Id string `json:"id"`
+
+	// Status Status of the check execution
+	Status CheckReportStatus `json:"status"`
+
+	// Timestamp When the check was executed
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// CheckReportStatus Status of the check execution
+type CheckReportStatus string
 
 // Component A component discovered from a source
 type Component struct {
@@ -38,6 +78,15 @@ type Component struct {
 
 	// Owners Ownership information for a component
 	Owners *Owners `json:"owners,omitempty"`
+}
+
+// ComponentReportsResponse Response containing component reports with pagination
+type ComponentReportsResponse struct {
+	// Pagination Pagination metadata for list responses
+	Pagination Pagination `json:"pagination"`
+
+	// Reports List of check reports for the component
+	Reports []CheckReport `json:"reports"`
 }
 
 // Error Error response
@@ -70,6 +119,45 @@ type Owners struct {
 	Team *string `json:"team,omitempty"`
 }
 
+// Pagination Pagination metadata for list responses
+type Pagination struct {
+	// HasMore Whether there are more items available
+	HasMore bool `json:"has_more"`
+
+	// Limit Number of items returned in this response
+	Limit int `json:"limit"`
+
+	// Offset Offset used for this response
+	Offset int `json:"offset"`
+
+	// Total Total number of items available
+	Total int `json:"total"`
+}
+
+// GetComponentReportsParams defines parameters for GetComponentReports.
+type GetComponentReportsParams struct {
+	// Status Filter by check status
+	Status *GetComponentReportsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// CheckSlug Filter by specific check type
+	CheckSlug *string `form:"check_slug,omitempty" json:"check_slug,omitempty"`
+
+	// Since Filter reports since timestamp (ISO 8601)
+	Since *time.Time `form:"since,omitempty" json:"since,omitempty"`
+
+	// Limit Number of reports to return
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Pagination offset
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// LatestPerCheck Return only the latest report for each check type
+	LatestPerCheck *bool `form:"latest_per_check,omitempty" json:"latest_per_check,omitempty"`
+}
+
+// GetComponentReportsParamsStatus defines parameters for GetComponentReports.
+type GetComponentReportsParamsStatus string
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get all components
@@ -78,6 +166,9 @@ type ServerInterface interface {
 	// Get component by ID
 	// (GET /components/{componentId})
 	GetComponentById(w http.ResponseWriter, r *http.Request, componentId string)
+	// Get reports for component
+	// (GET /components/{componentId}/reports)
+	GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams)
 	// Health check
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -96,6 +187,12 @@ func (_ Unimplemented) GetComponents(w http.ResponseWriter, r *http.Request) {
 // Get component by ID
 // (GET /components/{componentId})
 func (_ Unimplemented) GetComponentById(w http.ResponseWriter, r *http.Request, componentId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get reports for component
+// (GET /components/{componentId}/reports)
+func (_ Unimplemented) GetComponentReports(w http.ResponseWriter, r *http.Request, componentId string, params GetComponentReportsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -144,6 +241,82 @@ func (siw *ServerInterfaceWrapper) GetComponentById(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetComponentById(w, r, componentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetComponentReports operation middleware
+func (siw *ServerInterfaceWrapper) GetComponentReports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "componentId" -------------
+	var componentId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "componentId", chi.URLParam(r, "componentId"), &componentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "componentId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetComponentReportsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "check_slug" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "check_slug", r.URL.Query(), &params.CheckSlug)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "check_slug", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "since" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "since", r.URL.Query(), &params.Since)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "since", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "latest_per_check" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "latest_per_check", r.URL.Query(), &params.LatestPerCheck)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "latest_per_check", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetComponentReports(w, r, componentId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -287,6 +460,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/components/{componentId}", wrapper.GetComponentById)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/components/{componentId}/reports", wrapper.GetComponentReports)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.GetHealth)
 	})
 
@@ -296,23 +472,34 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xWTW/jNhD9KwRboBfZUZLtxadN06AxsNgEbnppEBRjcWRxK5FafjjrDfzfiyElS7IU",
-	"Z4tigQI6UPyYeXzzODMvPNNVrRUqZ/nihduswArC8LpdoB+BNjOydlIrvuBX7HCKCWkzvUWDguVGVwyY",
-	"1d5kyBNeG12jcRLtyMTIohCShlCyTCuHXxyDtfaOuQI7Zz9ZVntTa4sMlGC5V1k8JN2OJxy/QFWXyBf8",
-	"FpQo0TJv0TDwrkDlZAa0OZykKW3k1zDDE+52NR2zzki14fuESzHG+IeSnz0yKchYLtGwXJshwDlb5kxp",
-	"x2qjt1KgSMK6ggrZsyxLtkbCJBjYsNDZmg/wE76ZRbOVgcgRPDI4BnjrK1AzgyBgXTZedT5EOHBzNWTm",
-	"99cd6meFJoTxR4M5X/AfzjrhnDWqObuLu/b7hBv87KVBwRePEe3Twapef8LMkdUbY7QZ3yNMM4O21sqO",
-	"hZRpga8dCmv9Ky4/PtysPl59+OtmtbpbTV0NT4Go0FrYHJlUDg0plQKEhkUDI8tHJMRdUyzcIpSumAhn",
-	"mGfWgfO2DWQniiEpcdcbRugaylcEpwjz9Gq8asdP/Vt2G0aMOVmhdVDVY3cP7VKLN5phWYHZ3wMWL9KL",
-	"y9n5xSw9fzhPFyl9f/KE59pU4PiCC3A4I09vMnu4W4driua7g4SHkON8IWsmVfROb4GeNgyezZDvCqRy",
-	"IKdNfpDWEQEh/XRv3LaalvQ8yUNrRaoNc4W00+/0kUMpM3xPi6B280xXPOHv13o920hX+DXdVzqsApRx",
-	"uOIEGAO78I9QTUQOoRrh089vQOP3JThijdH5yVAdBYKmiOiJGnC/bEhRsCG3lKnb8kL/XcaJpWYLRmpv",
-	"m4ITFeBiYjMbb9nV/ZInfIvGRgfp/HyehmxWo4Ja8gW/nKfzSwouuCKwdzashxucKH8rdEbiFhmwsok0",
-	"lGUf3nFRzLTK5cbTfweW5BTEthR8wX9Dd925JoXH9BdgXKRpzHzKNQUZ6rps8vbZJxtLakzDNDqI4VS2",
-	"7gr8SCQUpGlJ9+jZJ/znf4nrFJxYDCZcT+db2md9VYHZRfaOYhA29P28HMZLsf+W2NoaM5nLrNfsrHdM",
-	"Osv8cSdwMpq/7JYiSMxAhS4kjMe3e4uThfuoP5BkgiTM29aA9y7L++nSGY9JLyLH7/XpPyrvGwU3jvJ1",
-	"11GiA1kGfb1L331/fXWeqXPLtVfif6ftgQSXv0Zxx9r69VUtX1PR7VfhYSsR0+NIt0078h110HiYoKPp",
-	"QJm0rO0/hlzc9tuJ/X6//ycAAP//X2G1u8EMAAA=",
+	"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",
+	"u/0jAAD//0/nrrZdGQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
