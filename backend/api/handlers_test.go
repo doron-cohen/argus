@@ -586,16 +586,12 @@ func TestGetComponentReports_InvalidStatusParameter(t *testing.T) {
 			Status: &invalidStatus,
 		})
 
-		// Should return 200 OK instead of 400 Bad Request
-		assert.Equal(t, http.StatusOK, w.Code)
+		// Should return 400 Bad Request for invalid status
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response ComponentReportsResponse
-		err := json.NewDecoder(w.Body).Decode(&response)
-		require.NoError(t, err)
-
-		// Should return empty results instead of error
-		assert.Len(t, response.Reports, 0)
-		assert.Equal(t, 0, response.Pagination.Total)
+		// Should return error message
+		errorBody := w.Body.String()
+		assert.Contains(t, errorBody, "Invalid status parameter")
 	})
 
 	t.Run("ValidStatusReturns200", func(t *testing.T) {

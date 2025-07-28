@@ -180,12 +180,8 @@ func (s *APIServer) GetComponentReports(w http.ResponseWriter, r *http.Request, 
 		var err error
 		status, err = s.convertAPISStatusToStorageStatus(*params.Status)
 		if err != nil {
-			// Invalid status, return empty results
-			response := ComponentReportsResponse{
-				Reports:    []CheckReport{},
-				Pagination: Pagination{Total: 0, Limit: 50, Offset: 0, HasMore: false},
-			}
-			s.writeJSONResponse(w, response)
+			// Invalid status, return 400 Bad Request
+			http.Error(w, fmt.Sprintf("Invalid status parameter: %v", *params.Status), http.StatusBadRequest)
 			return
 		}
 	}
