@@ -497,11 +497,12 @@ func (r *Repository) getLatestPerCheckReportsSQLite(ctx context.Context, query *
 	total := int64(len(reports))
 	start := offset
 	end := offset + limit
-	if start >= len(reports) {
+	switch {
+	case start >= len(reports):
 		reports = []CheckReport{}
-	} else if end > len(reports) {
+	case end > len(reports):
 		reports = reports[start:]
-	} else {
+	default:
 		reports = reports[start:end]
 	}
 
