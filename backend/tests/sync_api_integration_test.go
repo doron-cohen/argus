@@ -38,7 +38,7 @@ func TestSyncAPIEndpoints(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Create sync API client
-	syncClient, err := client.NewClientWithResponses("http://localhost:8080/sync")
+	syncClient, err := client.NewClientWithResponses("http://localhost:8080/api/sync/v1")
 	require.NoError(t, err)
 
 	t.Run("GetSyncSources", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestSyncAPIWithNoSources(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// Create sync API client
-	syncClient, err := client.NewClientWithResponses("http://localhost:8080/sync")
+	syncClient, err := client.NewClientWithResponses("http://localhost:8080/api/sync/v1")
 	require.NoError(t, err)
 
 	t.Run("GetSyncSourcesEmpty", func(t *testing.T) {

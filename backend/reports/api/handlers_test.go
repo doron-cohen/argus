@@ -87,7 +87,7 @@ func TestSubmitReport_Success(t *testing.T) {
 	body, err := json.Marshal(report)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest("POST", "/reports", bytes.NewReader(body))
+	req := httptest.NewRequest("POST", "/api/reports/v1/reports", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	// Create response recorder
@@ -146,7 +146,7 @@ func TestSubmitReport_MissingRequiredFields(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			body, _ := json.Marshal(tc.report)
-			req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "/api/reports/v1/reports", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -162,7 +162,7 @@ func TestSubmitReport_InvalidJSON(t *testing.T) {
 	server := NewAPIServer(mockRepo.Repository)
 
 	// Test with invalid JSON
-	req := httptest.NewRequest("POST", "/reports", bytes.NewBufferString(`{"invalid": json`))
+	req := httptest.NewRequest("POST", "/api/reports/v1/reports", bytes.NewBufferString(`{"invalid": json`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -215,7 +215,7 @@ func TestSubmitReport_ValidStatuses(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(report)
-			req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "/api/reports/v1/reports", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -355,7 +355,7 @@ func TestSubmitReport_ValidationErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			body, _ := json.Marshal(tc.report)
-			req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "/api/reports/v1/reports", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -390,7 +390,7 @@ func TestSubmitReport_ComponentNotFound(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(report)
-	req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+	req := httptest.NewRequest("POST", "/api/reports/v1/reports", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 

@@ -33,8 +33,8 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Mount catalog API under /api/catalog/v1
 	mux.Mount("/api/catalog/v1", api.Handler(api.NewAPIServer(repo)))
 
-	// Mount reports API under /reports
-	mux.Mount("/reports", reportsapi.Handler(reportsapi.NewAPIServer(repo)))
+	// Mount reports API under /api/reports/v1
+	mux.Mount("/api/reports/v1", reportsapi.Handler(reportsapi.NewAPIServer(repo)))
 
 	// Initialize sync service (always create, but may not start if no sources configured)
 	// Cast to sync.Repository interface since storage.Repository implements it
@@ -44,8 +44,8 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Start sync service (will log warning and return if no sources configured)
 	go syncService.StartPeriodicSync(syncCtx)
 
-	// Mount sync API under /sync
-	mux.Mount("/sync", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
+	// Mount sync API under /api/sync/v1
+	mux.Mount("/api/sync/v1", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
 
 	srv := &http.Server{
 		Addr:              ":8080",
