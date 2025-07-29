@@ -352,7 +352,7 @@ func TestReportsAPI_InvalidRequests(t *testing.T) {
 
 	t.Run("InvalidJSON", func(t *testing.T) {
 		// Test with invalid JSON
-		resp, err := http.Post("http://localhost:8080/api/reports/v1/reports/v1/reports", "application/json", nil)
+		resp, err := http.Post("http://localhost:8080/api/reports/v1/reports", "application/json", nil)
 		require.NoError(t, err)
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
@@ -372,7 +372,7 @@ func TestReportsAPI_InvalidRequests(t *testing.T) {
 
 	t.Run("WrongContentType", func(t *testing.T) {
 		// Test with wrong content type
-		resp, err := http.Post("http://localhost:8080/api/reports/v1/reports/v1/reports", "text/plain", nil)
+		resp, err := http.Post("http://localhost:8080/api/reports/v1/reports", "text/plain", nil)
 		require.NoError(t, err)
 		defer func() {
 			if err := resp.Body.Close(); err != nil {

@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 
 paths:
-  /reports/v1/reports:
+  /reports:
     post:
       summary: Submit a quality check report
       description: Submit a report for a quality check execution. The report will be validated but not stored.
