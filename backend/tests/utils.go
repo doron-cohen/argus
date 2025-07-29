@@ -16,7 +16,7 @@ func waitForSyncCompletion(t *testing.T, timeout time.Duration) {
 	defer cancel()
 
 	// Create sync client
-	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/sync")
+	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
 	require.NoError(t, err)
 
 	// Poll for sync completion
