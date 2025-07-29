@@ -355,7 +355,7 @@ func TestSubmitReport_ValidationErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			body, _ := json.Marshal(tc.report)
-			req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "/reports/v1/reports", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -390,7 +390,7 @@ func TestSubmitReport_ComponentNotFound(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(report)
-	req := httptest.NewRequest("POST", "/reports", bytes.NewBuffer(body))
+	req := httptest.NewRequest("POST", "/reports/v1/reports", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
