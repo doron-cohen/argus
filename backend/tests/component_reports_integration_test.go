@@ -66,7 +66,7 @@ func TestComponentReportsAPIEndpoints(t *testing.T) {
 	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
 	require.NoError(t, err)
 
-	reportsClient, err := reportsclient.NewClientWithResponses("http://localhost:8080/reports")
+	reportsClient, err := reportsclient.NewClientWithResponses("http://localhost:8080/api/reports/v1")
 	require.NoError(t, err)
 
 	// Setup test data

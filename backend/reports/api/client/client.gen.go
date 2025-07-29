@@ -212,7 +212,7 @@ func NewSubmitReportRequestWithBody(server string, contentType string, body io.R
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/reports")
+	operationPath := fmt.Sprintf("/reports/v1/reports")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
