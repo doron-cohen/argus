@@ -44,8 +44,8 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Start sync service (will log warning and return if no sources configured)
 	go syncService.StartPeriodicSync(syncCtx)
 
-	// Mount sync API under /sync
-	mux.Mount("/sync", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
+	// Mount sync API under /api/sync/v1
+	mux.Mount("/api/sync/v1", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
 
 	srv := &http.Server{
 		Addr:              ":8080",
