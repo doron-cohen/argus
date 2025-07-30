@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//go:embed *
+//go:embed *.html
 var assets embed.FS
 
 // Assets returns the embedded filesystem containing the frontend assets

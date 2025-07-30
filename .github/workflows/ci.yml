@@ -66,11 +66,11 @@ jobs:
 
       - name: Run linters
         run: |
-          make backend/lint
+          make lint
 
       - name: Run tests
         run: |
-          make backend/test
+          make test
 
   build:
     name: Build
