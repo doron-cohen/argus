@@ -47,6 +47,10 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Mount sync API under /api/sync/v1
 	mux.Mount("/api/sync/v1", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
 
+	// Serve static files from frontend directory at root route
+	// This must come after all API routes to ensure proper precedence
+	mux.Handle("/*", http.FileServer(http.Dir("../frontend/")))
+
 	srv := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,
