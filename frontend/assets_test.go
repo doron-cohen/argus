@@ -13,7 +13,7 @@ func TestAssets(t *testing.T) {
 		t.Fatal("Assets() returned nil")
 	}
 
-	// Test that we can read the index.html file
+	// Test that we can read the index.html file from dist
 	file, err := fs.Open("index.html")
 	if err != nil {
 		t.Fatalf("Failed to open index.html: %v", err)
@@ -35,11 +35,11 @@ func TestAssets(t *testing.T) {
 
 	// Check that it contains expected content
 	contentStr := string(content)
-	if !contains(contentStr, "Hello World") {
-		t.Error("index.html does not contain expected 'Hello World' content")
+	if !contains(contentStr, "Component Catalog") {
+		t.Error("index.html does not contain expected 'Component Catalog' content")
 	}
-	if !contains(contentStr, "Argus Component Catalog") {
-		t.Error("index.html does not contain expected 'Argus Component Catalog' content")
+	if !contains(contentStr, "data-testid") {
+		t.Error("index.html does not contain expected 'data-testid' attributes")
 	}
 }
 
@@ -53,10 +53,10 @@ func TestHandler(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	// Test serving index.html
-	resp, err := http.Get(server.URL + "/index.html")
+	// Test serving index.html from root path
+	resp, err := http.Get(server.URL + "/")
 	if err != nil {
-		t.Fatalf("Failed to GET /index.html: %v", err)
+		t.Fatalf("Failed to GET /: %v", err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -94,9 +94,9 @@ func TestHandlerWithPrefix(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	resp, err := http.Get(server.URL + "/index.html")
+	resp, err := http.Get(server.URL + "/")
 	if err != nil {
-		t.Fatalf("Failed to GET /index.html: %v", err)
+		t.Fatalf("Failed to GET /: %v", err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -118,9 +118,9 @@ func TestHandlerWithPrefix(t *testing.T) {
 	defer prefixedServer.Close()
 
 	// Should be able to access with the prefix
-	resp, err = http.Get(prefixedServer.URL + "/static/index.html")
+	resp, err = http.Get(prefixedServer.URL + "/static/")
 	if err != nil {
-		t.Fatalf("Failed to GET /static/index.html: %v", err)
+		t.Fatalf("Failed to GET /static/: %v", err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -132,10 +132,25 @@ func TestHandlerWithPrefix(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
 
-	// Should not be able to access without the prefix
-	resp, err = http.Get(prefixedServer.URL + "/index.html")
+	// Should also be able to access index.html with the prefix
+	resp, err = http.Get(prefixedServer.URL + "/static/index.html")
 	if err != nil {
-		t.Fatalf("Failed to GET /index.html: %v", err)
+		t.Fatalf("Failed to GET /static/index.html: %v", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for /static/index.html, got %d", resp.StatusCode)
+	}
+
+	// Should not be able to access without the prefix
+	resp, err = http.Get(prefixedServer.URL + "/")
+	if err != nil {
+		t.Fatalf("Failed to GET /: %v", err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -178,7 +193,7 @@ func TestHandlerRootServing(t *testing.T) {
 	}
 
 	contentStr := string(content)
-	if !contains(contentStr, "Hello World") {
+	if !contains(contentStr, "Component Catalog") {
 		t.Error("Root path does not serve index.html content")
 	}
 }
@@ -201,6 +216,42 @@ func TestHandlerNotFound(t *testing.T) {
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404, got %d", resp.StatusCode)
+	}
+}
+
+func TestDistFilesServed(t *testing.T) {
+	handler := Handler()
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	// Test that dist/app.js is served
+	resp, err := http.Get(server.URL + "/app.js")
+	if err != nil {
+		t.Fatalf("Failed to GET /app.js: %v", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for app.js, got %d", resp.StatusCode)
+	}
+
+	// Test that dist CSS files are served
+	resp, err = http.Get(server.URL + "/app-16c896aca7e8d804.css")
+	if err != nil {
+		t.Fatalf("Failed to GET CSS file: %v", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for CSS file, got %d", resp.StatusCode)
 	}
 }
 

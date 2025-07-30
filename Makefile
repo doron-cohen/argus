@@ -70,20 +70,37 @@ backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 	fi
 	@echo "All go.mod and go.sum files are clean"
 
-# Frontend module tasks
-frontend/test:
-	cd frontend && go test -v -coverprofile=coverage.out ./...
+# Frontend tasks
+frontend/install:
+	cd frontend && bun install
+
+frontend/dev:
+	cd frontend && bun run dev
 
 frontend/build:
-	cd frontend && go build -v ./...
+	cd frontend && bun run build
 
+# Frontend tests (both Go and Bun)
+frontend/test:
+	cd frontend && go test -v -coverprofile=coverage.out ./...
+	cd frontend && bun run test
+
+frontend/test-e2e:
+	cd frontend && bun run test:e2e
+
+# Frontend lint (both Go and Bun)
 frontend/lint:
 	cd frontend && golangci-lint run --timeout=5m
+	cd frontend && bun run lint
 
 frontend/clean:
-	cd frontend && rm -f coverage.out
+	cd frontend && rm -rf dist coverage.out
 
 # Combined tasks
+all: backend/gen-all backend/go-mod-tidy frontend/ci
+
+ci: backend/ci frontend/ci
+
 test: backend/test frontend/test
 
 build: backend/build frontend/build
@@ -91,3 +108,9 @@ build: backend/build frontend/build
 lint: backend/lint frontend/lint
 
 clean: backend/clean frontend/clean
+
+# Frontend CI pipeline
+frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e
+
+# Backend CI pipeline
+backend/ci: backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build

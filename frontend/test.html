@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Argus Frontend Test</title>
+    <script defer src="dist/app.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8" x-data="componentsList">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Component Catalog Test</h1>
+        <p class="text-gray-600 mb-4">Testing the dummy components interface</p>
+        
+        <div x-show="loading" class="flex justify-center items-center py-12">
+            <div class="loading-spinner"></div>
+            <span class="ml-3 text-gray-600">Loading components...</span>
+        </div>
+
+        <div x-show="!loading" x-cloak>
+            <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Components (<span x-text="filteredComponents.length"></span>)
+                    </h3>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="component-table">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">ID</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Team</th>
+                                <th scope="col">Maintainers</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="component in filteredComponents" :key="component.id || component.name">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900" x-text="component.name"></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500" x-text="component.id || 'N/A'"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900" x-text="truncateText(component.description || 'No description available')"></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500" x-text="component.owners?.team || 'N/A'"></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500" x-text="component.owners?.maintainers?.join(', ') || 'N/A'"></div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
