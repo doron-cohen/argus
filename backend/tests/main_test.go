@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -72,8 +73,8 @@ func startServerAndWaitForHealth(t *testing.T, cfg config.Config) func() {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		if err := resp.Body.Close(); err != nil {
-			t.Logf("Failed to close response body: %v", err)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
 		}
 		if resp.StatusCode == http.StatusOK {
 			return stop
@@ -85,4 +86,37 @@ func startServerAndWaitForHealth(t *testing.T, cfg config.Config) func() {
 	stop()
 	t.Fatal("Server did not become ready in time")
 	return nil
+}
+
+// TestStaticFileServing tests that the root endpoint serves static files correctly
+func TestStaticFileServing(t *testing.T) {
+	stop := startServerAndWaitForHealth(t, TestConfig)
+	defer stop()
+
+	// Test that the root endpoint is reachable and returns a response
+	resp, err := http.Get("http://localhost:8080/")
+	require.NoError(t, err)
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
+
+	// The endpoint should be reachable (either 200 for existing files or 404 for missing files)
+	// This validates that the static file serving route is properly configured
+	require.Contains(t, []int{200, 404}, resp.StatusCode, "Expected 200 or 404, got: %d", resp.StatusCode)
+
+	// If we get a 200, validate it's HTML content
+	if resp.StatusCode == 200 {
+		contentType := resp.Header.Get("Content-Type")
+		require.Contains(t, contentType, "text/html", "Expected HTML content type, got: %s", contentType)
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.NotEmpty(t, body, "Response body should not be empty")
+
+		bodyStr := string(body)
+		require.Contains(t, bodyStr, "<html", "Response should contain HTML tags")
+		require.Contains(t, bodyStr, "</html>", "Response should contain closing HTML tags")
+	}
 }

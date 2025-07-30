@@ -1,1 +1,23 @@
 .cursor/
+
+# Test coverage files
+*.out
+coverage.out
+
+# Build artifacts
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
