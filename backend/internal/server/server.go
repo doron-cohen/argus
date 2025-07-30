@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/doron-cohen/argus/backend/api"
@@ -15,6 +17,30 @@ import (
 	syncapi "github.com/doron-cohen/argus/backend/sync/api"
 	"github.com/go-chi/chi/v5"
 )
+
+// getFrontendDir returns the absolute path to the frontend directory
+// It works relative to the executable location, making it reliable regardless of working directory
+func getFrontendDir() string {
+	// Get the executable path
+	execPath, err := os.Executable()
+	if err != nil {
+		slog.Error("Failed to get executable path", "error", err)
+		return "frontend" // fallback to relative path
+	}
+
+	// Get the directory containing the executable
+	execDir := filepath.Dir(execPath)
+
+	// If running from backend/bin/argus, go up two levels to reach project root
+	// If running from backend/, go up one level to reach project root
+	if filepath.Base(execDir) == "bin" {
+		// Running from backend/bin/argus
+		return filepath.Join(execDir, "..", "..", "frontend")
+	} else {
+		// Running from backend/ directory
+		return filepath.Join(execDir, "..", "frontend")
+	}
+}
 
 func Start(cfg config.Config) (stop func(), err error) {
 	mux := chi.NewRouter()
@@ -49,7 +75,9 @@ func Start(cfg config.Config) (stop func(), err error) {
 
 	// Serve static files from frontend directory at root route
 	// This must come after all API routes to ensure proper precedence
-	mux.Handle("/*", http.FileServer(http.Dir("../frontend/")))
+	frontendDir := getFrontendDir()
+	slog.Info("Serving static files from", "path", frontendDir)
+	mux.Handle("/*", http.FileServer(http.Dir(frontendDir)))
 
 	srv := &http.Server{
 		Addr:              ":8080",
