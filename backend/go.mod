@@ -40,6 +40,7 @@ require (
 	github.com/docker/docker v28.2.2+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/doron-cohen/argus/frontend v0.0.0
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
@@ -126,3 +127,5 @@ replace github.com/doron-cohen/argus/backend/api/client => ./api/client
 replace github.com/doron-cohen/argus/backend/reports/api/client => ./reports/api/client
 
 replace github.com/doron-cohen/argus/backend/sync/api/client => ./sync/api/client
+
+replace github.com/doron-cohen/argus/frontend v0.0.0 => ../frontend
