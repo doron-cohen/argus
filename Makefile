@@ -10,7 +10,7 @@ REPORTS_OPENAPI_SPEC := backend/reports/api/openapi.yaml
 REPORTS_API_OUT := backend/reports/api/api.gen.go
 REPORTS_CLIENT_OUT := backend/reports/api/client/client.gen.go
 
-.PHONY: all install-tools backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build backend/ci
+.PHONY: all install-tools backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build backend/ci frontend/test frontend/build frontend/lint
 
 all: backend/gen-all backend/go-mod-tidy
 
@@ -57,6 +57,9 @@ backend/build-with-deps: backend/go-mod-tidy
 	cd backend && go mod download
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
+backend/clean:
+	cd backend && rm -f coverage.out bin/argus
+
 backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 	@echo "Checking for uncommitted changes in go.sum or generated files..."
 	@if [ -n "$$(git status --porcelain backend/*/go.mod backend/*/go.sum)" ]; then \
@@ -66,3 +69,25 @@ backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 		exit 1; \
 	fi
 	@echo "All go.mod and go.sum files are clean"
+
+# Frontend module tasks
+frontend/test:
+	cd frontend && go test -v -coverprofile=coverage.out ./...
+
+frontend/build:
+	cd frontend && go build -v ./...
+
+frontend/lint:
+	cd frontend && golangci-lint run --timeout=5m
+
+frontend/clean:
+	cd frontend && rm -f coverage.out
+
+# Combined tasks
+test: backend/test frontend/test
+
+build: backend/build frontend/build
+
+lint: backend/lint frontend/lint
+
+clean: backend/clean frontend/clean
