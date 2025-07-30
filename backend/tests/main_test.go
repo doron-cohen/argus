@@ -73,8 +73,8 @@ func startServerAndWaitForHealth(t *testing.T, cfg config.Config) func() {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		if err := resp.Body.Close(); err != nil {
-			t.Logf("Failed to close response body: %v", err)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
 		}
 		if resp.StatusCode == http.StatusOK {
 			return stop
@@ -96,7 +96,11 @@ func TestStaticFileServing(t *testing.T) {
 	// Test that the root endpoint is reachable and returns a response
 	resp, err := http.Get("http://localhost:8080/")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	// The endpoint should be reachable (either 200 for existing files or 404 for missing files)
 	// This validates that the static file serving route is properly configured

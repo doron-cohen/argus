@@ -18,7 +18,11 @@ func TestAssets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to open index.html: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			t.Logf("Failed to close file: %v", closeErr)
+		}
+	}()
 
 	content, err := io.ReadAll(file)
 	if err != nil {
@@ -54,7 +58,11 @@ func TestHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to GET /index.html: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -90,7 +98,11 @@ func TestHandlerWithPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to GET /index.html: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -110,7 +122,11 @@ func TestHandlerWithPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to GET /static/index.html: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -121,7 +137,11 @@ func TestHandlerWithPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to GET /index.html: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404, got %d", resp.StatusCode)
@@ -138,7 +158,11 @@ func TestHandlerRootServing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to GET /: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -169,7 +193,11 @@ func TestHandlerNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to GET /non-existent.html: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404, got %d", resp.StatusCode)
