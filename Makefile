@@ -92,7 +92,11 @@ frontend/test-unit:
 
 frontend/test-e2e:
 	cd frontend && volta run -- npx playwright install
-	cd frontend && volta run -- npx playwright test
+	cd frontend && volta run -- npx playwright test --reporter=list
+
+frontend/test-e2e-ci:
+	cd frontend && volta run -- npx playwright install
+	cd frontend && CI=true volta run -- npx playwright test --reporter=list
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e
 
@@ -117,7 +121,7 @@ lint: backend/lint
 clean: backend/clean frontend/clean
 
 # Frontend CI pipeline
-frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e
+frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e-ci
 
 # Backend CI pipeline
 backend/ci: backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build
