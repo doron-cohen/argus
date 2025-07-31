@@ -98,6 +98,10 @@ web_modules/
 
 .yarn-integrity
 
+# Playwright test results
+playwright-report/
+test-results/
+
 # dotenv environment variable files
 
 .env
