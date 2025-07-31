@@ -133,10 +133,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-build-
 
-      - name: Build binary
-        run: |
-          make backend/build-with-deps
-
       - name: Build frontend
         run: |
           make frontend/build
+
+      - name: Build binary
+        run: |
+          make backend/build
