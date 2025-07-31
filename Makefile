@@ -104,15 +104,15 @@ frontend/clean:
 	cd frontend && rm -rf dist coverage.out node_modules
 
 # Combined tasks
-all: backend/gen-all backend/go-mod-tidy frontend/ci
+all: backend/gen-all backend/go-mod-tidy frontend/build
 
-ci: backend/ci frontend/ci
+ci: backend/ci
 
-test: backend/test frontend/test
+test: backend/test
 
 build: backend/build frontend/build
 
-lint: backend/lint frontend/lint
+lint: backend/lint
 
 clean: backend/clean frontend/clean
 

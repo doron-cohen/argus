@@ -36,8 +36,8 @@ func Handler() http.Handler {
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					// Log the error but don't fail the request
-					http.Error(w, "Internal server error", http.StatusInternalServerError)
+					// Log the error but don't fail the request if response already written
+					// Note: We can't call http.Error here as the response may already be written
 				}
 			}()
 
@@ -83,8 +83,8 @@ func HandlerWithPrefix(prefix string) http.Handler {
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					// Log the error but don't fail the request
-					http.Error(w, "Internal server error", http.StatusInternalServerError)
+					// Log the error but don't fail the request if response already written
+					// Note: We can't call http.Error here as the response may already be written
 				}
 			}()
 
