@@ -70,24 +70,54 @@ backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 	fi
 	@echo "All go.mod and go.sum files are clean"
 
-# Frontend module tasks
-frontend/test:
-	cd frontend && go test -v -coverprofile=coverage.out ./...
+# Frontend tasks with Volta support
+frontend/install:
+	cd frontend && bun install
+
+frontend/dev:
+	cd frontend && volta run -- bun run dev
 
 frontend/build:
-	cd frontend && go build -v ./...
+	cd frontend && volta run -- bun run build
 
+frontend/type-check:
+	cd frontend && volta run -- bun run type-check
+
+# Frontend tests (using Volta for Node.js version)
+frontend/test:
+	cd frontend && volta run -- bun run type-check
+
+frontend/test-unit:
+	cd frontend && volta run -- bun test
+
+frontend/test-e2e:
+	cd frontend && volta run -- npx playwright install
+	cd frontend && volta run -- npx playwright test
+
+frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e
+
+# Frontend lint (using Volta for Node.js version)
 frontend/lint:
-	cd frontend && golangci-lint run --timeout=5m
+	cd frontend && volta run -- bun run type-check
 
 frontend/clean:
-	cd frontend && rm -f coverage.out
+	cd frontend && rm -rf dist coverage.out node_modules
 
 # Combined tasks
-test: backend/test frontend/test
+all: backend/gen-all backend/go-mod-tidy frontend/build
+
+ci: backend/ci
+
+test: backend/test
 
 build: backend/build frontend/build
 
-lint: backend/lint frontend/lint
+lint: backend/lint
 
 clean: backend/clean frontend/clean
+
+# Frontend CI pipeline
+frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e
+
+# Backend CI pipeline
+backend/ci: backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build

@@ -1,0 +1,19 @@
+{
+  "name": "argus-frontend",
+  "version": "1.0.0",
+  "description": "Argus Component Catalog Web UI",
+  "scripts": {
+    "build": "bun build src/main.ts --outdir dist",
+    "dev": "bun build src/main.ts --outdir dist --watch",
+    "serve": "bun server.js",
+    "type-check": "tsc --noEmit"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "typescript": "^5.8.3"
+  },
+  "volta": {
+    "node": "20.19.4"
+  }
+}
