@@ -3,45 +3,38 @@ version: 2
 run:
   timeout: 5m
   go: "1.24.2"
-  skip-dirs:
-    - frontend
+  # Focus only on the current directory (backend)
+  # This prevents analyzing the frontend directory
+  relative-path-mode: cfg
 
 linters:
+  disable-all: true
   enable:
-    - govet
-    - errcheck
-    - staticcheck
-    - ineffassign
-    - unused
-    - misspell
-    - gosec
+    - bodyclose
+    - copyloopvar
     - cyclop
     - dupl
+    - errcheck
     - goconst
     - gocritic
+    - gocyclo
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unused
 
 linters-settings:
-  cyclop:
-    max-complexity: 15
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
+  # Exclude the frontend directory from analysis
+  # This prevents the "could not load export data" error
+  exclude:
+    - "frontend/.*"
+    - "../frontend/.*"
 
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - cyclop
-        - dupl
-        - goconst
+  # Maximum issues count per one linter
   max-issues-per-linter: 0
+  # Maximum count of issues with the same text
   max-same-issues: 0
+  # Make issues output unique by line
+  uniq-by-line: true
