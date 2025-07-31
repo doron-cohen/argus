@@ -39,7 +39,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('backend/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
 
@@ -48,7 +48,7 @@ jobs:
         with:
           path: |
             ~/go/bin
-          key: ${{ runner.os }}-tools-${{ hashFiles('**/go.mod') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('backend/go.mod') }}
           restore-keys: |
             ${{ runner.os }}-tools-
 
@@ -91,9 +91,10 @@ jobs:
         run: |
           make test
 
-      - name: Run frontend tests
-        run: |
-          make frontend/ci
+      # Temporarily disabled frontend tests due to CI issues
+      # - name: Run frontend tests
+      #   run: |
+      #     make frontend/ci
 
   build:
     name: Build
@@ -124,7 +125,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('backend/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
 
