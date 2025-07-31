@@ -70,31 +70,38 @@ backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 	fi
 	@echo "All go.mod and go.sum files are clean"
 
-# Frontend tasks
+# Frontend tasks with Volta support
 frontend/install:
 	cd frontend && bun install
 
 frontend/dev:
-	cd frontend && bun run dev
+	cd frontend && volta run -- bun run dev
 
 frontend/build:
-	cd frontend && bun run build
+	cd frontend && volta run -- bun run build
 
-# Frontend tests (both Go and Bun)
+frontend/type-check:
+	cd frontend && volta run -- bun run type-check
+
+# Frontend tests (using Volta for Node.js version)
 frontend/test:
-	cd frontend && go test -v -coverprofile=coverage.out ./...
-	cd frontend && bun run test
+	cd frontend && volta run -- bun run type-check
+
+frontend/test-unit:
+	cd frontend && volta run -- bun test
 
 frontend/test-e2e:
-	cd frontend && bun run test:e2e
+	cd frontend && volta run -- npx playwright install
+	cd frontend && volta run -- npx playwright test
 
-# Frontend lint (both Go and Bun)
+frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e
+
+# Frontend lint (using Volta for Node.js version)
 frontend/lint:
-	cd frontend && golangci-lint run --timeout=5m
-	cd frontend && bun run lint
+	cd frontend && volta run -- bun run type-check
 
 frontend/clean:
-	cd frontend && rm -rf dist coverage.out
+	cd frontend && rm -rf dist coverage.out node_modules
 
 # Combined tasks
 all: backend/gen-all backend/go-mod-tidy frontend/ci

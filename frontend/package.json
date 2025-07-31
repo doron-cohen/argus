@@ -2,20 +2,18 @@
   "name": "argus-frontend",
   "version": "1.0.0",
   "description": "Argus Component Catalog Web UI",
-  "main": "src/app.js",
   "scripts": {
-    "dev": "bun --hot src/app.js",
-    "build": "bun build src/app.js --outdir dist --target browser",
-    "test": "bun test tests/unit/",
-    "test:e2e": "echo 'E2E tests require Node.js 18+ - skipping for now'",
-    "lint": "bun run build && echo 'Linting completed'"
+    "build": "bun build src/main.ts --outdir dist",
+    "dev": "bun build src/main.ts --outdir dist --watch",
+    "serve": "bun server.js",
+    "type-check": "tsc --noEmit"
   },
-  "dependencies": {
-    "alpinejs": "^3.14.9",
-    "tailwindcss": "^4.1.11"
-  },
+  "type": "module",
   "devDependencies": {
-    "@playwright/test": "^1.54.1"
+    "@playwright/test": "^1.54.1",
+    "typescript": "^5.8.3"
   },
-  "type": "module"
+  "volta": {
+    "node": "20.19.4"
+  }
 }
