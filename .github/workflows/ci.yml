@@ -87,6 +87,10 @@ jobs:
       #   run: |
       #     make lint
 
+      - name: Build frontend for backend tests
+        run: |
+          make frontend/build
+
       - name: Run tests
         run: |
           make test
