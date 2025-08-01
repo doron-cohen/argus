@@ -47,13 +47,13 @@ backend/go-mod-tidy:
 backend/lint:
 	cd backend && golangci-lint run --timeout=5m
 
-backend/test:
+backend/test: frontend/build
 	cd backend && go test -v $(if $(filter 1,$(CGO_ENABLED)),-race,) -coverprofile=coverage.out ./...
 
-backend/build:
+backend/build: frontend/build
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
-backend/build-with-deps: backend/go-mod-tidy
+backend/build-with-deps: backend/go-mod-tidy frontend/build
 	cd backend && go mod download
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
