@@ -6,11 +6,16 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ["html"],
-    ["json", { outputFile: "test-results/results.json" }],
-    ["junit", { outputFile: "test-results/results.xml" }],
-  ],
+  reporter: process.env.CI
+    ? [
+        ["json", { outputFile: "test-results/results.json" }],
+        ["junit", { outputFile: "test-results/results.xml" }],
+      ]
+    : [
+        ["html"],
+        ["json", { outputFile: "test-results/results.json" }],
+        ["junit", { outputFile: "test-results/results.xml" }],
+      ],
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -35,12 +40,16 @@ export default defineConfig({
       use: { ...devices["Desktop Safari"] },
     },
   ],
-  webServer: {
-    command: "bun server.js",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  ...(process.env.CI
+    ? {}
+    : {
+        webServer: {
+          command: "bun server.js",
+          url: "http://localhost:3000",
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+        },
+      }),
   // Global test timeout
   timeout: 60000,
   // Expect timeout for assertions
