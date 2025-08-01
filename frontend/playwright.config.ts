@@ -1,0 +1,45 @@
+/// <reference types="node" />
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: process.env.CI
+    ? [
+        ["json", { outputFile: "test-results/results.json" }],
+        ["junit", { outputFile: "test-results/results.xml" }],
+      ]
+    : [
+        ["list"],
+        ["json", { outputFile: "test-results/results.json" }],
+        ["junit", { outputFile: "test-results/results.xml" }],
+      ],
+  use: {
+    baseURL: "http://localhost:8080", // Point to real application
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+    actionTimeout: 10000,
+    navigationTimeout: 30000,
+  },
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
+  webServer: {
+    command: "docker-compose up --build -d && sleep 30", // Start full stack
+    url: "http://localhost:8080",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+  timeout: 60000,
+  expect: {
+    timeout: 10000,
+  },
+  outputDir: "test-results/",
+});

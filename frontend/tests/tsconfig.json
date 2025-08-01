@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node", "@playwright/test"],
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["e2e/**/*.ts", "e2e/**/*.tsx"],
+  "exclude": ["node_modules"]
+}
