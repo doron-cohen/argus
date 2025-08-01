@@ -17,6 +17,11 @@ func TestHealthzIntegration(t *testing.T) {
 
 	resp, err := http.Get("http://localhost:8080/healthz")
 	require.NoError(t, err)
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Failed to close response body: %v", err)
+		}
+	}()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	body, err := io.ReadAll(resp.Body)

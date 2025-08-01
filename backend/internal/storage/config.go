@@ -5,12 +5,12 @@ import (
 )
 
 type Config struct {
-	Host     string `fig:"host" default:"localhost"`
-	Port     int    `fig:"port" default:"5432"`
-	User     string `fig:"user" default:"postgres"`
-	Password string `fig:"password" default:"postgres"`
-	DBName   string `fig:"dbname" default:"postgres"`
-	SSLMode  string `fig:"sslmode" default:"disable"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	DBName   string `yaml:"dbname"`
+	SSLMode  string `yaml:"sslmode"`
 }
 
 func (c Config) DSN() string {

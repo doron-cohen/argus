@@ -18,11 +18,20 @@ func TestLoadConfig_FromEnvironment(t *testing.T) {
 
 	err := copyFile(srcFile, dstFile)
 	require.NoError(t, err)
-	defer os.Remove(dstFile)
+	defer func() {
+		if err := os.Remove(dstFile); err != nil {
+			t.Logf("Failed to remove test file: %v", err)
+		}
+	}()
 
 	// Set environment variable
-	os.Setenv("ARGUS_CONFIG_PATH", dstFile)
-	defer os.Unsetenv("ARGUS_CONFIG_PATH")
+	err = os.Setenv("ARGUS_CONFIG_PATH", dstFile)
+	require.NoError(t, err)
+	defer func() {
+		if err := os.Unsetenv("ARGUS_CONFIG_PATH"); err != nil {
+			t.Logf("Failed to unset environment variable: %v", err)
+		}
+	}()
 
 	// Debug: Print the environment variable
 	t.Logf("ARGUS_CONFIG_PATH set to: %s", os.Getenv("ARGUS_CONFIG_PATH"))
@@ -45,21 +54,19 @@ func TestLoadConfig_FromEnvironment(t *testing.T) {
 	// Check filesystem source
 	fsSource := cfg.Sync.Sources[0]
 	fsConfig := fsSource.GetConfig()
-	if fsConfig != nil {
-		assert.Equal(t, "filesystem", fsConfig.GetSourceType())
-		assert.Equal(t, "/test/path", fsConfig.(*sync.FilesystemSourceConfig).Path)
-		assert.Equal(t, 30*time.Second, fsConfig.GetInterval())
-	}
+	assert.NotNil(t, fsConfig, "filesystem config should not be nil")
+	assert.Equal(t, "filesystem", fsConfig.GetSourceType())
+	assert.Equal(t, "/test/path", fsConfig.(*sync.FilesystemSourceConfig).Path)
+	assert.Equal(t, 30*time.Second, fsConfig.GetInterval())
 
 	// Check git source
 	gitSource := cfg.Sync.Sources[1]
 	gitConfig := gitSource.GetConfig()
-	if gitConfig != nil {
-		assert.Equal(t, "git", gitConfig.GetSourceType())
-		assert.Equal(t, "https://github.com/test/repo", gitConfig.(*sync.GitSourceConfig).URL)
-		assert.Equal(t, "main", gitConfig.(*sync.GitSourceConfig).Branch)
-		assert.Equal(t, 5*time.Minute, gitConfig.GetInterval())
-	}
+	assert.NotNil(t, gitConfig, "git config should not be nil")
+	assert.Equal(t, "git", gitConfig.GetSourceType())
+	assert.Equal(t, "https://github.com/test/repo", gitConfig.(*sync.GitSourceConfig).URL)
+	assert.Equal(t, "main", gitConfig.(*sync.GitSourceConfig).Branch)
+	assert.Equal(t, 5*time.Minute, gitConfig.GetInterval())
 }
 
 func TestLoadConfig_DefaultBehavior(t *testing.T) {
@@ -69,10 +76,15 @@ func TestLoadConfig_DefaultBehavior(t *testing.T) {
 
 	err := copyFile(srcFile, dstFile)
 	require.NoError(t, err)
-	defer os.Remove(dstFile)
+	defer func() {
+		if err := os.Remove(dstFile); err != nil {
+			t.Logf("Failed to remove test file: %v", err)
+		}
+	}()
 
 	// Clear environment variable to test default behavior
-	os.Unsetenv("ARGUS_CONFIG_PATH")
+	err = os.Unsetenv("ARGUS_CONFIG_PATH")
+	require.NoError(t, err)
 
 	// Load config
 	cfg, err := LoadConfig()
@@ -91,11 +103,10 @@ func TestLoadConfig_DefaultBehavior(t *testing.T) {
 
 	fsSource := cfg.Sync.Sources[0]
 	fsConfig := fsSource.GetConfig()
-	if fsConfig != nil {
-		assert.Equal(t, "filesystem", fsConfig.GetSourceType())
-		assert.Equal(t, "./local/path", fsConfig.(*sync.FilesystemSourceConfig).Path)
-		assert.Equal(t, 1*time.Minute, fsConfig.GetInterval())
-	}
+	assert.NotNil(t, fsConfig, "filesystem config should not be nil")
+	assert.Equal(t, "filesystem", fsConfig.GetSourceType())
+	assert.Equal(t, "./local/path", fsConfig.(*sync.FilesystemSourceConfig).Path)
+	assert.Equal(t, 1*time.Minute, fsConfig.GetInterval())
 }
 
 func TestLoadConfig_EmptySyncSources(t *testing.T) {
@@ -105,10 +116,19 @@ func TestLoadConfig_EmptySyncSources(t *testing.T) {
 
 	err := copyFile(srcFile, dstFile)
 	require.NoError(t, err)
-	defer os.Remove(dstFile)
+	defer func() {
+		if err := os.Remove(dstFile); err != nil {
+			t.Logf("Failed to remove test file: %v", err)
+		}
+	}()
 
-	os.Setenv("ARGUS_CONFIG_PATH", dstFile)
-	defer os.Unsetenv("ARGUS_CONFIG_PATH")
+	err = os.Setenv("ARGUS_CONFIG_PATH", dstFile)
+	require.NoError(t, err)
+	defer func() {
+		if err := os.Unsetenv("ARGUS_CONFIG_PATH"); err != nil {
+			t.Logf("Failed to unset environment variable: %v", err)
+		}
+	}()
 
 	// Load config
 	cfg, err := LoadConfig()
@@ -125,10 +145,19 @@ func TestLoadConfig_MissingSyncSection(t *testing.T) {
 
 	err := copyFile(srcFile, dstFile)
 	require.NoError(t, err)
-	defer os.Remove(dstFile)
+	defer func() {
+		if err := os.Remove(dstFile); err != nil {
+			t.Logf("Failed to remove test file: %v", err)
+		}
+	}()
 
-	os.Setenv("ARGUS_CONFIG_PATH", dstFile)
-	defer os.Unsetenv("ARGUS_CONFIG_PATH")
+	err = os.Setenv("ARGUS_CONFIG_PATH", dstFile)
+	require.NoError(t, err)
+	defer func() {
+		if err := os.Unsetenv("ARGUS_CONFIG_PATH"); err != nil {
+			t.Logf("Failed to unset environment variable: %v", err)
+		}
+	}()
 
 	// Load config
 	cfg, err := LoadConfig()
@@ -145,10 +174,19 @@ func TestLoadConfig_ComplexSyncSources(t *testing.T) {
 
 	err := copyFile(srcFile, dstFile)
 	require.NoError(t, err)
-	defer os.Remove(dstFile)
+	defer func() {
+		if err := os.Remove(dstFile); err != nil {
+			t.Logf("Failed to remove test file: %v", err)
+		}
+	}()
 
-	os.Setenv("ARGUS_CONFIG_PATH", dstFile)
-	defer os.Unsetenv("ARGUS_CONFIG_PATH")
+	err = os.Setenv("ARGUS_CONFIG_PATH", dstFile)
+	require.NoError(t, err)
+	defer func() {
+		if err := os.Unsetenv("ARGUS_CONFIG_PATH"); err != nil {
+			t.Logf("Failed to unset environment variable: %v", err)
+		}
+	}()
 
 	// Load config
 	cfg, err := LoadConfig()
@@ -164,42 +202,44 @@ func TestLoadConfig_ComplexSyncSources(t *testing.T) {
 	// Check filesystem source
 	fsSource := cfg.Sync.Sources[0]
 	fsConfig := fsSource.GetConfig()
-	if fsConfig != nil {
-		assert.Equal(t, "filesystem", fsConfig.GetSourceType())
-		assert.Equal(t, "/path/with/spaces", fsConfig.(*sync.FilesystemSourceConfig).Path)
-		assert.Equal(t, 2*time.Minute, fsConfig.GetInterval())
-	}
+	assert.NotNil(t, fsConfig, "filesystem config should not be nil")
+	assert.Equal(t, "filesystem", fsConfig.GetSourceType())
+	assert.Equal(t, "/path/with/spaces", fsConfig.(*sync.FilesystemSourceConfig).Path)
+	assert.Equal(t, 2*time.Minute, fsConfig.GetInterval())
 
 	// Check first git source
 	gitSource1 := cfg.Sync.Sources[1]
 	gitConfig1 := gitSource1.GetConfig()
-	if gitConfig1 != nil {
-		assert.Equal(t, "git", gitConfig1.GetSourceType())
-		assert.Equal(t, "https://github.com/org/monorepo", gitConfig1.(*sync.GitSourceConfig).URL)
-		assert.Equal(t, "develop", gitConfig1.(*sync.GitSourceConfig).Branch)
-		assert.Equal(t, "services/backend", gitConfig1.(*sync.GitSourceConfig).BasePath)
-		assert.Equal(t, 10*time.Minute, gitConfig1.GetInterval())
-	}
+	assert.NotNil(t, gitConfig1, "first git config should not be nil")
+	assert.Equal(t, "git", gitConfig1.GetSourceType())
+	assert.Equal(t, "https://github.com/org/monorepo", gitConfig1.(*sync.GitSourceConfig).URL)
+	assert.Equal(t, "develop", gitConfig1.(*sync.GitSourceConfig).Branch)
+	assert.Equal(t, "services/backend", gitConfig1.(*sync.GitSourceConfig).BasePath)
+	assert.Equal(t, 10*time.Minute, gitConfig1.GetInterval())
 
 	// Check second git source
 	gitSource2 := cfg.Sync.Sources[2]
 	gitConfig2 := gitSource2.GetConfig()
-	if gitConfig2 != nil {
-		assert.Equal(t, "git", gitConfig2.GetSourceType())
-		assert.Equal(t, "https://github.com/org/infrastructure", gitConfig2.(*sync.GitSourceConfig).URL)
-		assert.Equal(t, "main", gitConfig2.(*sync.GitSourceConfig).Branch)
-		assert.Equal(t, "k8s", gitConfig2.(*sync.GitSourceConfig).BasePath)
-		assert.Equal(t, 30*time.Minute, gitConfig2.GetInterval())
-	}
+	assert.NotNil(t, gitConfig2, "second git config should not be nil")
+	assert.Equal(t, "git", gitConfig2.GetSourceType())
+	assert.Equal(t, "https://github.com/org/infrastructure", gitConfig2.(*sync.GitSourceConfig).URL)
+	assert.Equal(t, "main", gitConfig2.(*sync.GitSourceConfig).Branch)
+	assert.Equal(t, "k8s", gitConfig2.(*sync.GitSourceConfig).BasePath)
+	assert.Equal(t, 30*time.Minute, gitConfig2.GetInterval())
 }
 
 func TestLoadConfig_FileNotFound(t *testing.T) {
 	// Set environment variable to non-existent file
-	os.Setenv("ARGUS_CONFIG_PATH", "/non/existent/config.yaml")
-	defer os.Unsetenv("ARGUS_CONFIG_PATH")
+	err := os.Setenv("ARGUS_CONFIG_PATH", "/non/existent/config.yaml")
+	require.NoError(t, err)
+	defer func() {
+		if err := os.Unsetenv("ARGUS_CONFIG_PATH"); err != nil {
+			t.Logf("Failed to unset environment variable: %v", err)
+		}
+	}()
 
 	// Load config should fail
-	_, err := LoadConfig()
+	_, err = LoadConfig()
 	assert.Error(t, err)
 }
 

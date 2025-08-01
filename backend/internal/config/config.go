@@ -5,27 +5,30 @@ import (
 
 	"github.com/doron-cohen/argus/backend/internal/storage"
 	"github.com/doron-cohen/argus/backend/sync"
-	"github.com/kkyr/fig"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Storage storage.Config
-	Sync    sync.Config
+	Storage storage.Config `yaml:"storage"`
+	Sync    sync.Config    `yaml:"sync"`
 }
 
 func LoadConfig() (Config, error) {
 	var cfg Config
 
-	// Check if config file path is provided via environment variable
-	if configPath := os.Getenv("ARGUS_CONFIG_PATH"); configPath != "" {
-		err := fig.Load(&cfg,
-			fig.File(configPath),
-			fig.UseEnv("ARGUS"),
-		)
+	// Determine config file path
+	configPath := "config.yaml"
+	if envPath := os.Getenv("ARGUS_CONFIG_PATH"); envPath != "" {
+		configPath = envPath
+	}
+
+	// Read the config file
+	data, err := os.ReadFile(configPath)
+	if err != nil {
 		return cfg, err
 	}
 
-	// Default behavior - look for config.yaml in current directory
-	err := fig.Load(&cfg, fig.UseEnv("ARGUS"))
+	// Parse the YAML
+	err = yaml.Unmarshal(data, &cfg)
 	return cfg, err
 }
