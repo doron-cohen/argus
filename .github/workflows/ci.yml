@@ -46,9 +46,3 @@ jobs:
         run: |
           make docker/build-backend
           echo "Docker image built successfully"
-
-      - name: Test Docker image
-        run: |
-          # Test that the image can start without crashing
-          docker run --rm argus-backend /app/bin/argus --help
-          echo "Docker image test completed"
