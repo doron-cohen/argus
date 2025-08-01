@@ -46,6 +46,12 @@ func Handler() http.Handler {
 			return
 		}
 
+		// For dist files, strip the /dist/ prefix and serve from dist directory
+		if strings.HasPrefix(r.URL.Path, "/dist/") {
+			http.StripPrefix("/dist/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
+			return
+		}
+
 		// For all other paths, serve from dist directory
 		http.StripPrefix("/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
 	})
