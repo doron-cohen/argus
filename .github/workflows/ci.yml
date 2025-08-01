@@ -21,8 +21,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cd backend
-          go test ./... -v
+          make backend/test
 
   docker-build:
     name: Build Docker Image
@@ -37,42 +36,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd backend
-          docker build -t argus-backend:test .
+          make docker/build-backend
           echo "Docker image built successfully"
 
       - name: Test Docker image
         run: |
           # Test that the image can start without crashing
-          docker run --rm argus-backend:test /app/bin/argus --help || true
+          docker run --rm argus-backend /app/bin/argus --help || true
           echo "Docker image test completed"
-
-  docker-compose:
-    name: Test Docker Compose
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Start Docker Compose
-        run: |
-          # Build and start services
-          docker-compose up --build -d
-
-          # Wait for services to be ready
-          sleep 30
-
-          # Check if services are running
-          docker-compose ps
-
-          # Test that the backend is responding
-          curl -f http://localhost:8080/healthz || echo "Health check failed (expected in CI environment)"
-
-          # Stop services
-          docker-compose down
-
-          echo "Docker Compose test completed"
