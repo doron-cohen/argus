@@ -1,0 +1,41 @@
+name: E2E Tests
+on: [push, pull_request]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Playwright
+        run: cd frontend && bunx playwright install chromium
+
+      - name: Start Docker services
+        run: docker-compose up -d
+
+      - name: Wait for services
+        run: sleep 30
+
+      - name: Run E2E tests
+        run: cd frontend && bunx playwright test --config=playwright.config.ts
+
+      - name: Stop services
+        if: always()
+        run: docker-compose down
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: frontend/test-results/
