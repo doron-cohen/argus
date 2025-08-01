@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: API for managing and discovering components from various sources
 paths:
-  /catalog/v1/components:
+  /components:
     get:
       summary: Get all components
       description: Retrieve a list of all components discovered from configured sources
@@ -24,7 +24,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /catalog/v1/components/{componentId}:
+  /components/{componentId}:
     get:
       summary: Get component by ID
       description: Retrieve a specific component by its unique identifier
@@ -56,7 +56,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /catalog/v1/components/{componentId}/reports:
+  /components/{componentId}/reports:
     get:
       summary: Get reports for component
       description: Retrieve quality check reports for a specific component
