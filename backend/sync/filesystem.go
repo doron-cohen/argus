@@ -12,9 +12,9 @@ import (
 
 // FilesystemSourceConfig holds filesystem-specific configuration
 type FilesystemSourceConfig struct {
-	Type     string        `fig:"type" yaml:"type"`
-	Interval time.Duration `fig:"interval" yaml:"interval"`
-	Path     string        `fig:"path" yaml:"path"`
+	Type     string        `yaml:"type"`
+	Interval time.Duration `yaml:"interval"`
+	Path     string        `yaml:"path"`
 }
 
 // Validate ensures the filesystem configuration is valid

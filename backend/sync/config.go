@@ -18,7 +18,7 @@ const (
 
 // Config represents the sync configuration
 type Config struct {
-	Sources []SourceConfig `fig:"sources"`
+	Sources []SourceConfig `yaml:"sources"`
 }
 
 // SourceTypeConfig is a regular interface for different source types
@@ -37,7 +37,7 @@ type SourceConfigConstraint interface {
 
 // TypedSourceConfig provides compile-time type safety for individual source configs
 type TypedSourceConfig[T SourceConfigConstraint] struct {
-	Config T `fig:",inline" yaml:",inline"`
+	Config T `yaml:",inline"`
 }
 
 func (t *TypedSourceConfig[T]) GetConfig() T {

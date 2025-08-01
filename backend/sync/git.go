@@ -17,11 +17,11 @@ import (
 
 // GitSourceConfig holds git-specific configuration
 type GitSourceConfig struct {
-	Type     string        `fig:"type" yaml:"type"`
-	Interval time.Duration `fig:"interval" yaml:"interval"`
-	URL      string        `fig:"url" yaml:"url"`
-	Branch   string        `fig:"branch" yaml:"branch,omitempty"`
-	BasePath string        `fig:"base_path" yaml:"base_path,omitempty"`
+	Type     string        `yaml:"type"`
+	Interval time.Duration `yaml:"interval"`
+	URL      string        `yaml:"url"`
+	Branch   string        `yaml:"branch,omitempty"`
+	BasePath string        `yaml:"base_path,omitempty"`
 }
 
 // Validate ensures the git configuration is valid
