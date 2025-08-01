@@ -31,6 +31,29 @@ The all seeing software catalog is an early-stage tool designed to provide clear
 
 This project is in its initial stages and under active development. Expect rapid changes and improvements as we define and build out the core features.
 
+## Quick Start with Docker
+
+The easiest way to get started with Argus is using Docker:
+
+```bash
+# Build and start all services
+make docker/up-build
+
+# Or test the complete setup
+make docker/test
+```
+
+This will start:
+- **PostgreSQL** database on port 5432
+- **Backend** API (serving frontend) on port 8080
+
+For development with file watching:
+```bash
+make docker/develop
+```
+
+See [DOCKER.md](DOCKER.md) for detailed Docker documentation.
+
 ## Development
 
 ### CI/CD

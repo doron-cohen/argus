@@ -47,13 +47,13 @@ backend/go-mod-tidy:
 backend/lint:
 	cd backend && golangci-lint run --timeout=5m
 
-backend/test:
+backend/test: frontend/build
 	cd backend && go test -v $(if $(filter 1,$(CGO_ENABLED)),-race,) -coverprofile=coverage.out ./...
 
-backend/build:
+backend/build: frontend/build
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
-backend/build-with-deps: backend/go-mod-tidy
+backend/build-with-deps: backend/go-mod-tidy frontend/build
 	cd backend && go mod download
 	cd backend && go build -ldflags="-w -s" -o bin/argus ./cmd/main.go
 
@@ -119,6 +119,50 @@ build: backend/build frontend/build
 lint: backend/lint
 
 clean: backend/clean frontend/clean
+
+# Docker tasks
+docker/build:
+	docker build -t argus-backend -f backend/Dockerfile .
+
+docker/build-backend:
+	docker build -t argus-backend -f backend/Dockerfile .
+
+docker/up:
+	docker compose up -d
+
+docker/up-build:
+	docker compose up -d --build
+
+docker/down:
+	docker compose down
+
+docker/logs:
+	docker compose logs -f
+
+docker/logs-backend:
+	docker compose logs -f backend
+
+docker/logs-postgres:
+	docker compose logs -f postgres
+
+docker/restart:
+	docker compose restart
+
+docker/restart-backend:
+	docker compose restart backend
+
+docker/clean:
+	docker compose down -v
+	docker system prune -f
+
+docker/develop:
+	docker compose watch
+
+docker/status:
+	docker compose ps
+
+docker/test:
+	./test-docker.sh
 
 # Frontend CI pipeline
 frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e-ci

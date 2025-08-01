@@ -1,0 +1,18 @@
+# Argus Configuration for Docker Development
+# This configuration uses PostgreSQL and includes test data
+
+storage:
+  host: postgres
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: argus
+  sslmode: disable
+
+# VCS & Filesystem Sync Configuration
+sync:
+  sources:
+    # Development environment - test data directory
+    - type: filesystem
+      path: "./backend/tests/testdata"
+      interval: "30s" # Fast interval for development
