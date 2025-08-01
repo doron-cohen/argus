@@ -37,7 +37,7 @@ COPY frontend/assets_test.go ./frontend/
 COPY backend/go.mod backend/go.sum ./
 COPY backend/api/client/go.mod backend/api/client/go.sum ./api/client/
 COPY backend/sync/api/client/go.mod backend/sync/api/client/go.sum ./sync/api/client/
-COPY backend/reports/api/client/go.mod ./reports/api/client/
+COPY backend/reports/api/client/go.mod backend/reports/api/client/go.sum ./reports/api/client/
 
 # Download dependencies
 WORKDIR /app/backend
