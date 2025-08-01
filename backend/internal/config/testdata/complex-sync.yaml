@@ -1,0 +1,23 @@
+storage:
+  host: complex-host
+  port: 5432
+  user: complex-user
+  password: complex-pass
+  dbname: complex-db
+  sslmode: disable
+
+sync:
+  sources:
+    - type: filesystem
+      path: "/path/with/spaces"
+      interval: "2m"
+    - type: git
+      url: "https://github.com/org/monorepo"
+      branch: "develop"
+      base_path: "services/backend"
+      interval: "10m"
+    - type: git
+      url: "https://github.com/org/infrastructure"
+      branch: "main"
+      base_path: "k8s"
+      interval: "30m"

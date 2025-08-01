@@ -1,0 +1,13 @@
+storage:
+  host: localhost
+  port: 5432
+  user: default-user
+  password: default-pass
+  dbname: default-db
+  sslmode: disable
+
+sync:
+  sources:
+    - type: filesystem
+      path: "./local/path"
+      interval: "1m"

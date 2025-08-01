@@ -1,0 +1,17 @@
+storage:
+  host: test-host
+  port: 5433
+  user: test-user
+  password: test-pass
+  dbname: test-db
+  sslmode: require
+
+sync:
+  sources:
+    - type: filesystem
+      path: "/test/path"
+      interval: "30s"
+    - type: git
+      url: "https://github.com/test/repo"
+      branch: "main"
+      interval: "5m"
