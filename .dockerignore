@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+backend/bin/
+backend/coverage.out
+frontend/dist/
+frontend/node_modules/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+backend/*_test.go
+frontend/tests/
+frontend/test-results/
+frontend/playwright-report/
+
+# Documentation
+README.md
+docs/
+frontend/README.md
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+
+ 

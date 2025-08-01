@@ -229,6 +229,12 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 	}
 	slog.Info("Starting sync", "source", sourceInfo, "type", sourceType)
 
+	// Skip sources with nil config (fig library limitation)
+	if cfg == nil {
+		slog.Warn("Skipping sync source with nil config", "source", sourceInfo)
+		return nil
+	}
+
 	// Get or create fetcher for this source type
 	fetcher, err := s.getFetcher(sourceType)
 	if err != nil {
