@@ -99,10 +99,10 @@ frontend/test-e2e-real:
 
 # Run E2E tests with real application
 frontend/test-e2e-app:
-	cd frontend && docker-compose up -d
-	cd frontend && sleep 30
+	docker compose up -d
+	sleep 30
 	cd frontend && volta run -- npx playwright test --config=playwright.config.ts --reporter=list
-	cd frontend && docker-compose down
+	docker compose down
 
 frontend/test-e2e-ci:
 	cd frontend && volta run -- npx playwright install
