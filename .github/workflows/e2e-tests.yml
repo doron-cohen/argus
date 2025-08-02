@@ -20,18 +20,8 @@ jobs:
       - name: Install Playwright
         run: cd frontend && bunx playwright install chromium
 
-      - name: Start Docker services
-        run: docker-compose up -d
-
-      - name: Wait for services
-        run: sleep 30
-
-      - name: Run E2E tests
-        run: cd frontend && bunx playwright test --config=playwright.config.ts
-
-      - name: Stop services
-        if: always()
-        run: docker-compose down
+      - name: Run E2E tests with real application
+        run: make frontend/test-e2e-app
 
       - name: Upload test results
         if: always()
