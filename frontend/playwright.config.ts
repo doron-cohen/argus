@@ -31,12 +31,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "docker-compose up --build -d && sleep 30", // Start full stack
-    url: "http://localhost:8080",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: "docker-compose up --build -d && sleep 30", // Start full stack
+        url: "http://localhost:8080",
+        reuseExistingServer: true,
+        timeout: 120 * 1000,
+      },
   timeout: 60000,
   expect: {
     timeout: 10000,
