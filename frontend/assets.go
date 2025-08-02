@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -38,11 +39,18 @@ func Handler() http.Handler {
 				if closeErr := file.Close(); closeErr != nil {
 					// Log the error but don't fail the request if response already written
 					// Note: We can't call http.Error here as the response may already be written
+					slog.Error("Failed to close file", "error", closeErr)
 				}
 			}()
 
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			http.ServeContent(w, r, "index.html", time.Now(), file.(io.ReadSeeker))
+			return
+		}
+
+		// For dist files, strip the /dist/ prefix and serve from dist directory
+		if strings.HasPrefix(r.URL.Path, "/dist/") {
+			http.StripPrefix("/dist/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
 			return
 		}
 
@@ -85,6 +93,7 @@ func HandlerWithPrefix(prefix string) http.Handler {
 				if closeErr := file.Close(); closeErr != nil {
 					// Log the error but don't fail the request if response already written
 					// Note: We can't call http.Error here as the response may already be written
+					slog.Error("Failed to close file", "error", closeErr)
 				}
 			}()
 
