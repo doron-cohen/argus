@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ func Handler() http.Handler {
 				if closeErr := file.Close(); closeErr != nil {
 					// Log the error but don't fail the request if response already written
 					// Note: We can't call http.Error here as the response may already be written
+					slog.Error("Failed to close file", "error", closeErr)
 				}
 			}()
 
@@ -91,6 +93,7 @@ func HandlerWithPrefix(prefix string) http.Handler {
 				if closeErr := file.Close(); closeErr != nil {
 					// Log the error but don't fail the request if response already written
 					// Note: We can't call http.Error here as the response may already be written
+					slog.Error("Failed to close file", "error", closeErr)
 				}
 			}()
 
