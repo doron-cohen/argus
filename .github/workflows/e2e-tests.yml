@@ -1,5 +1,9 @@
 name: E2E Tests
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   e2e-tests:
@@ -19,6 +23,9 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
+      - name: Install frontend dependencies
+        run: cd frontend && bun install
 
       - name: Install Playwright
         run: cd frontend && bunx playwright install chromium
