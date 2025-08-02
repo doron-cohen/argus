@@ -78,8 +78,8 @@ func TestGetComponentByIdWithSyncIntegration(t *testing.T) {
 	require.NoError(t, err)
 	defer stop()
 
-	// Wait for server to start and initial sync to complete
-	time.Sleep(3 * time.Second)
+	// Wait for server to start and sync to complete
+	waitForSyncCompletion(t, 30*time.Second)
 
 	// Create API client
 	apiClient, err := client.NewClientWithResponses("http://localhost:8080/api/catalog/v1")
