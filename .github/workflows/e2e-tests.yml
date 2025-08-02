@@ -12,6 +12,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Setup Volta
+        uses: volta-cli/action@v4.2.1
+
       - name: Install Bun
         uses: oven-sh/setup-bun@v1
         with:
