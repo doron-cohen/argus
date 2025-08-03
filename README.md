@@ -31,6 +31,76 @@ The all seeing software catalog is an early-stage tool designed to provide clear
 
 This project is in its initial stages and under active development. Expect rapid changes and improvements as we define and build out the core features.
 
+## Configuration
+
+Argus supports flexible configuration with sensible defaults, environment variables, and configuration files.
+
+### Configuration Priority
+
+1. **Environment variables** (highest priority) - `ARGUS_*` prefixed variables
+2. **Config file values** (if file exists)
+3. **Default values** (lowest priority)
+
+### Environment Variables
+
+```bash
+# Config file path
+ARGUS_CONFIG_PATH=/path/to/config.yaml
+
+# Storage configuration
+ARGUS_STORAGE_HOST=localhost
+ARGUS_STORAGE_PORT=5432
+ARGUS_STORAGE_USER=postgres
+ARGUS_STORAGE_PASSWORD=postgres
+ARGUS_STORAGE_DBNAME=argus
+ARGUS_STORAGE_SSLMODE=disable
+```
+
+### Default Values
+
+If no configuration is provided, Argus uses these sensible defaults:
+
+- **Storage**: `localhost:5432` with user `postgres`, password `postgres`, database `argus`
+- **Sync**: No sources (empty array)
+
+### Configuration Examples
+
+**Zero Configuration**: Application starts with all defaults
+```bash
+# No config file needed
+./argus
+```
+
+**Environment-Only Configuration**:
+```bash
+export ARGUS_STORAGE_HOST=my-db-host
+export ARGUS_STORAGE_PASSWORD=my-secure-password
+./argus
+```
+
+**Partial Configuration** (missing values use defaults):
+```yaml
+# config.yaml
+storage:
+  host: my-db-host
+  password: my-secure-password
+  # Other values use defaults
+```
+
+**Full Configuration** with environment overrides:
+```yaml
+# config.yaml
+storage:
+  host: localhost
+  password: default-password
+```
+```bash
+# Environment overrides config file
+export ARGUS_STORAGE_PASSWORD=override-password
+```
+
+See `config.example.yaml` for complete configuration examples.
+
 ## Quick Start with Docker
 
 The easiest way to get started with Argus is using Docker:
