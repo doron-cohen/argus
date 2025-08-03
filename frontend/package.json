@@ -7,8 +7,10 @@
     "dev": "bun build src/main.ts --outdir dist --watch",
     "serve": "bun server.js",
     "type-check": "tsc --noEmit",
+    "test:unit": "playwright test tests/unit/ --config=playwright.config.ts",
     "test:e2e": "playwright test --config=playwright.config.ts",
-    "test:e2e:ui": "playwright test --config=playwright.config.ts --ui"
+    "test:e2e:ui": "playwright test --config=playwright.config.ts --ui",
+    "test:all": "npm run test:unit && npm run test:e2e"
   },
   "type": "module",
   "devDependencies": {
