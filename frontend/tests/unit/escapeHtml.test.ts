@@ -1,11 +1,8 @@
-import { test, expect } from "@playwright/test";
-
-// Pure unit tests for the escapeHtml function
-// These tests don't require a browser and can run in Node.js
+import { describe, test, expect } from "bun:test";
 
 // Import the escapeHtml function from the main file
 // Since it's not exported, we'll recreate it here for testing
-function escapeHtml(unsafe: string): string {
+function escapeHtml(unsafe: string | null | undefined): string {
   if (unsafe == null) return String(unsafe);
   return unsafe
     .replace(/&/g, "&amp;")
@@ -15,7 +12,7 @@ function escapeHtml(unsafe: string): string {
     .replace(/'/g, "&#039;");
 }
 
-test.describe("escapeHtml function", () => {
+describe("escapeHtml function", () => {
   test("should escape basic HTML characters", () => {
     const input = "<script>alert('XSS')</script>";
     const expected = "&lt;script&gt;alert(&#039;XSS&#039;)&lt;/script&gt;";
@@ -38,8 +35,8 @@ test.describe("escapeHtml function", () => {
   });
 
   test("should handle null and undefined", () => {
-    expect(escapeHtml(null as any)).toBe("null");
-    expect(escapeHtml(undefined as any)).toBe("undefined");
+    expect(escapeHtml(null)).toBe("null");
+    expect(escapeHtml(undefined)).toBe("undefined");
   });
 
   test("should escape img tags", () => {

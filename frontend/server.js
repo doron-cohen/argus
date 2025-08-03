@@ -9,11 +9,12 @@ function sanitizePath(pathname) {
   // Check if the normalized path tries to escape the current directory
   const relativePath = relative(".", normalizedPath);
 
-  // If the relative path starts with '..' or is absolute, it's trying to escape
-  if (relativePath.startsWith("..") || normalizedPath.startsWith("/")) {
+  // If the relative path starts with '..', it's trying to escape
+  if (relativePath.startsWith("..")) {
     return null; // Invalid path
   }
 
+  // Allow valid absolute paths (like /index.html, /dist/main.js)
   return normalizedPath;
 }
 

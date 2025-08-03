@@ -18,7 +18,8 @@ let isLoading = true;
 let error: string | null = null;
 
 // HTML escaping function to prevent XSS attacks
-function escapeHtml(unsafe: string): string {
+function escapeHtml(unsafe: string | null | undefined): string {
+  if (unsafe == null) return String(unsafe);
   return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

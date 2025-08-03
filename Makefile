@@ -91,7 +91,7 @@ frontend/test:
 	cd frontend && bun run type-check
 
 frontend/test-unit:
-	cd frontend && bun test
+	cd frontend && bun run test:unit
 
 frontend/test-e2e: frontend/install
 	cd frontend && npx playwright install
@@ -109,7 +109,7 @@ frontend/test-e2e-ci: frontend/install
 	cd frontend && npx playwright install
 	cd frontend && CI=true npx playwright test --reporter=list
 
-frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e
+frontend/test-all: frontend/test frontend/test-unit frontend/test-unit-bun frontend/test-e2e
 
 # Frontend lint
 frontend/lint:

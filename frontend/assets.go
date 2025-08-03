@@ -51,6 +51,7 @@ func Handler() http.Handler {
 			readSeeker, ok := file.(io.ReadSeeker)
 			if !ok {
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				responseWritten = true
 				return
 			}
 
@@ -117,6 +118,7 @@ func HandlerWithPrefix(prefix string) http.Handler {
 			readSeeker, ok := file.(io.ReadSeeker)
 			if !ok {
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				responseWritten = true
 				return
 			}
 
