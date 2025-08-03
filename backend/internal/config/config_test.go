@@ -497,6 +497,67 @@ func TestSourceConfig_UnmarshalYAML_ValidTypes(t *testing.T) {
 	assert.Equal(t, 5*time.Minute, gitConfig.GetInterval())
 }
 
+func TestLoadConfig_CombinedSources(t *testing.T) {
+	// Create a config file with some values (others will use defaults)
+	configContent := `
+storage:
+  host: file-host
+  port: 5434
+  user: file-user
+  # password, dbname, sslmode will use defaults
+`
+	err := os.WriteFile("test-config-combined.yaml", []byte(configContent), 0644)
+	require.NoError(t, err)
+	defer func() {
+		if err := os.Remove("test-config-combined.yaml"); err != nil {
+			t.Logf("Failed to remove test file: %v", err)
+		}
+	}()
+
+	// Set environment variables to override some config file values
+	envVars := map[string]string{
+		"ARGUS_CONFIG_PATH":      "test-config-combined.yaml",
+		"ARGUS_STORAGE_HOST":     "env-host",     // Override config file
+		"ARGUS_STORAGE_PASSWORD": "env-password", // Override default
+		"ARGUS_STORAGE_SSLMODE":  "require",      // Override default
+		// ARGUS_STORAGE_PORT, ARGUS_STORAGE_USER, ARGUS_STORAGE_DBNAME not set
+	}
+
+	for key, value := range envVars {
+		err := os.Setenv(key, value)
+		require.NoError(t, err)
+		defer func(key string) {
+			if err := os.Unsetenv(key); err != nil {
+				t.Logf("Failed to unset environment variable %s: %v", key, err)
+			}
+		}(key)
+	}
+
+	// Load config
+	cfg, err := LoadConfig()
+	require.NoError(t, err)
+
+	// Verify the final configuration combines all three sources:
+	// - Environment variables (highest priority)
+	// - Config file values (medium priority)
+	// - Default values (lowest priority)
+
+	// Values from environment variables (highest priority)
+	assert.Equal(t, "env-host", cfg.Storage.Host)         // Overrode config file
+	assert.Equal(t, "env-password", cfg.Storage.Password) // Overrode default
+	assert.Equal(t, "require", cfg.Storage.SSLMode)       // Overrode default
+
+	// Values from config file (medium priority)
+	assert.Equal(t, 5434, cfg.Storage.Port)        // From config file
+	assert.Equal(t, "file-user", cfg.Storage.User) // From config file
+
+	// Values from defaults (lowest priority)
+	assert.Equal(t, "argus", cfg.Storage.DBName) // From defaults
+
+	// Verify sync config uses defaults (empty array)
+	assert.Len(t, cfg.Sync.Sources, 0)
+}
+
 // Helper function to copy a file
 func copyFile(src, dst string) error {
 	data, err := os.ReadFile(src)
