@@ -10,6 +10,9 @@ REPORTS_OPENAPI_SPEC := backend/reports/api/openapi.yaml
 REPORTS_API_OUT := backend/reports/api/api.gen.go
 REPORTS_CLIENT_OUT := backend/reports/api/client/client.gen.go
 
+# Check if Volta is available
+VOLTA_AVAILABLE := $(shell command -v volta 2> /dev/null)
+
 .PHONY: all install-tools backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build backend/ci frontend/test frontend/build frontend/lint
 
 all: backend/gen-all backend/go-mod-tidy
@@ -70,39 +73,47 @@ backend/gen-all-and-diff: backend/gen-all backend/go-mod-tidy
 	fi
 	@echo "All go.mod and go.sum files are clean"
 
-# Frontend tasks with Volta support
+# Frontend tasks with Volta support (fallback to direct commands in CI)
 frontend/install:
 	cd frontend && bun install
 
 frontend/dev:
-	cd frontend && volta run -- bun run dev
+	cd frontend && bun run dev
 
 frontend/build:
-	cd frontend && volta run -- bun run build
+	cd frontend && bun run build
 
 frontend/type-check:
-	cd frontend && volta run -- bun run type-check
+	cd frontend && bun run type-check
 
-# Frontend tests (using Volta for Node.js version)
+# Frontend tests
 frontend/test:
-	cd frontend && volta run -- bun run type-check
+	cd frontend && bun run type-check
 
 frontend/test-unit:
-	cd frontend && volta run -- bun test
+	cd frontend && bun test
 
-frontend/test-e2e:
-	cd frontend && volta run -- npx playwright install
-	cd frontend && volta run -- npx playwright test --reporter=list
+frontend/test-e2e: frontend/install
+	cd frontend && npx playwright install
+	cd frontend && CI=true npx playwright test --reporter=list
 
-frontend/test-e2e-ci:
-	cd frontend && volta run -- npx playwright install
-	cd frontend && CI=true volta run -- npx playwright test --reporter=list
+frontend/test-e2e-real: frontend/install
+	cd frontend && bun run test:e2e
+
+# Run E2E tests with real application (fixed shell variable scope issue)
+frontend/test-e2e-app: frontend/install
+	docker compose up -d --wait
+	cd frontend && CI=true npx playwright test --config=playwright.config.ts --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
+
+frontend/test-e2e-ci: frontend/install
+	cd frontend && npx playwright install
+	cd frontend && CI=true npx playwright test --reporter=list
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e
 
-# Frontend lint (using Volta for Node.js version)
+# Frontend lint
 frontend/lint:
-	cd frontend && volta run -- bun run type-check
+	cd frontend && bun run type-check
 
 frontend/clean:
 	cd frontend && rm -rf dist coverage.out node_modules

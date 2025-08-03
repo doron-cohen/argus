@@ -52,7 +52,7 @@ RUN CGO_ENABLED=1 go build -ldflags="-w -s" -o /app/bin/argus ./cmd/main.go
 
 
 # Runtime stage
-FROM alpine:latest
+FROM alpine:3.22.1
 
 # Create non-root user
 RUN addgroup -g 1001 -S argus && \

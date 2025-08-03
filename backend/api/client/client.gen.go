@@ -265,7 +265,7 @@ func NewGetComponentsRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/catalog/v1/components")
+	operationPath := fmt.Sprintf("/components")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -299,7 +299,7 @@ func NewGetComponentByIdRequest(server string, componentId string) (*http.Reques
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/catalog/v1/components/%s", pathParam0)
+	operationPath := fmt.Sprintf("/components/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -333,7 +333,7 @@ func NewGetComponentReportsRequest(server string, componentId string, params *Ge
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/catalog/v1/components/%s/reports", pathParam0)
+	operationPath := fmt.Sprintf("/components/%s/reports", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}

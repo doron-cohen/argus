@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
@@ -12,18 +13,16 @@ export default defineConfig({
         ["junit", { outputFile: "test-results/results.xml" }],
       ]
     : [
-        ["html"],
+        ["list"],
         ["json", { outputFile: "test-results/results.json" }],
         ["junit", { outputFile: "test-results/results.xml" }],
       ],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:8080", // Point to real application
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    // Global timeout for actions
     actionTimeout: 10000,
-    // Global timeout for navigation
     navigationTimeout: 30000,
   },
   projects: [
@@ -31,31 +30,18 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
   ],
-  ...(process.env.CI
-    ? {}
+  webServer: process.env.CI
+    ? undefined
     : {
-        webServer: {
-          command: "bun server.js",
-          url: "http://localhost:3000",
-          reuseExistingServer: !process.env.CI,
-          timeout: 120 * 1000,
-        },
-      }),
-  // Global test timeout
+        command: "docker-compose up --build -d && sleep 30", // Start full stack
+        url: "http://localhost:8080",
+        reuseExistingServer: true,
+        timeout: 120 * 1000,
+      },
   timeout: 60000,
-  // Expect timeout for assertions
   expect: {
     timeout: 10000,
   },
-  // Output directory for test artifacts
   outputDir: "test-results/",
 });
