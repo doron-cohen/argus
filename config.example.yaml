@@ -1,6 +1,22 @@
 # Example Argus Configuration
 # Copy this file to config.yaml and modify as needed
+#
+# Configuration Priority (highest to lowest):
+# 1. Environment variables (ARGUS_*)
+# 2. Config file values
+# 3. Default values
+#
+# Environment Variables:
+# ARGUS_CONFIG_PATH=/path/to/config.yaml
+# ARGUS_STORAGE_HOST=localhost
+# ARGUS_STORAGE_PORT=5432
+# ARGUS_STORAGE_USER=postgres
+# ARGUS_STORAGE_PASSWORD=postgres
+# ARGUS_STORAGE_DBNAME=argus
+# ARGUS_STORAGE_SSLMODE=disable
 
+# Storage Configuration
+# Defaults: host=localhost, port=5432, user=postgres, password=postgres, dbname=argus, sslmode=disable
 storage:
   host: localhost
   port: 5432
@@ -11,6 +27,7 @@ storage:
 
 # VCS & Filesystem Sync Configuration
 # Remove or leave empty to disable sync (warning will be logged)
+# Default: sources: [] (no sync sources)
 sync:
   sources:
     # Git repository sources
@@ -73,3 +90,23 @@ sync:
 # No sync sources configuration (sync will be disabled with warning):
 # sync:
 #   sources: []
+
+# Minimal Configuration Examples:
+#
+# 1. Zero configuration (uses all defaults):
+#    No config file needed - application will start with defaults
+#
+# 2. Environment-only configuration:
+#    ARGUS_STORAGE_HOST=my-db-host
+#    ARGUS_STORAGE_PASSWORD=my-secure-password
+#    ARGUS_STORAGE_DBNAME=my-argus-db
+#
+# 3. Partial configuration (missing values use defaults):
+# storage:
+#   host: my-db-host
+#   password: my-secure-password
+#   # Other values will use defaults
+#
+# 4. Full configuration with environment overrides:
+#    Environment variables will override config file values
+#    ARGUS_STORAGE_PASSWORD=override-password
