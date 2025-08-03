@@ -37,43 +37,43 @@ test.describe("Component Catalog - Real Application Flow", () => {
 
     // Verify specific components from test data by finding them by name
     // Authentication Service
-    const authService = page
-      .getByTestId("component-name")
+    const authServiceRow = page
+      .getByTestId("component-row")
       .filter({ hasText: "Authentication Service" });
-    await expect(authService).toHaveCount(1);
+    await expect(authServiceRow).toHaveCount(1);
+    await expect(authServiceRow.getByTestId("component-team")).toContainText(
+      "Security Team"
+    );
     await expect(
-      authService.first().locator("..").getByTestId("component-team")
-    ).toContainText("Security Team");
-    await expect(
-      authService.first().locator("..").getByTestId("component-maintainers")
+      authServiceRow.getByTestId("component-maintainers")
     ).toContainText("alice@company.com");
 
     // Platform Infrastructure
-    const platformInfra = page
-      .getByTestId("component-name")
+    const platformInfraRow = page
+      .getByTestId("component-row")
       .filter({ hasText: "Platform Infrastructure" });
-    await expect(platformInfra).toHaveCount(1);
-    await expect(
-      platformInfra.first().locator("..").getByTestId("component-team")
-    ).toContainText("Infrastructure Team");
+    await expect(platformInfraRow).toHaveCount(1);
+    await expect(platformInfraRow.getByTestId("component-team")).toContainText(
+      "Infrastructure Team"
+    );
 
     // API Gateway
-    const apiGateway = page
-      .getByTestId("component-name")
+    const apiGatewayRow = page
+      .getByTestId("component-row")
       .filter({ hasText: "API Gateway" });
-    await expect(apiGateway).toHaveCount(1);
-    await expect(
-      apiGateway.first().locator("..").getByTestId("component-team")
-    ).toContainText("Platform Team");
+    await expect(apiGatewayRow).toHaveCount(1);
+    await expect(apiGatewayRow.getByTestId("component-team")).toContainText(
+      "Platform Team"
+    );
 
     // User Service
-    const userService = page
-      .getByTestId("component-name")
+    const userServiceRow = page
+      .getByTestId("component-row")
       .filter({ hasText: "User Service" });
-    await expect(userService).toHaveCount(1);
-    await expect(
-      userService.first().locator("..").getByTestId("component-team")
-    ).toContainText("User Experience Team");
+    await expect(userServiceRow).toHaveCount(1);
+    await expect(userServiceRow.getByTestId("component-team")).toContainText(
+      "User Experience Team"
+    );
   });
 
   test("should verify sync API configuration and status", async ({
@@ -128,7 +128,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
 
     // Verify that Authentication Service is displayed (regardless of order)
     const authServiceDisplay = page
-      .getByTestId("component-name")
+      .getByTestId("component-row")
       .filter({ hasText: "Authentication Service" });
     await expect(authServiceDisplay).toHaveCount(1);
   });
