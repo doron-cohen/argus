@@ -15,7 +15,7 @@ VOLTA_AVAILABLE := $(shell command -v volta 2> /dev/null)
 
 .PHONY: all install-tools backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build backend/ci frontend/test frontend/build frontend/lint
 
-all: backend/gen-all backend/go-mod-tidy
+all: backend/gen-all backend/go-mod-tidy frontend/build
 
 install-tools:
 	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
@@ -81,7 +81,10 @@ frontend/dev:
 	cd frontend && bun run dev
 
 frontend/build:
-	cd frontend && bun run build
+	cd frontend && bun run build:prod
+
+frontend/build-dev:
+	cd frontend && bun run build:dev
 
 frontend/type-check:
 	cd frontend && bun run type-check
@@ -118,16 +121,22 @@ frontend/lint:
 frontend/clean:
 	cd frontend && rm -rf dist coverage.out node_modules
 
+# Frontend production build validation
+frontend/validate-build:
+	@echo "Validating frontend production build..."
+	@cd frontend && test -f dist/main.js || (echo "Error: main.js not found in dist/" && exit 1)
+	@cd frontend && test -f dist/styles.css || (echo "Error: styles.css not found in dist/" && exit 1)
+	@echo "Frontend build validation passed"
+
 # Combined tasks
-all: backend/gen-all backend/go-mod-tidy frontend/build
 
-ci: backend/ci
+ci: backend/ci frontend/ci
 
-test: backend/test
+test: backend/test frontend/test-all
 
 build: backend/build frontend/build
 
-lint: backend/lint
+lint: backend/lint frontend/lint
 
 clean: backend/clean frontend/clean
 
@@ -176,7 +185,7 @@ docker/test:
 	./test-docker.sh
 
 # Frontend CI pipeline
-frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e-ci
+frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/validate-build frontend/test-e2e-ci
 
 # Backend CI pipeline
 backend/ci: backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build

@@ -27,6 +27,10 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install frontend dependencies
+        run: |
+          cd frontend && bun install
+
       - name: Run tests
         run: |
           make backend/test
