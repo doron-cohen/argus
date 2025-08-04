@@ -1,16 +1,5 @@
 import { describe, test, expect } from "bun:test";
-
-// Import the escapeHtml function from the main file
-// Since it's not exported, we'll recreate it here for testing
-function escapeHtml(unsafe: string | null | undefined): string {
-  if (unsafe == null) return String(unsafe);
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+import { escapeHtml } from "../../src/utils.ts";
 
 describe("escapeHtml function", () => {
   test("should escape basic HTML characters", () => {

@@ -1,3 +1,5 @@
+import { escapeHtml } from "./utils.ts";
+
 interface Component {
   id: string;
   name: string;
@@ -16,17 +18,6 @@ interface ApiError {
 let components: Component[] = [];
 let isLoading = true;
 let error: string | null = null;
-
-// HTML escaping function to prevent XSS attacks
-function escapeHtml(unsafe: string | null | undefined): string {
-  if (unsafe == null) return String(unsafe);
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 async function fetchComponents(): Promise<void> {
   try {

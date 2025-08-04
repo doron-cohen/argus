@@ -1,16 +1,5 @@
 import { describe, test, expect } from "bun:test";
-
-// Import the escapeHtml function from the main file
-// Since it's not exported, we'll recreate it here for testing
-function escapeHtml(unsafe: string | null | undefined): string {
-  if (unsafe == null) return String(unsafe);
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+import { escapeHtml } from "../../src/utils.ts";
 
 describe("Security Tests", () => {
   describe("XSS Prevention", () => {
@@ -126,6 +115,61 @@ describe("Security Tests", () => {
         expect(escaped).toContain("&lt;");
         expect(escaped).toContain("&gt;");
       });
+    });
+  });
+
+  describe("Component Rendering Integration", () => {
+    test("should render components with escaped content", () => {
+      // Mock component data with malicious content
+      const maliciousComponents = [
+        {
+          id: "xss-test",
+          name: "<script>alert('XSS')</script>",
+          description: "<img src=x onerror=alert('XSS')>",
+          owners: {
+            team: "<script>alert('team')</script>",
+            maintainers: ["<script>alert('maintainer')</script>"],
+          },
+        },
+      ];
+
+      // Simulate the rendering process
+      const renderComponent = (comp: any) => {
+        return `
+          <div data-testid="component-name">${escapeHtml(comp.name)}</div>
+          <div data-testid="component-description">${escapeHtml(
+            comp.description
+          )}</div>
+          <div data-testid="component-team">${escapeHtml(
+            comp.owners?.team || ""
+          )}</div>
+          <div data-testid="component-maintainers">${escapeHtml(
+            comp.owners?.maintainers?.join(", ") || ""
+          )}</div>
+        `;
+      };
+
+      const rendered = renderComponent(maliciousComponents[0]);
+
+      // Verify that all malicious content is escaped
+      expect(rendered).toContain(
+        "&lt;script&gt;alert(&#039;XSS&#039;)&lt;/script&gt;"
+      );
+      expect(rendered).toContain(
+        "&lt;img src=x onerror=alert(&#039;XSS&#039;)&gt;"
+      );
+      expect(rendered).toContain(
+        "&lt;script&gt;alert(&#039;team&#039;)&lt;/script&gt;"
+      );
+      expect(rendered).toContain(
+        "&lt;script&gt;alert(&#039;maintainer&#039;)&lt;/script&gt;"
+      );
+
+      // Verify no unescaped malicious HTML is present
+      expect(rendered).not.toContain("<script>alert('XSS')</script>");
+      expect(rendered).not.toContain("<img src=x onerror=alert('XSS')>");
+      expect(rendered).not.toContain("<script>alert('team')</script>");
+      expect(rendered).not.toContain("<script>alert('maintainer')</script>");
     });
   });
 });
