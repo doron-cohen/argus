@@ -3,20 +3,25 @@
   "version": "1.0.0",
   "description": "Argus Component Catalog Web UI",
   "scripts": {
-    "build": "bun build src/main.ts --outdir dist",
+    "build": "bun build src/main.ts --outdir dist --minify",
+    "build:prod": "bun run build:css && bun build src/main.ts --outdir dist --minify",
+    "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
     "dev": "bun build src/main.ts --outdir dist --watch",
+    "dev:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",
     "serve": "bun server.js",
     "type-check": "tsc --noEmit",
     "test:unit": "bun test tests/unit/*.test.ts",
     "test:e2e": "bun playwright test --config=playwright.config.ts",
     "test:e2e:ui": "bun playwright test --config=playwright.config.ts --ui",
-    "test:all": "bun run test:unit && bun run test:e2e"
+    "test:all": "bun run test:unit && bun run test:e2e",
+    "analyze": "bun build src/main.ts --outdir dist --analyze"
   },
   "type": "module",
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/node": "^24.1.0",
     "bun-types": "^1.2.19",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5.8.3"
   },
   "volta": {
