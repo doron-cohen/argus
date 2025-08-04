@@ -94,8 +94,8 @@ frontend/test-unit:
 	cd frontend && bun run test:unit
 
 frontend/test-e2e: frontend/install
-	cd frontend && npx playwright install
-	cd frontend && CI=true npx playwright test --reporter=list
+	cd frontend && bunx playwright install
+	cd frontend && CI=true bunx playwright test --reporter=list
 
 frontend/test-e2e-real: frontend/install
 	cd frontend && bun run test:e2e
@@ -103,11 +103,11 @@ frontend/test-e2e-real: frontend/install
 # Run E2E tests with real application (fixed shell variable scope issue)
 frontend/test-e2e-app: frontend/install
 	docker compose up -d --wait
-	cd frontend && CI=true npx playwright test --config=playwright.config.ts --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
+	cd frontend && CI=true bunx playwright test --config=playwright.config.ts --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
 
 frontend/test-e2e-ci: frontend/install
-	cd frontend && npx playwright install
-	cd frontend && CI=true npx playwright test --reporter=list
+	cd frontend && bunx playwright install
+	cd frontend && CI=true bunx playwright test --reporter=list
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-unit-bun frontend/test-e2e
 
