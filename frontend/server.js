@@ -1,4 +1,22 @@
 import { serve } from "bun";
+import { normalize, relative } from "path";
+
+// Validate and sanitize file paths to prevent directory traversal
+function sanitizePath(pathname) {
+  // Normalize the path to handle '..' and '.' segments
+  const normalizedPath = normalize(pathname);
+
+  // Check if the normalized path tries to escape the current directory
+  const relativePath = relative(".", normalizedPath);
+
+  // If the relative path starts with '..', it's trying to escape
+  if (relativePath.startsWith("..")) {
+    return null; // Invalid path
+  }
+
+  // Allow valid absolute paths (like /index.html, /dist/main.js)
+  return normalizedPath;
+}
 
 const server = serve({
   port: 3000,
@@ -10,7 +28,13 @@ const server = serve({
       filePath = "/index.html";
     }
 
-    const file = Bun.file("." + filePath);
+    // Sanitize the file path to prevent directory traversal
+    const sanitizedPath = sanitizePath(filePath);
+    if (sanitizedPath === null) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const file = Bun.file("." + sanitizedPath);
     return new Response(file);
   },
 });

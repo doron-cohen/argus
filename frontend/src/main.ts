@@ -1,3 +1,5 @@
+import { escapeHtml } from "./utils.ts";
+
 interface Component {
   id: string;
   name: string;
@@ -65,7 +67,9 @@ function renderComponents(): void {
     tbody.innerHTML = `
       <tr>
         <td colspan="5" class="px-6 py-4 text-center">
-          <div class="text-sm text-red-500" data-testid="error-message">Error: ${error}</div>
+          <div class="text-sm text-red-500" data-testid="error-message">Error: ${escapeHtml(
+            error
+          )}</div>
         </td>
       </tr>
     `;
@@ -83,35 +87,35 @@ function renderComponents(): void {
     return;
   }
 
-  // Render table rows
+  // Render table rows with HTML escaping to prevent XSS
   tbody.innerHTML = components
     .map(
       (comp) => `
     <tr class="hover:bg-gray-50" data-testid="component-row">
       <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm font-medium text-gray-900" data-testid="component-name">${
+        <div class="text-sm font-medium text-gray-900" data-testid="component-name">${escapeHtml(
           comp.name
-        }</div>
+        )}</div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-500" data-testid="component-id">${
+        <div class="text-sm text-gray-500" data-testid="component-id">${escapeHtml(
           comp.id || comp.name
-        }</div>
+        )}</div>
       </td>
       <td class="px-6 py-4">
-        <div class="text-sm text-gray-900" data-testid="component-description">${
+        <div class="text-sm text-gray-900" data-testid="component-description">${escapeHtml(
           comp.description || ""
-        }</div>
+        )}</div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-500" data-testid="component-team">${
+        <div class="text-sm text-gray-500" data-testid="component-team">${escapeHtml(
           comp.owners?.team || ""
-        }</div>
+        )}</div>
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-500" data-testid="component-maintainers">${
+        <div class="text-sm text-gray-500" data-testid="component-maintainers">${escapeHtml(
           comp.owners?.maintainers?.join(", ") || ""
-        }</div>
+        )}</div>
       </td>
     </tr>
   `

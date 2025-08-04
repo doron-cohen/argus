@@ -35,16 +35,29 @@ func Handler() http.Handler {
 				http.NotFound(w, r)
 				return
 			}
+
+			var responseWritten bool
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
 					// Log the error but don't fail the request if response already written
-					// Note: We can't call http.Error here as the response may already be written
 					slog.Error("Failed to close file", "error", closeErr)
+					if !responseWritten {
+						http.Error(w, "Internal server error", http.StatusInternalServerError)
+					}
 				}
 			}()
 
+			// Type-safe assertion with proper error handling
+			readSeeker, ok := file.(io.ReadSeeker)
+			if !ok {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				responseWritten = true
+				return
+			}
+
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			http.ServeContent(w, r, "index.html", time.Now(), file.(io.ReadSeeker))
+			http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
+			responseWritten = true
 			return
 		}
 
@@ -89,16 +102,29 @@ func HandlerWithPrefix(prefix string) http.Handler {
 				http.NotFound(w, r)
 				return
 			}
+
+			var responseWritten bool
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
 					// Log the error but don't fail the request if response already written
-					// Note: We can't call http.Error here as the response may already be written
 					slog.Error("Failed to close file", "error", closeErr)
+					if !responseWritten {
+						http.Error(w, "Internal server error", http.StatusInternalServerError)
+					}
 				}
 			}()
 
+			// Type-safe assertion with proper error handling
+			readSeeker, ok := file.(io.ReadSeeker)
+			if !ok {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				responseWritten = true
+				return
+			}
+
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			http.ServeContent(w, r, "index.html", time.Now(), file.(io.ReadSeeker))
+			http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
+			responseWritten = true
 			return
 		}
 
