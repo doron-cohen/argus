@@ -84,7 +84,7 @@ frontend/build:
 	cd frontend && bun run build:prod
 
 frontend/build-dev:
-	cd frontend && bun run build
+	cd frontend && bun run build:prod
 
 frontend/type-check:
 	cd frontend && bun run type-check
@@ -129,7 +129,6 @@ frontend/validate-build:
 	@echo "Frontend build validation passed"
 
 # Combined tasks
-all: backend/gen-all backend/go-mod-tidy frontend/build
 
 ci: backend/ci frontend/ci
 
