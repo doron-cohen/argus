@@ -19,6 +19,24 @@ func Assets() fs.FS {
 	return assets
 }
 
+// applyCacheHeaders sets appropriate cache headers based on file extension
+func applyCacheHeaders(w http.ResponseWriter, path string) {
+	ext := filepath.Ext(path)
+	switch ext {
+	case ".css":
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
+	case ".js":
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
+	case ".map":
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
+	default:
+		w.Header().Set("Cache-Control", "public, max-age=86400") // 1 day
+	}
+}
+
 // Handler returns an http.Handler that serves the embedded frontend assets
 func Handler() http.Handler {
 	// Create a sub-filesystem for dist files
@@ -67,26 +85,13 @@ func Handler() http.Handler {
 		// For dist files, strip the /dist/ prefix and serve from dist directory
 		if strings.HasPrefix(r.URL.Path, "/dist/") {
 			// Add cache headers for static assets
-			ext := filepath.Ext(r.URL.Path)
-			switch ext {
-			case ".css":
-				w.Header().Set("Content-Type", "text/css; charset=utf-8")
-				w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
-			case ".js":
-				w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-				w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
-			case ".map":
-				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-				w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
-			default:
-				w.Header().Set("Cache-Control", "public, max-age=86400") // 1 day
-			}
-
+			applyCacheHeaders(w, r.URL.Path)
 			http.StripPrefix("/dist/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
 			return
 		}
 
-		// For all other paths, serve from dist directory
+		// For all other paths, serve from dist directory with cache headers
+		applyCacheHeaders(w, r.URL.Path)
 		http.StripPrefix("/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
 	})
 }
@@ -149,7 +154,8 @@ func HandlerWithPrefix(prefix string) http.Handler {
 			return
 		}
 
-		// For all other paths, serve from dist directory
+		// For all other paths, serve from dist directory with cache headers
+		applyCacheHeaders(w, path)
 		r.URL.Path = path
 		http.FileServer(http.FS(distFS)).ServeHTTP(w, r)
 	})
