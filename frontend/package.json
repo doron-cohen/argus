@@ -4,8 +4,10 @@
   "description": "Argus Component Catalog Web UI",
   "scripts": {
     "build": "bun build src/main.ts --outdir dist --minify",
+    "build:dev": "bun run build:css:dev && bun build src/main.ts --outdir dist",
     "build:prod": "bun run build:css && bun build src/main.ts --outdir dist --minify",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
+    "build:css:dev": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",
     "dev": "bun build src/main.ts --outdir dist --watch",
     "dev:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",
     "serve": "bun server.js",

@@ -84,7 +84,7 @@ frontend/build:
 	cd frontend && bun run build:prod
 
 frontend/build-dev:
-	cd frontend && bun run build:prod
+	cd frontend && bun run build:dev
 
 frontend/type-check:
 	cd frontend && bun run type-check
