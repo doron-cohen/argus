@@ -23,9 +23,9 @@
 
 ### Technology Stack
 - **Bun**: Fast, all-in-one JavaScript runtime and package manager (replaces npm/yarn)
-- **Alpine.js**: Lightweight JavaScript framework for reactive UI components
+- **TypeScript**: Type-safe JavaScript with plain web components approach
 - **Tailwind CSS**: Utility-first CSS framework for minimal styling
-- **Playwright**: End-to-end testing framework with mini-flows pattern
+- **Playwright**: End-to-end testing framework with comprehensive test coverage
 
 ### Package Management Strategy
 **Bun over npm/yarn**: Based on research, Bun offers significant advantages:
@@ -38,24 +38,25 @@
 ```
 frontend/
 ├── src/
-│   ├── components/
-│   │   └── components-list.js
-│   ├── styles/
-│   │   └── app.css
-│   └── app.js
+│   ├── main.ts
+│   ├── utils.ts
+│   └── styles.css
 ├── tests/
 │   ├── unit/
-│   │   └── components-list.test.js
+│   │   ├── escapeHtml.test.ts
+│   │   └── security.test.ts
 │   ├── e2e/
-│   │   ├── components-list.spec.js
-│   │   └── mini-flows/
-│   │       ├── navigation.js
-│   │       └── component-actions.js
+│   │   ├── components.spec.ts
+│   │   ├── sync.spec.ts
+│   │   └── types.ts
+│   └── tsconfig.json
 ├── dist/
-│   └── index.html
+│   ├── main.js
+│   └── styles.css
+├── index.html
 ├── package.json
 ├── tailwind.config.js
-├── playwright.config.js
+├── playwright.config.ts
 └── bun.lockb
 ```
 
@@ -66,37 +67,76 @@ frontend/
 - Frontend files served from `/` route by Go backend
 
 ### Components List Page
-**Simple table/list view showing:**
+**Simple table view showing:**
 - Component name
 - Component ID
-- Description (truncated)
-- Owner/team
-- Last updated timestamp
+- Description
+- Team
+- Maintainers
 
-**Alpine.js Component Structure:**
-```javascript
-// components-list.js
-export default function() {
-    return {
-        components: [],
-        loading: true,
-        error: null,
-        
-        async init() {
-            await this.loadComponents()
-        },
-        
-        async loadComponents() {
-            try {
-                const response = await fetch('/api/catalog/v1/components')
-                this.components = await response.json()
-            } catch (err) {
-                this.error = 'Failed to load components'
-            } finally {
-                this.loading = false
-            }
-        }
+**TypeScript Implementation:**
+```typescript
+// main.ts
+interface Component {
+  id: string;
+  name: string;
+  description: string;
+  owners: {
+    maintainers: string[];
+    team: string;
+  };
+}
+
+let components: Component[] = [];
+let isLoading = true;
+let error: string | null = null;
+
+async function fetchComponents(): Promise<void> {
+  try {
+    isLoading = true;
+    error = null;
+    
+    const response = await fetch("/api/catalog/v1/components");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    
+    components = await response.json();
+  } catch (err) {
+    error = err instanceof Error ? err.message : "Failed to fetch components";
+  } finally {
+    isLoading = false;
+    renderComponents();
+  }
+}
+
+function renderComponents(): void {
+  const tbody = document.getElementById("components-tbody");
+  const countSpan = document.getElementById("component-count");
+  
+  if (!tbody || !countSpan) return;
+  
+  countSpan.textContent = components.length.toString();
+  
+  if (isLoading) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center">Loading...</td></tr>`;
+    return;
+  }
+  
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500">Error: ${escapeHtml(error)}</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = components.map(comp => `
+    <tr class="hover:bg-gray-50">
+      <td class="px-6 py-4">${escapeHtml(comp.name)}</td>
+      <td class="px-6 py-4">${escapeHtml(comp.id)}</td>
+      <td class="px-6 py-4">${escapeHtml(comp.description)}</td>
+      <td class="px-6 py-4">${escapeHtml(comp.owners?.team || "")}</td>
+      <td class="px-6 py-4">${escapeHtml(comp.owners?.maintainers?.join(", ") || "")}</td>
+    </tr>
+  `).join("");
 }
 ```
 
@@ -110,75 +150,55 @@ export default function() {
 ### Testing Strategy
 
 #### Unit Tests (Bun Test)
-**Test Alpine.js components using Bun's built-in test runner:**
-```javascript
-// components-list.test.js
-import { test, expect } from 'bun:test'
-import ComponentsList from '../src/components/components-list.js'
+**Test TypeScript utilities and security functions:**
+```typescript
+// escapeHtml.test.ts
+import { test, expect } from "bun:test";
+import { escapeHtml } from "../src/utils.ts";
 
-test('ComponentsList loads components on init', async () => {
-    // Mock fetch and test component behavior
-    const mockFetch = jest.fn().mockResolvedValue({
-        json: () => Promise.resolve([{ id: '1', name: 'test-component' }])
-    })
-    global.fetch = mockFetch
-    
-    const component = ComponentsList()
-    await component.init()
-    
-    expect(component.components).toHaveLength(1)
-    expect(component.loading).toBe(false)
-})
+test("escapeHtml should escape HTML special characters", () => {
+  expect(escapeHtml("<script>alert('xss')</script>"))
+    .toBe("&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;");
+});
 
-test('ComponentsList handles error state', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('API Error'))
-    
-    const component = ComponentsList()
-    await component.init()
-    
-    expect(component.error).toBe('Failed to load components')
-})
+test("escapeHtml should handle empty string", () => {
+  expect(escapeHtml("")).toBe("");
+});
 ```
 
-#### End-to-End Tests (Playwright + Mini-flows)
-**Mini-flows pattern for reusable test components:**
-```javascript
-// mini-flows/navigation.js
-export async function navigateToComponents(page) {
-    await page.goto('/')
-    await expect(page.locator('h1')).toContainText('Components')
-}
+#### End-to-End Tests (Playwright)
+**Comprehensive test coverage with real application flow:**
+```typescript
+// components.spec.ts
+import { test, expect } from "@playwright/test";
 
-export async function waitForComponentsLoad(page) {
-    await page.waitForSelector('[data-testid="components-table"]')
-    await expect(page.locator('[data-testid="loading"]')).not.toBeVisible()
-}
-
-// mini-flows/component-actions.js
-export async function searchComponents(page, query) {
-    await page.fill('[data-testid="search-input"]', query)
-    await page.keyboard.press('Enter')
-}
-
-// components-list.spec.js
-import { test, expect } from '@playwright/test'
-import { navigateToComponents, waitForComponentsLoad } from './mini-flows/navigation.js'
-import { searchComponents } from './mini-flows/component-actions.js'
-
-test.describe('Components List Page', () => {
-    test('displays components list', async ({ page }) => {
-        await navigateToComponents(page)
-        await waitForComponentsLoad(page)
-        await expect(page.locator('table')).toBeVisible()
-    })
+test.describe("Component Catalog - Real Application Flow", () => {
+  test("should display all test components from sync process", async ({ page }) => {
+    await page.goto("/");
     
-    test('search functionality works', async ({ page }) => {
-        await navigateToComponents(page)
-        await waitForComponentsLoad(page)
-        await searchComponents(page, 'auth-service')
-        await expect(page.locator('tbody tr')).toContainText('auth-service')
-    })
-})
+    // Wait for components to load and verify count
+    await expect(page.getByTestId("component-row")).toHaveCount(4);
+    await expect(page.getByTestId("components-header")).toContainText("Components (4)");
+    
+    // Verify specific components
+    const authServiceRow = page.getByTestId("component-row").filter({ hasText: "Authentication Service" });
+    await expect(authServiceRow).toHaveCount(1);
+    await expect(authServiceRow.getByTestId("component-team")).toContainText("Security Team");
+  });
+  
+  test("should verify real API responses match frontend display", async ({ page }) => {
+    // Get components via API
+    const apiResponse = await page.request.get("http://localhost:8080/api/catalog/v1/components");
+    expect(apiResponse.ok()).toBeTruthy();
+    
+    const components = await apiResponse.json();
+    expect(components).toHaveLength(4);
+    
+    // Verify frontend displays same data
+    await page.goto("/");
+    await expect(page.getByTestId("component-row")).toHaveCount(4);
+  });
+});
 ```
 
 ### Build Pipeline & Makefile Integration
@@ -192,32 +212,35 @@ frontend/dev:
 	cd frontend && bun run dev
 
 frontend/build:
-	cd frontend && bun run build
+	cd frontend && bun run build:prod
 
 frontend/test:
-	cd frontend && bun test
+	cd frontend && bun run type-check
+
+frontend/test-unit:
+	cd frontend && bun run test:unit
 
 frontend/test-e2e:
 	cd frontend && bun run test:e2e
 
 frontend/lint:
-	cd frontend && bun run lint
+	cd frontend && bun run type-check
 
-frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/test-e2e
+frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/validate-build frontend/test-e2e-ci
 
 # Combined targets
-all: backend/gen-all backend/go-mod-tidy frontend/ci
+all: backend/gen-all backend/go-mod-tidy frontend/build
 
 ci: backend/ci frontend/ci
 ```
 
 **Bun-based development workflow:**
 1. **Install**: `make frontend/install` - Fast dependency installation
-2. **Development**: `bun dev` - Hot reload with built-in dev server
-3. **Testing**: `bun test` - Built-in test runner (no Jest needed)
+2. **Development**: `bun run dev` - Hot reload with built-in dev server
+3. **Testing**: `bun run test:unit` - Built-in test runner for unit tests
 4. **E2E Testing**: `bun run test:e2e` - Playwright tests
-5. **Build**: `bun run build` - Production build with built-in bundler
-6. **Lint**: `bun run lint` - Code quality checks
+5. **Build**: `bun run build:prod` - Production build with built-in bundler
+6. **Type Check**: `bun run type-check` - TypeScript validation
 
 ### Integration with Backend
 **Go backend serves frontend files:**
@@ -228,23 +251,23 @@ ci: backend/ci frontend/ci
 
 ## Tradeoffs
 
+### Framework Choice
+- **Chosen**: Plain TypeScript with web components instead of Alpine.js
+- **Benefit**: Type safety, better tooling support, more familiar to developers
+- **Cost**: Slightly more verbose than Alpine.js for simple state management
+- **Justification**: Better long-term maintainability and type safety
+
 ### Package Manager Choice
 - **Chosen**: Bun over npm/yarn/pnpm
 - **Benefit**: 30x faster installs, all-in-one toolkit, minimal dependencies
 - **Cost**: Newer ecosystem, potential compatibility issues with some packages
 - **Mitigation**: Bun maintains npm compatibility; fallback to npm if needed
 
-### Framework Choice
-- **Chosen**: Alpine.js for simplicity and minimal overhead
-- **Benefit**: Lightweight, minimal build complexity, easy to understand
-- **Cost**: Less ecosystem support than React/Vue, manual state management
-- **Justification**: Perfect for simple component catalog display needs
-
 ### Testing Approach
-- **Chosen**: Bun Test + Playwright with mini-flows
-- **Benefit**: Built-in testing, reusable test patterns, comprehensive coverage
-- **Cost**: Learning curve for mini-flows pattern
-- **Justification**: Reduces external dependencies while improving test maintainability
+- **Chosen**: Bun Test + Playwright with comprehensive coverage
+- **Benefit**: Built-in testing, real application flow testing, security testing
+- **Cost**: Learning curve for Playwright patterns
+- **Justification**: Provides excellent test coverage and security validation
 
 ### Styling Strategy
 - **Chosen**: Tailwind CSS with minimal custom styles
@@ -269,9 +292,9 @@ ci: backend/ci frontend/ci
 ### Phase 1: Development Environment Setup
 1. Set up frontend directory structure
 2. Install and configure Bun as package manager
-3. Configure Tailwind CSS and Alpine.js with minimal dependencies
+3. Configure Tailwind CSS and TypeScript with minimal dependencies
 4. Set up Makefile integration for frontend tasks
-5. Create basic HTML structure and Alpine.js component skeleton
+5. Create basic HTML structure and TypeScript component skeleton
 
 ### Phase 2: Backend Integration & API Connection
 1. Integrate Go backend to serve frontend files from root (`/`)
@@ -282,10 +305,10 @@ ci: backend/ci frontend/ci
 
 ### Phase 3: Testing Foundation
 1. Set up Bun's built-in test runner for unit tests
-2. Configure Playwright with mini-flows pattern
-3. Create reusable test helpers and utilities
+2. Configure Playwright with comprehensive test scenarios
+3. Create security testing for XSS prevention
 4. Write comprehensive unit and e2e test scenarios
-5. Add linting and code quality checks
+5. Add type checking and code quality checks
 
 ### Phase 4: Production & CI/CD
 1. Optimize build process and bundle size
@@ -301,10 +324,10 @@ ci: backend/ci frontend/ci
 - [Bun Test Runner](https://bun.sh/docs/test/runner)
 - [Migrating from npm to Bun](https://bun.sh/guides/migrate-from-npm)
 
-### Alpine.js
-- [Alpine.js Documentation](https://alpinejs.dev/docs/start-here)
-- [Alpine.js Best Practices](https://alpinejs.dev/docs/best-practices)
-- [Testing Alpine.js Applications](https://alpinejs.dev/docs/advanced/testing)
+### TypeScript
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [TypeScript Best Practices](https://www.typescriptlang.org/docs/handbook/intro.html)
+- [Web Components with TypeScript](https://developer.mozilla.org/en-US/docs/Web/Web_Components)
 
 ### Tailwind CSS
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
@@ -315,7 +338,7 @@ ci: backend/ci frontend/ci
 - [Playwright Documentation](https://playwright.dev/docs/intro)
 - [Playwright Best Practices](https://playwright.dev/docs/best-practices)
 - [Page Object Models](https://playwright.dev/docs/pom)
-- [Testing with Mini-flows Pattern](https://playwright.dev/docs/locators)
+- [Testing with Real Application Flow](https://playwright.dev/docs/locators)
 
 ### Package Management Best Practices
 - [Bun vs npm Performance Comparison](https://bun.sh/blog/bun-install)
