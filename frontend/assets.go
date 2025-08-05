@@ -50,9 +50,9 @@ func isStaticFile(path string) bool {
 		return true
 	}
 
-	// Check if path is for API endpoints
+	// Check if path is for API endpoints - these are NOT static files
 	if strings.HasPrefix(path, "/api/") {
-		return true
+		return false
 	}
 
 	return false
