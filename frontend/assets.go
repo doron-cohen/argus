@@ -37,6 +37,27 @@ func applyCacheHeaders(w http.ResponseWriter, path string) {
 	}
 }
 
+// isStaticFile checks if the path corresponds to a static file
+func isStaticFile(path string) bool {
+	// Check if path has a file extension
+	ext := filepath.Ext(path)
+	if ext != "" {
+		return true
+	}
+
+	// Check if path starts with /dist/ (static assets)
+	if strings.HasPrefix(path, "/dist/") {
+		return true
+	}
+
+	// Check if path is for API endpoints - these are NOT static files
+	if strings.HasPrefix(path, "/api/") {
+		return false
+	}
+
+	return false
+}
+
 // Handler returns an http.Handler that serves the embedded frontend assets
 func Handler() http.Handler {
 	// Create a sub-filesystem for dist files
@@ -47,8 +68,8 @@ func Handler() http.Handler {
 
 	// Create a custom file server that serves index.html from root and dist files from their paths
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// If requesting root path, serve index.html
-		if r.URL.Path == "/" {
+		// If requesting root path or a client-side route, serve index.html
+		if r.URL.Path == "/" || !isStaticFile(r.URL.Path) {
 			file, err := assets.Open("index.html")
 			if err != nil {
 				http.NotFound(w, r)
@@ -82,17 +103,33 @@ func Handler() http.Handler {
 			return
 		}
 
-		// For dist files, strip the /dist/ prefix and serve from dist directory
+		// For dist files, serve from dist directory
 		if strings.HasPrefix(r.URL.Path, "/dist/") {
 			// Add cache headers for static assets
 			applyCacheHeaders(w, r.URL.Path)
-			http.StripPrefix("/dist/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
+
+			// Strip the /dist/ prefix and serve from dist subdirectory
+			filePath := strings.TrimPrefix(r.URL.Path, "/dist/")
+			file, err := distFS.Open(filePath)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			defer file.Close()
+
+			// Type-safe assertion with proper error handling
+			readSeeker, ok := file.(io.ReadSeeker)
+			if !ok {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			http.ServeContent(w, r, filepath.Base(filePath), time.Now(), readSeeker)
 			return
 		}
 
-		// For all other paths, serve from dist directory with cache headers
-		applyCacheHeaders(w, r.URL.Path)
-		http.StripPrefix("/", http.FileServer(http.FS(distFS))).ServeHTTP(w, r)
+		// For all other paths, return 404
+		http.NotFound(w, r)
 	})
 }
 

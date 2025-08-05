@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Argus Component Catalog Web UI",
   "scripts": {
-    "build": "bun build src/main.ts --outdir dist --minify",
+    "build": "bun run build:css && bun build src/main.ts --outdir dist --minify",
     "build:dev": "bun run build:css:dev && bun build src/main.ts --outdir dist",
     "build:prod": "bun run build:css && bun build src/main.ts --outdir dist --minify",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
@@ -12,7 +12,7 @@
     "dev:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",
     "serve": "bun server.js",
     "type-check": "tsc --noEmit",
-    "test:unit": "bun test tests/unit/*.test.ts",
+    "test:unit": "bun test tests/unit/ src/components/",
     "test:e2e": "bun playwright test --config=playwright.config.ts",
     "test:e2e:ui": "bun playwright test --config=playwright.config.ts --ui",
     "test:all": "bun run test:unit && bun run test:e2e",
@@ -28,5 +28,9 @@
   },
   "volta": {
     "node": "20.19.4"
+  },
+  "dependencies": {
+    "nanostores": "^1.0.1",
+    "navigo": "^8.11.1"
   }
 }
