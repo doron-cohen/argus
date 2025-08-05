@@ -69,7 +69,7 @@ func Handler() http.Handler {
 	// Create a custom file server that serves index.html from root and dist files from their paths
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If requesting root path or a client-side route, serve index.html
-		if r.URL.Path == "/" || (!isStaticFile(r.URL.Path) && !strings.HasPrefix(r.URL.Path, "/api/")) {
+		if r.URL.Path == "/" || !isStaticFile(r.URL.Path) {
 			file, err := assets.Open("index.html")
 			if err != nil {
 				http.NotFound(w, r)
