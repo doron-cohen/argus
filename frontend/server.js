@@ -24,7 +24,8 @@ const server = serve({
     const url = new URL(req.url);
     let filePath = url.pathname;
 
-    if (filePath === "/") {
+    // Handle client-side routing - serve index.html for all routes that don't correspond to static files
+    if (filePath === "/" || filePath.startsWith("/components/")) {
       filePath = "/index.html";
     }
 
