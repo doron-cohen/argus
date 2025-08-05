@@ -12,7 +12,7 @@
     "dev:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",
     "serve": "bun server.js",
     "type-check": "tsc --noEmit",
-    "test:unit": "bun test tests/unit/*.test.ts",
+    "test:unit": "bun test tests/unit/ src/components/",
     "test:e2e": "bun playwright test --config=playwright.config.ts",
     "test:e2e:ui": "bun playwright test --config=playwright.config.ts --ui",
     "test:all": "bun run test:unit && bun run test:e2e",

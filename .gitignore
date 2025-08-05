@@ -18,6 +18,10 @@ bin/
 *.swo
 *~
 
+# Root-level dependencies
+node_modules/
+bun.lockb
+
 # OS files
 .DS_Store
 Thumbs.db
