@@ -4,6 +4,11 @@ import {
   setLoading,
   setError,
   resetComponentDetails,
+  setLatestReports,
+  setReportsLoading,
+  setReportsError,
+  resetReports,
+  type ComponentReportsResponse,
 } from "./stores/app-store";
 
 // Import and register web components
@@ -71,6 +76,10 @@ async function showComponentDetail(componentId: string) {
     `;
   }
 
+  // Reset previous state
+  resetComponentDetails();
+  resetReports();
+
   // Load component details
   await loadComponentDetails(componentId);
 }
@@ -96,6 +105,9 @@ async function loadComponentDetails(componentId: string): Promise<void> {
 
     const component = await response.json();
     setComponentDetails(component);
+
+    // Load reports after component details are loaded
+    await loadComponentReports(componentId);
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Failed to fetch component details";
@@ -103,6 +115,41 @@ async function loadComponentDetails(componentId: string): Promise<void> {
     console.error("Error fetching component details:", err);
   } finally {
     setLoading(false);
+  }
+}
+
+async function loadComponentReports(componentId: string): Promise<void> {
+  try {
+    setReportsLoading(true);
+    setReportsError(null);
+
+    const response = await fetch(
+      `/api/catalog/v1/components/${encodeURIComponent(
+        componentId
+      )}/reports?latest_per_check=true`
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // Component not found, but we already loaded component details, so this might be an empty state
+        setLatestReports([]);
+        return;
+      }
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const reportsResponse: ComponentReportsResponse = await response.json();
+    setLatestReports(reportsResponse.reports);
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Failed to fetch component reports";
+    setReportsError(errorMessage);
+    console.error("Error fetching component reports:", err);
+  } finally {
+    setReportsLoading(false);
   }
 }
 
