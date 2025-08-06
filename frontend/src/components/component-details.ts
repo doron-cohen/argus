@@ -81,7 +81,7 @@ export class ComponentDetails extends BaseComponent {
 
     // Re-render reports if they're already available
     const currentReports = latestReports.get();
-    if (currentReports && currentReports.length > 0) {
+    if (currentReports) {
       this.renderReports(currentReports);
     }
   }

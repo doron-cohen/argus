@@ -8,6 +8,8 @@ import {
   setReportsLoading,
   setReportsError,
   resetReports,
+  componentDetails,
+  error,
   type ComponentReportsResponse,
 } from "./stores/app-store";
 
@@ -80,8 +82,13 @@ async function showComponentDetail(componentId: string) {
   resetComponentDetails();
   resetReports();
 
-  // Load component details
+  // Load component details and reports separately to avoid error masking
   await loadComponentDetails(componentId);
+  
+  // Only load reports if component details loaded successfully
+  if (!error.get()) {
+    await loadComponentReports(componentId);
+  }
 }
 
 async function loadComponentDetails(componentId: string): Promise<void> {
@@ -105,9 +112,6 @@ async function loadComponentDetails(componentId: string): Promise<void> {
 
     const component = await response.json();
     setComponentDetails(component);
-
-    // Load reports after component details are loaded
-    await loadComponentReports(componentId);
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Failed to fetch component details";
@@ -129,6 +133,12 @@ async function loadComponentReports(componentId: string): Promise<void> {
       )}/reports?latest_per_check=true`
     );
 
+    // Check if component changed while we were fetching (race condition protection)
+    const currentComponent = componentDetails.get();
+    if (!currentComponent || (currentComponent.id || currentComponent.name) !== componentId) {
+      return; // Component changed, discard this response
+    }
+
     if (!response.ok) {
       if (response.status === 404) {
         // Component not found, but we already loaded component details, so this might be an empty state
@@ -142,12 +152,21 @@ async function loadComponentReports(componentId: string): Promise<void> {
     }
 
     const reportsResponse: ComponentReportsResponse = await response.json();
-    setLatestReports(reportsResponse.reports);
+    
+    // Double-check component ID before setting reports (additional race condition protection)
+    const finalComponent = componentDetails.get();
+    if (finalComponent && (finalComponent.id || finalComponent.name) === componentId) {
+      setLatestReports(reportsResponse.reports);
+    }
   } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Failed to fetch component reports";
-    setReportsError(errorMessage);
-    console.error("Error fetching component reports:", err);
+    // Only set error if we're still on the same component
+    const currentComponent = componentDetails.get();
+    if (currentComponent && (currentComponent.id || currentComponent.name) === componentId) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch component reports";
+      setReportsError(errorMessage);
+      console.error("Error fetching component reports:", err);
+    }
   } finally {
     setReportsLoading(false);
   }
