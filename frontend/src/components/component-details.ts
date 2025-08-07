@@ -79,11 +79,7 @@ export class ComponentDetails extends BaseComponent {
       </div>
     `;
 
-    // Re-render reports if they're already available
-    const currentReports = latestReports.get();
-    if (currentReports) {
-      this.renderReports(currentReports);
-    }
+
   }
 
   private renderReports(reports: readonly CheckReport[]) {
