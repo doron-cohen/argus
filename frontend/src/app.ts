@@ -84,7 +84,7 @@ async function showComponentDetail(componentId: string) {
 
   // Load component details and reports separately to avoid error masking
   await loadComponentDetails(componentId);
-  
+
   // Only load reports if component details loaded successfully
   if (!error.get()) {
     await loadComponentReports(componentId);
@@ -135,7 +135,10 @@ async function loadComponentReports(componentId: string): Promise<void> {
 
     // Check if component changed while we were fetching (race condition protection)
     const currentComponent = componentDetails.get();
-    if (!currentComponent || (currentComponent.id || currentComponent.name) !== componentId) {
+    if (
+      !currentComponent ||
+      (currentComponent.id !== componentId && currentComponent.name !== componentId)
+    ) {
       return; // Component changed, discard this response
     }
 
@@ -152,18 +155,26 @@ async function loadComponentReports(componentId: string): Promise<void> {
     }
 
     const reportsResponse: ComponentReportsResponse = await response.json();
-    
+
     // Double-check component ID before setting reports (additional race condition protection)
     const finalComponent = componentDetails.get();
-    if (finalComponent && (finalComponent.id || finalComponent.name) === componentId) {
+    if (
+      finalComponent &&
+      (finalComponent.id === componentId || finalComponent.name === componentId)
+    ) {
       setLatestReports(reportsResponse.reports);
     }
   } catch (err) {
     // Only set error if we're still on the same component
     const currentComponent = componentDetails.get();
-    if (currentComponent && (currentComponent.id || currentComponent.name) === componentId) {
+    if (
+      currentComponent &&
+      (currentComponent.id === componentId || currentComponent.name === componentId)
+    ) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch component reports";
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch component reports";
       setReportsError(errorMessage);
       console.error("Error fetching component reports:", err);
     }

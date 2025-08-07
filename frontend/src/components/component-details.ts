@@ -166,13 +166,16 @@ export class ComponentDetails extends BaseComponent {
   private formatTimestamp(timestamp: string): string {
     try {
       const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return escapeHtml(String(timestamp));
+      }
       return (
         date.toLocaleDateString() +
         " " +
         date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
     } catch {
-      return timestamp;
+      return escapeHtml(String(timestamp));
     }
   }
 
