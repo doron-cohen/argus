@@ -79,7 +79,8 @@ export class ComponentDetails extends BaseComponent {
       </div>
     `;
 
-
+    // Initialize reports section with current state
+    this.renderReports(latestReports.get());
   }
 
   private renderReports(reports: readonly CheckReport[]) {

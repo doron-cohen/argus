@@ -5,7 +5,7 @@ import { spawn } from "child_process";
 async function runSeedScript(args: string[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn("bun", ["../../scripts/seed-reports.js", ...args], {
-      cwd: __dirname,
+      cwd: process.cwd() + "/frontend/tests/e2e",
       stdio: "pipe",
       env: { ...process.env, ARGUS_BASE_URL: "http://localhost:8080" },
     });
