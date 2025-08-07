@@ -1,9 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { Component } from "./types";
-import { spawn, execFile } from "child_process";
-import { promisify } from "util";
-
-const execFileAsync = promisify(execFile);
+import { spawn } from "child_process";
 
 async function runSeedScript(args: string[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
