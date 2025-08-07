@@ -41,7 +41,7 @@ jobs:
 
       - name: Run E2E tests with seed data
         run: |
-          make frontend/test-e2e-with-seed
+          bun scripts/e2e.ts run --seed --only auth-service --all-statuses --reports-per-component 5 --ci --reporter list
 
   docker-build:
     name: Build Docker Image
