@@ -215,9 +215,8 @@ describe("ComponentDetails", () => {
 
       setComponentDetails(maliciousComponent);
 
-      // Check that script tags are escaped and not executed
-      expect(element.innerHTML).not.toContain("<script>");
-      expect(element.innerHTML).toContain("&lt;script&gt;");
+      // Since the component now sets textContent directly, ensure no script tags were injected
+      expect(element.querySelectorAll("script").length).toBe(0);
 
       // Verify actual displayed text is escaped
       const nameElement = element.querySelector(
@@ -232,10 +231,8 @@ describe("ComponentDetails", () => {
       const maliciousError = '<script>alert("error xss")</script>';
       setError(maliciousError);
 
-      expect(element.innerHTML).not.toContain(
-        '<script>alert("error xss")</script>'
-      );
-      expect(element.innerHTML).toContain("&lt;script&gt;");
+      // Ensure no script tags exist in the DOM
+      expect(element.querySelectorAll("script").length).toBe(0);
 
       const errorMessageElement = element.querySelector(
         '[data-testid="error-message"]'

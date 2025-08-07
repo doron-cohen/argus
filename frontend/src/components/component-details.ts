@@ -1,6 +1,6 @@
-import { BaseComponent } from "../utils/base-component";
-import { componentDetails, loading, error } from "../stores/app-store";
-import { escapeHtml } from "../utils";
+import { BaseComponent } from "../utils/base-component.ts";
+import { componentDetails, loading, error } from "../stores/app-store.ts";
+import { escapeHtml } from "../utils.ts";
 
 export class ComponentDetails extends BaseComponent {
   connectedCallback() {
@@ -18,37 +18,22 @@ export class ComponentDetails extends BaseComponent {
     this.innerHTML = `
       <div class="bg-white shadow overflow-hidden sm:rounded-lg" data-testid="component-details">
         <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900" data-testid="component-name">
-            ${escapeHtml(component.name)}
-          </h3>
-          <p class="mt-1 max-w-2xl text-sm text-gray-500" data-testid="component-id">
-            ID: ${escapeHtml(component.id || component.name)}
-          </p>
+          <h3 class="text-lg leading-6 font-medium text-gray-900" data-testid="component-name"></h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500" data-testid="component-id"></p>
         </div>
         <div class="border-t border-gray-200">
           <dl>
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500" data-testid="description-label">Description</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" data-testid="component-description">
-                ${escapeHtml(
-                  component.description || "No description available"
-                )}
-              </dd>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" data-testid="component-description"></dd>
             </div>
             <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500" data-testid="team-label">Team</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" data-testid="component-team">
-                ${escapeHtml(component.owners?.team || "No team assigned")}
-              </dd>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" data-testid="component-team"></dd>
             </div>
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500" data-testid="maintainers-label">Maintainers</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" data-testid="component-maintainers">
-                ${escapeHtml(
-                  component.owners?.maintainers?.join(", ") ||
-                    "No maintainers assigned"
-                )}
-              </dd>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" data-testid="component-maintainers"></dd>
             </div>
           </dl>
         </div>
@@ -59,6 +44,21 @@ export class ComponentDetails extends BaseComponent {
         </div>
       </div>
     `;
+
+    // Safely assign text content to avoid XSS
+    const nameElement = this.querySelector('[data-testid="component-name"]');
+    const idElement = this.querySelector('[data-testid="component-id"]');
+    const descriptionElement = this.querySelector('[data-testid="component-description"]');
+    const teamElement = this.querySelector('[data-testid="component-team"]');
+    const maintainersElement = this.querySelector('[data-testid="component-maintainers"]');
+
+    if (nameElement) nameElement.textContent = component.name ?? "";
+    if (idElement) idElement.textContent = `ID: ${component.id || component.name}`;
+    if (descriptionElement)
+      descriptionElement.textContent = component.description || "No description available";
+    if (teamElement) teamElement.textContent = component.owners?.team || "No team assigned";
+    if (maintainersElement)
+      maintainersElement.textContent = (component.owners?.maintainers?.join(", ") || "No maintainers assigned");
   }
 
   private showLoading(isLoading: boolean) {
@@ -110,9 +110,7 @@ export class ComponentDetails extends BaseComponent {
                 </div>
                 <div class="ml-3">
                   <h3 class="text-sm font-medium text-red-800" data-testid="error-title">Error loading component</h3>
-                  <div class="mt-2 text-sm text-red-700" data-testid="error-message">
-                    ${escapeHtml(errorMessage)}
-                  </div>
+                  <div class="mt-2 text-sm text-red-700" data-testid="error-message"></div>
                 </div>
               </div>
             </div>
@@ -124,6 +122,9 @@ export class ComponentDetails extends BaseComponent {
           </div>
         </div>
       `;
+
+      const errorMessageElement = this.querySelector('[data-testid="error-message"]');
+      if (errorMessageElement) errorMessageElement.textContent = errorMessage;
     }
   }
 }

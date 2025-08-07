@@ -1,4 +1,5 @@
 import Navigo from "navigo";
+import { getComponentById } from "./api/services/components/client";
 import {
   setComponentDetails,
   setLoading,
@@ -80,22 +81,16 @@ async function loadComponentDetails(componentId: string): Promise<void> {
     setLoading(true);
     setError(null);
 
-    const response = await fetch(
-      `/api/catalog/v1/components/${encodeURIComponent(componentId)}`
-    );
+    const response = await getComponentById(componentId);
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error(`Component not found: ${componentId}`);
-      }
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`
-      );
+    if (response.status === 404) {
+      throw new Error(`Component not found: ${componentId}`);
+    }
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    const component = await response.json();
-    setComponentDetails(component);
+    setComponentDetails(response.data as any);
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Failed to fetch component details";
