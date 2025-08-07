@@ -25,14 +25,47 @@ function log(msg: string) {
 
 // Seeder implementation
 const CHECK_TYPES = [
-  { slug: "unit-tests", name: "Unit Tests", description: "Runs unit tests for the component", successRate: 0.8 },
-  { slug: "security-scan", name: "Security Scan", description: "Performs security vulnerability scanning", successRate: 0.7 },
-  { slug: "code-quality", name: "Code Quality", description: "Analyzes code quality metrics", successRate: 0.6 },
-  { slug: "build", name: "Build", description: "Compiles and builds the component", successRate: 0.9 },
-  { slug: "integration-tests", name: "Integration Tests", description: "Runs integration tests", successRate: 0.75 },
+  {
+    slug: "unit-tests",
+    name: "Unit Tests",
+    description: "Runs unit tests for the component",
+    successRate: 0.8,
+  },
+  {
+    slug: "security-scan",
+    name: "Security Scan",
+    description: "Performs security vulnerability scanning",
+    successRate: 0.7,
+  },
+  {
+    slug: "code-quality",
+    name: "Code Quality",
+    description: "Analyzes code quality metrics",
+    successRate: 0.6,
+  },
+  {
+    slug: "build",
+    name: "Build",
+    description: "Compiles and builds the component",
+    successRate: 0.9,
+  },
+  {
+    slug: "integration-tests",
+    name: "Integration Tests",
+    description: "Runs integration tests",
+    successRate: 0.75,
+  },
 ] as const;
 
-const STATUSES = ["pass", "fail", "error", "disabled", "skipped", "unknown", "completed"] as const;
+const STATUSES = [
+  "pass",
+  "fail",
+  "error",
+  "disabled",
+  "skipped",
+  "unknown",
+  "completed",
+] as const;
 
 export class ReportSeeder {
   constructor(private readonly baseUrl: string = DEFAULT_BASE_URL) {}
@@ -44,8 +77,14 @@ export class ReportSeeder {
   async getComponents(): Promise<Array<{ id?: string; name?: string }>> {
     log("🔍 Fetching components from API...");
     const response = await fetch(this.api(`${CATALOG_API_BASE}/components`));
-    if (!response.ok) throw new Error(`Failed to fetch components: ${response.status} ${response.statusText}`);
-    const components = (await response.json()) as Array<{ id?: string; name?: string }>;
+    if (!response.ok)
+      throw new Error(
+        `Failed to fetch components: ${response.status} ${response.statusText}`
+      );
+    const components = (await response.json()) as Array<{
+      id?: string;
+      name?: string;
+    }>;
     log(`✅ Found ${components.length} components`);
     return components;
   }
@@ -58,12 +97,16 @@ export class ReportSeeder {
     });
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to submit report: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(
+        `Failed to submit report: ${response.status} ${response.statusText} - ${errorText}`
+      );
     }
     return response.json();
   }
 
-  private selectStatusForCheck(checkType: (typeof CHECK_TYPES)[number]): (typeof STATUSES)[number] {
+  private selectStatusForCheck(
+    checkType: (typeof CHECK_TYPES)[number]
+  ): (typeof STATUSES)[number] {
     const random = Math.random();
     if (random < checkType.successRate) return "pass";
     const remaining = 1 - checkType.successRate;
@@ -75,11 +118,19 @@ export class ReportSeeder {
     return other[Math.floor(Math.random() * other.length)];
   }
 
-  private generateReportData(componentId: string, checkType: (typeof CHECK_TYPES)[number], status: string) {
+  private generateReportData(
+    componentId: string,
+    checkType: (typeof CHECK_TYPES)[number],
+    status: string
+  ) {
     const ts = new Date();
     ts.setMinutes(ts.getMinutes() - Math.floor(Math.random() * 60));
     const report: any = {
-      check: { slug: checkType.slug, name: checkType.name, description: checkType.description },
+      check: {
+        slug: checkType.slug,
+        name: checkType.name,
+        description: checkType.description,
+      },
       component_id: componentId,
       status,
       timestamp: ts.toISOString(),
@@ -94,34 +145,66 @@ export class ReportSeeder {
     return report;
   }
 
-  async seedReportsForComponent(componentId: string, options: { checksPerComponent: number; includeAllStatuses: boolean; verbose: boolean }) {
-    if (options.verbose) log(`📊 Creating reports for component: ${componentId}`);
+  async seedReportsForComponent(
+    componentId: string,
+    options: {
+      checksPerComponent: number;
+      includeAllStatuses: boolean;
+      verbose: boolean;
+    }
+  ) {
+    if (options.verbose)
+      log(`📊 Creating reports for component: ${componentId}`);
     const selectedChecks = CHECK_TYPES.slice(0, options.checksPerComponent);
-    const created: Array<{ checkSlug: string; status: string; reportId: string }> = [];
+    const created: Array<{
+      checkSlug: string;
+      status: string;
+      reportId: string;
+    }> = [];
     for (const check of selectedChecks) {
       const status = options.includeAllStatuses
         ? STATUSES[selectedChecks.indexOf(check) % STATUSES.length]
         : this.selectStatusForCheck(check);
       const report = this.generateReportData(componentId, check, status);
       const result = await this.submitReport(report);
-      created.push({ checkSlug: check.slug, status, reportId: result.report_id });
+      created.push({
+        checkSlug: check.slug,
+        status,
+        reportId: result.report_id,
+      });
       if (options.verbose) log(`  ✅ ${check.slug}: ${status}`);
     }
     return created;
   }
 
   async seedAll(options: SeedOptions = {}) {
-    const { excludeComponents = [], includeOnly = null, reportsPerComponent = 3, includeAllStatuses = false, verbose = true } = options;
+    const {
+      excludeComponents = [],
+      includeOnly = null,
+      reportsPerComponent = 3,
+      includeAllStatuses = false,
+      verbose = true,
+    } = options;
     log("🌱 Starting report seeding...");
     const components = await this.getComponents();
     let targets = components;
-    if (includeOnly && includeOnly.length) targets = components.filter((c) => includeOnly.includes((c.id || c.name) as string));
-    else if (excludeComponents.length) targets = components.filter((c) => !excludeComponents.includes((c.id || c.name) as string));
+    if (includeOnly && includeOnly.length)
+      targets = components.filter((c) =>
+        includeOnly.includes((c.id || c.name) as string)
+      );
+    else if (excludeComponents.length)
+      targets = components.filter(
+        (c) => !excludeComponents.includes((c.id || c.name) as string)
+      );
     log(`🎯 Targeting ${targets.length} components for seeding`);
     const all: Record<string, any> = {};
     for (const c of targets) {
       const id = (c.id || c.name) as string;
-      all[id] = await this.seedReportsForComponent(id, { checksPerComponent: reportsPerComponent, includeAllStatuses, verbose });
+      all[id] = await this.seedReportsForComponent(id, {
+        checksPerComponent: reportsPerComponent,
+        includeAllStatuses,
+        verbose,
+      });
     }
     log("🎉 Seeding completed successfully!");
     return all;
@@ -129,10 +212,19 @@ export class ReportSeeder {
 }
 
 // Process helpers
-async function run(cmd: string, args: string[], opts?: { cwd?: string; env?: Record<string, string> }) {
-  const proc = Bun.spawn([cmd, ...args], { cwd: opts?.cwd, env: { ...process.env, ...opts?.env }, stdio: ["inherit", "inherit", "inherit"] });
+async function run(
+  cmd: string,
+  args: string[],
+  opts?: { cwd?: string; env?: Record<string, string> }
+) {
+  const proc = Bun.spawn([cmd, ...args], {
+    cwd: opts?.cwd,
+    env: { ...Bun.env, ...opts?.env },
+    stdio: ["inherit", "inherit", "inherit"],
+  });
   const exit = await proc.exited;
-  if (exit !== 0) throw new Error(`${cmd} ${args.join(" ")} exited with code ${exit}`);
+  if (exit !== 0)
+    throw new Error(`${cmd} ${args.join(" ")} exited with code ${exit}`);
 }
 
 async function dockerUp() {
@@ -150,27 +242,43 @@ export async function runE2E(options: {
   reporter?: string;
   ci?: boolean;
 }) {
-  const { startStack = true, seed = false, seedOptions = {}, grep, reporter = "list", ci = true } = options;
+  const {
+    startStack = true,
+    seed = false,
+    seedOptions = {},
+    grep,
+    reporter = "list",
+    ci = true,
+  } = options;
   if (startStack) await dockerUp();
   if (seed) {
-    const baseUrl = process.env.ARGUS_BASE_URL || DEFAULT_BASE_URL;
+    const baseUrl = Bun.env.ARGUS_BASE_URL || DEFAULT_BASE_URL;
     const seeder = new ReportSeeder(baseUrl);
     await seeder.seedAll(seedOptions);
   }
   // Ensure browsers installed
   await run("bun", ["x", "playwright", "install"], { cwd: "frontend" });
-  const testArgs = ["playwright", "test", "--config=playwright.config.ts", "--reporter", reporter];
+  const testArgs = [
+    "playwright",
+    "test",
+    "--config=playwright.config.ts",
+    "--reporter",
+    reporter,
+  ];
   if (ci) testArgs.unshift("--bun"); // no-op, but keeps clarity
   if (grep) {
     testArgs.push("--grep");
     testArgs.push(grep);
   }
-  await run("bun", testArgs, { cwd: "frontend", env: { CI: ci ? "true" : "" } });
+  await run("bun", testArgs, {
+    cwd: "frontend",
+    env: { CI: ci ? "true" : "" },
+  });
 }
 
 // CLI
 async function main() {
-  const args = process.argv.slice(2);
+  const args = Bun.argv.slice(2);
   const cmd = args[0] || "run";
   const getFlag = (name: string) => args.includes(name);
   const getValue = (name: string, def?: string) => {
@@ -187,17 +295,42 @@ async function main() {
     return;
   }
   if (cmd === "seed") {
-    const baseUrl = getValue("--base-url", process.env.ARGUS_BASE_URL || DEFAULT_BASE_URL) as string;
-    const only = args.filter((a, i) => a === "--only" && i + 1 < args.length).map((_, i) => args[args.indexOf("--only", i) + 1]).filter(Boolean);
-    const exclude = args.filter((a, i) => a === "--exclude" && i + 1 < args.length).map((_, i) => args[args.indexOf("--exclude", i) + 1]).filter(Boolean);
-    const reportsPer = parseInt(getValue("--reports-per-component", "3") as string, 10);
+    const baseUrl = getValue(
+      "--base-url",
+      Bun.env.ARGUS_BASE_URL || DEFAULT_BASE_URL
+    ) as string;
+    const onlyList: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--only" && i + 1 < args.length) onlyList.push(args[i + 1]);
+    }
+    const excludeList: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--exclude" && i + 1 < args.length)
+        excludeList.push(args[i + 1]);
+    }
+    const reportsPer = parseInt(
+      getValue("--reports-per-component", "3") as string,
+      10
+    );
     const includeAllStatuses = getFlag("--all-statuses");
     const seeder = new ReportSeeder(baseUrl);
-    await seeder.seedAll({ includeOnly: only.length ? only : null, excludeComponents: exclude, reportsPerComponent: reportsPer, includeAllStatuses, verbose: !getFlag("--quiet") });
+    await seeder.seedAll({
+      includeOnly: onlyList.length ? onlyList : null,
+      excludeComponents: excludeList,
+      reportsPerComponent: reportsPer,
+      includeAllStatuses,
+      verbose: !getFlag("--quiet"),
+    });
     return;
   }
   if (cmd === "test") {
-    await runE2E({ startStack: false, seed: false, grep: getValue("--grep"), reporter: getValue("--reporter", "list"), ci: getFlag("--ci") });
+    await runE2E({
+      startStack: false,
+      seed: false,
+      grep: getValue("--grep"),
+      reporter: getValue("--reporter", "list"),
+      ci: getFlag("--ci"),
+    });
     return;
   }
   // run: default — start stack + optional seed + tests
@@ -207,21 +340,26 @@ async function main() {
     seedOptions: {
       includeOnly: (() => {
         const list: string[] = [];
-        for (let i = 0; i < args.length; i++) if (args[i] === "--only" && args[i + 1]) list.push(args[i + 1]);
+        for (let i = 0; i < args.length; i++)
+          if (args[i] === "--only" && args[i + 1]) list.push(args[i + 1]);
         return list.length ? list : null;
       })(),
       excludeComponents: (() => {
         const list: string[] = [];
-        for (let i = 0; i < args.length; i++) if (args[i] === "--exclude" && args[i + 1]) list.push(args[i + 1]);
+        for (let i = 0; i < args.length; i++)
+          if (args[i] === "--exclude" && args[i + 1]) list.push(args[i + 1]);
         return list;
       })(),
-      reportsPerComponent: parseInt(getValue("--reports-per-component", "3") as string, 10),
+      reportsPerComponent: parseInt(
+        getValue("--reports-per-component", "3") as string,
+        10
+      ),
       includeAllStatuses: getFlag("--all-statuses"),
       verbose: !getFlag("--quiet"),
     },
     grep: getValue("--grep"),
     reporter: getValue("--reporter", "list"),
-    ci: getFlag("--ci") || process.env.CI === "true",
+    ci: getFlag("--ci") || Bun.env.CI === "true",
   });
 }
 
@@ -231,5 +369,3 @@ if (import.meta.main) {
     process.exit(1);
   });
 }
-
-
