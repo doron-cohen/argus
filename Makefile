@@ -100,16 +100,23 @@ frontend/test-e2e: frontend/install
 	cd frontend && bunx playwright install
 	cd frontend && CI=true bun run test:e2e --reporter=list
 
+frontend/test-e2e-with-seed: frontend/install
+	cd frontend && bunx playwright install
+	ARGUS_BASE_URL=http://localhost:8080 bun ./scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
+	cd frontend && CI=true bun run test:e2e --reporter=list
+
 frontend/test-e2e-real: frontend/install
 	cd frontend && bun run test:e2e
 
 # Run E2E tests with real application (fixed shell variable scope issue)
 frontend/test-e2e-app: frontend/install
 	docker compose up -d --wait
+	ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
 	cd frontend && CI=true bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
 
 frontend/test-e2e-ci: frontend/install
 	cd frontend && bunx playwright install
+	ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
 	cd frontend && CI=true bun run test:e2e --reporter=list
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-unit-bun frontend/test-e2e
@@ -189,3 +196,30 @@ frontend/ci: frontend/install frontend/lint frontend/test frontend/build fronten
 
 # Backend CI pipeline
 backend/ci: backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build
+
+# Seed test data
+seed-reports:
+	bun scripts/seed-reports.js
+
+seed-reports-help:
+	bun scripts/seed-reports.js --help
+
+test-seed:
+	bun scripts/test-seed-script.js
+
+# Clear database (requires make dev to be running)
+clean-db:
+	@echo "⚠️  This will clear all data in the database"
+	@echo "Make sure the development server is running (make dev)"
+	curl -X DELETE http://localhost:8080/api/admin/reset || echo "❌ Failed to reset database"
+
+# Seed specific scenarios for testing
+seed-test-scenarios: seed-mixed-reports
+
+seed-mixed-reports:
+	@echo "🌱 Seeding mixed scenario: some components with reports, others without"
+	bun scripts/seed-reports.js --exclude user-service --reports-per-component 3
+
+seed-comprehensive:
+	@echo "🌱 Seeding comprehensive test data with all status types"
+	bun scripts/seed-reports.js --all-statuses --reports-per-component 7
