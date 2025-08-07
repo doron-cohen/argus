@@ -97,27 +97,27 @@ frontend/test-unit:
 	cd frontend && bun run test:unit
 
 frontend/test-e2e: frontend/install
-    cd frontend && bunx playwright install
-    cd frontend && CI=true bun run test:e2e --reporter=list
+	cd frontend && bunx playwright install
+	cd frontend && CI=true bun run test:e2e --reporter=list
 
 frontend/test-e2e-with-seed: frontend/install
-    cd frontend && bunx playwright install
-    ARGUS_BASE_URL=http://localhost:8080 bun ./scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
-    cd frontend && CI=true bun run test:e2e --reporter=list
+	cd frontend && bunx playwright install
+	ARGUS_BASE_URL=http://localhost:8080 bun ./scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
+	cd frontend && CI=true bun run test:e2e --reporter=list
 
 frontend/test-e2e-real: frontend/install
 	cd frontend && bun run test:e2e
 
 # Run E2E tests with real application (fixed shell variable scope issue)
 frontend/test-e2e-app: frontend/install
-    docker compose up -d --wait
-    ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
-    cd frontend && CI=true bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
+	docker compose up -d --wait
+	ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
+	cd frontend && CI=true bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
 
 frontend/test-e2e-ci: frontend/install
-    cd frontend && bunx playwright install
-    ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
-    cd frontend && CI=true bun run test:e2e --reporter=list
+	cd frontend && bunx playwright install
+	ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
+	cd frontend && CI=true bun run test:e2e --reporter=list
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-unit-bun frontend/test-e2e
 
