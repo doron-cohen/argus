@@ -4,6 +4,13 @@ import {
   setLoading,
   setError,
   resetComponentDetails,
+  setLatestReports,
+  setReportsLoading,
+  setReportsError,
+  resetReports,
+  componentDetails,
+  error,
+  type ComponentReportsResponse,
 } from "./stores/app-store";
 
 // Import and register web components
@@ -71,8 +78,17 @@ async function showComponentDetail(componentId: string) {
     `;
   }
 
-  // Load component details
+  // Reset previous state
+  resetComponentDetails();
+  resetReports();
+
+  // Load component details and reports separately to avoid error masking
   await loadComponentDetails(componentId);
+
+  // Only load reports if component details loaded successfully
+  if (!error.get()) {
+    await loadComponentReports(componentId);
+  }
 }
 
 async function loadComponentDetails(componentId: string): Promise<void> {
@@ -103,6 +119,67 @@ async function loadComponentDetails(componentId: string): Promise<void> {
     console.error("Error fetching component details:", err);
   } finally {
     setLoading(false);
+  }
+}
+
+async function loadComponentReports(componentId: string): Promise<void> {
+  try {
+    setReportsLoading(true);
+    setReportsError(null);
+
+    const response = await fetch(
+      `/api/catalog/v1/components/${encodeURIComponent(
+        componentId
+      )}/reports?latest_per_check=true`
+    );
+
+    // Check if component changed while we were fetching (race condition protection)
+    const currentComponent = componentDetails.get();
+    if (
+      !currentComponent ||
+      (currentComponent.id !== componentId && currentComponent.name !== componentId)
+    ) {
+      return; // Component changed, discard this response
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // Component not found, but we already loaded component details, so this might be an empty state
+        setLatestReports([]);
+        return;
+      }
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const reportsResponse: ComponentReportsResponse = await response.json();
+
+    // Double-check component ID before setting reports (additional race condition protection)
+    const finalComponent = componentDetails.get();
+    if (
+      finalComponent &&
+      (finalComponent.id === componentId || finalComponent.name === componentId)
+    ) {
+      setLatestReports(reportsResponse.reports);
+    }
+  } catch (err) {
+    // Only set error if we're still on the same component
+    const currentComponent = componentDetails.get();
+    if (
+      currentComponent &&
+      (currentComponent.id === componentId || currentComponent.name === componentId)
+    ) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch component reports";
+      setReportsError(errorMessage);
+      console.error("Error fetching component reports:", err);
+    }
+  } finally {
+    setReportsLoading(false);
   }
 }
 
