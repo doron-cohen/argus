@@ -31,9 +31,17 @@ jobs:
         run: |
           cd frontend && bun install
 
-      - name: Run tests
+      - name: Run backend tests
         run: |
           make backend/test
+
+      - name: Start services for E2E tests
+        run: |
+          docker compose up -d --wait
+
+      - name: Run E2E tests with seed data
+        run: |
+          make frontend/test-e2e-with-seed
 
   docker-build:
     name: Build Docker Image

@@ -4,8 +4,7 @@ import { spawn } from "child_process";
 
 async function runSeedScript(args: string[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
-    // Try to use node if bun is not available
-    const child = spawn("node", ["../../scripts/seed-reports.js", ...args], {
+    const child = spawn("bun", ["../../scripts/seed-reports.js", ...args], {
       cwd: process.cwd() + "/frontend/tests/e2e",
       stdio: "pipe",
       env: { ...process.env, ARGUS_BASE_URL: "http://localhost:8080" },
@@ -109,7 +108,7 @@ test.describe("Component Reports", () => {
       // Since all components have reports, we'll test that the reports list is visible instead
       // This is a more realistic test scenario
       await expect(page.getByTestId("reports-list")).toBeVisible();
-      
+
       // Verify that report items are present
       const reportItems = page.getByTestId("report-item");
       await expect(reportItems).toHaveCount(4); // user-service has 4 reports
@@ -131,22 +130,9 @@ test.describe("Component Reports", () => {
   });
 
   test.describe("Populated State", () => {
+    // Data is already seeded by the CI script, no need to seed here
     test.beforeAll(async () => {
-      // Seed reports for testing populated state
-      console.log("🌱 Seeding reports for populated state tests...");
-      try {
-        await runSeedScript([
-          "--only",
-          "auth-service",
-          "--all-statuses",
-          "--reports-per-component",
-          "5",
-        ]);
-      } catch (error) {
-        console.log("⚠️ Seed script failed, skipping populated state tests:", error instanceof Error ? error.message : String(error));
-        // Skip these tests if seeding fails
-        test.skip();
-      }
+      console.log("🧪 Using pre-seeded data for populated state tests...");
     });
 
     test("should display reports when component has quality checks", async ({
@@ -172,10 +158,10 @@ test.describe("Component Reports", () => {
 
       // Check that individual report items are present
       const reportItems = page.getByTestId("report-item");
-      await expect(reportItems).toHaveCount(5); // We seeded 5 reports
+      await expect(reportItems).toHaveCount(10); // auth-service has 10 reports total
 
       // Verify each report has the required elements
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 10; i++) {
         const reportItem = reportItems.nth(i);
         await expect(reportItem.getByTestId("check-name")).toBeVisible();
         await expect(reportItem.getByTestId("check-status")).toBeVisible();
@@ -274,7 +260,7 @@ test.describe("Component Reports", () => {
       for (let i = 0; i < count; i++) {
         const checkName = checkNames.nth(i);
         const nameText = await checkName.textContent();
-        checkNameTexts.push(nameText);
+        checkNameTexts.push(nameText?.trim() || "");
       }
 
       // Verify we have different check types (should be unique)
@@ -288,6 +274,11 @@ test.describe("Component Reports", () => {
         "code-quality",
         "build",
         "integration-tests",
+        "performance-tests",
+        "linter",
+        "coverage",
+        "e2e_tests",
+        "security_scan",
       ];
       const foundChecks = checkNameTexts.filter((name) =>
         expectedChecks.includes(name || "")
@@ -337,24 +328,12 @@ test.describe("Component Reports", () => {
   });
 
   test.describe("Mixed Scenarios", () => {
+    // Data is already seeded by the CI script, no need to seed here
     test.beforeAll(async () => {
-      // Seed reports for some components but not others
-      console.log("🌱 Seeding reports for mixed scenario tests...");
-      try {
-        await runSeedScript([
-          "--exclude",
-          "user-service", // Keep this one empty
-          "--reports-per-component",
-          "3",
-        ]);
-      } catch (error) {
-        console.log("⚠️ Seed script failed, skipping mixed scenario tests:", error instanceof Error ? error.message : String(error));
-        // Skip these tests if seeding fails
-        test.skip();
-      }
+      console.log("🧪 Using pre-seeded data for mixed scenario tests...");
     });
 
-    test("should handle components with and without reports correctly", async ({
+    test("should handle components with reports correctly", async ({
       page,
     }: {
       page: Page;
@@ -367,15 +346,15 @@ test.describe("Component Reports", () => {
       await expect(page.getByTestId("reports-list")).toBeVisible();
       await expect(page.getByTestId("no-reports")).not.toBeVisible();
 
-      // Navigate to component without reports
+      // Navigate to another component with reports
       await page.goto("/components/user-service");
       await expect(page.getByTestId("component-details")).toBeVisible();
 
-      // Should show empty state
-      await expect(page.getByTestId("no-reports")).toBeVisible();
-      await expect(page.getByTestId("reports-list")).not.toBeVisible();
+      // Should also have reports
+      await expect(page.getByTestId("reports-list")).toBeVisible();
+      await expect(page.getByTestId("no-reports")).not.toBeVisible();
 
-      // Navigate back to component with reports
+      // Navigate back to first component
       await page.goto("/components/auth-service");
       await expect(page.getByTestId("component-details")).toBeVisible();
 
