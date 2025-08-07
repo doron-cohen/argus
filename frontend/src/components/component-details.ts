@@ -181,7 +181,6 @@ export class ComponentDetails extends BaseComponent {
     } catch {
       return escapeHtml(String(timestamp));
     }
->>>>>>> origin/main
   }
 
   private showLoading(isLoading: boolean) {
