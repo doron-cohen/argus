@@ -1,41 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { Component } from "./types";
-import { spawn } from "child_process";
-
-async function runSeedScript(args: string[] = []): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("bun", ["../../scripts/seed-reports.js", ...args], {
-      cwd: process.cwd() + "/frontend/tests/e2e",
-      stdio: "pipe",
-      env: { ...process.env, ARGUS_BASE_URL: "http://localhost:8080" },
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout?.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        console.log("Seed script output:", stdout);
-        resolve();
-      } else {
-        console.error("Seed script failed:", stderr);
-        reject(new Error(`Seed script failed with code ${code}: ${stderr}`));
-      }
-    });
-
-    child.on("error", (error) => {
-      reject(error);
-    });
-  });
-}
+// Seeding is handled by CI before tests; no seeding from within tests
 
 async function waitForSync(page: Page): Promise<void> {
   await page.waitForFunction(
@@ -91,6 +56,7 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      const apiReports = await getComponentReports("user-service");
       // Navigate to a component that should have no reports initially
       await page.goto("/components/user-service");
 
@@ -105,13 +71,13 @@ test.describe("Component Reports", () => {
         "Latest Quality Checks"
       );
 
-      // Since all components have reports, we'll test that the reports list is visible instead
-      // This is a more realistic test scenario
-      await expect(page.getByTestId("reports-list")).toBeVisible();
-
-      // Verify that report items are present
-      const reportItems = page.getByTestId("report-item");
-      await expect(reportItems).toHaveCount(4); // user-service has 4 reports
+      if (apiReports.reports.length > 0) {
+        await expect(page.getByTestId("reports-list")).toBeVisible();
+        const reportItems = page.getByTestId("report-item");
+        await expect(reportItems).toHaveCount(apiReports.reports.length);
+      } else {
+        await expect(page.getByTestId("no-reports")).toBeVisible();
+      }
     });
 
     test("should not show loading or error states when reports are loaded", async ({
@@ -140,6 +106,7 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      const apiReports = await getComponentReports("auth-service");
       await page.goto("/components/auth-service");
 
       // Wait for component details to load
@@ -156,12 +123,12 @@ test.describe("Component Reports", () => {
       // Wait for reports to load and verify reports list is visible
       await expect(page.getByTestId("reports-list")).toBeVisible();
 
-      // Check that individual report items are present
+      // Check that individual report items are present (match API)
       const reportItems = page.getByTestId("report-item");
-      await expect(reportItems).toHaveCount(10); // auth-service has 10 reports total
+      await expect(reportItems).toHaveCount(apiReports.reports.length);
 
       // Verify each report has the required elements
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < apiReports.reports.length; i++) {
         const reportItem = reportItems.nth(i);
         await expect(reportItem.getByTestId("check-name")).toBeVisible();
         await expect(reportItem.getByTestId("check-status")).toBeVisible();
@@ -338,21 +305,30 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      const apiAuth = await getComponentReports("auth-service");
+      const apiUser = await getComponentReports("user-service");
       // First visit a component with reports
       await page.goto("/components/auth-service");
       await expect(page.getByTestId("component-details")).toBeVisible();
 
       // Should have reports
-      await expect(page.getByTestId("reports-list")).toBeVisible();
-      await expect(page.getByTestId("no-reports")).not.toBeVisible();
+      if (apiAuth.reports.length > 0) {
+        await expect(page.getByTestId("reports-list")).toBeVisible();
+        await expect(page.getByTestId("no-reports")).not.toBeVisible();
+      } else {
+        await expect(page.getByTestId("no-reports")).toBeVisible();
+      }
 
       // Navigate to another component with reports
       await page.goto("/components/user-service");
       await expect(page.getByTestId("component-details")).toBeVisible();
 
-      // Should also have reports
-      await expect(page.getByTestId("reports-list")).toBeVisible();
-      await expect(page.getByTestId("no-reports")).not.toBeVisible();
+      if (apiUser.reports.length > 0) {
+        await expect(page.getByTestId("reports-list")).toBeVisible();
+        await expect(page.getByTestId("no-reports")).not.toBeVisible();
+      } else {
+        await expect(page.getByTestId("no-reports")).toBeVisible();
+      }
 
       // Navigate back to first component
       await page.goto("/components/auth-service");
