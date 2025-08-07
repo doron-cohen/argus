@@ -41,7 +41,9 @@ jobs:
 
       - name: Run E2E tests with seed data
         run: |
-          bun scripts/e2e.ts run --seed --only auth-service --all-statuses --reports-per-component 5 --ci --reporter list
+          docker compose up -d --wait
+          ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
+          cd frontend && CI=true bun run test:e2e --reporter=list
 
   docker-build:
     name: Build Docker Image
