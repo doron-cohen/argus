@@ -1,7 +1,7 @@
-import { BaseComponent } from "../utils/base-component";
-import { escapeHtml } from "../utils";
+import { LitElement, html } from "lit";
+import { escapeHtml } from "../../utils";
 
-export interface Component {
+export interface ComponentItem {
   id: string;
   name: string;
   description: string;
@@ -11,12 +11,17 @@ export interface Component {
   };
 }
 
-export class ComponentList extends BaseComponent {
-  private components: Component[] = [];
+export class ComponentList extends LitElement {
+  private components: ComponentItem[] = [];
   private isLoading = true;
   private error: string | null = null;
 
-  connectedCallback() {
+  protected createRenderRoot(): this {
+    return this;
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
     this.loadComponents();
   }
 
@@ -24,45 +29,41 @@ export class ComponentList extends BaseComponent {
     try {
       this.isLoading = true;
       this.error = null;
-      this.render();
+      this.requestUpdate();
 
       const response = await fetch("/api/catalog/v1/components");
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error || `HTTP ${response.status}: ${response.statusText}`
+          (errorData as any).error || `HTTP ${response.status}: ${response.statusText}`
         );
       }
 
       this.components = await response.json();
     } catch (err) {
-      this.error =
-        err instanceof Error ? err.message : "Failed to fetch components";
+      this.error = err instanceof Error ? err.message : "Failed to fetch components";
       console.error("Error fetching components:", err);
     } finally {
       this.isLoading = false;
-      this.render();
+      this.requestUpdate();
       this.updateHeader();
     }
   }
 
   private updateHeader(): void {
     const header = document.querySelector('[data-testid="components-header"]');
-    if (header) {
-      if (this.error) {
-        header.textContent = "Components";
-      } else if (this.isLoading) {
-        header.textContent = "Components";
-      } else {
-        header.textContent = `Components (${this.components.length})`;
-      }
+    if (!header) return;
+    if (this.error || this.isLoading) {
+      header.textContent = "Components";
+    } else {
+      header.textContent = `Components (${this.components.length})`;
     }
   }
 
-  private render(): void {
+  render() {
     if (this.isLoading) {
-      this.innerHTML = `
+      return html`
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
             <thead class="bg-gray-50">
@@ -84,11 +85,10 @@ export class ComponentList extends BaseComponent {
           </table>
         </div>
       `;
-      return;
     }
 
     if (this.error) {
-      this.innerHTML = `
+      return html`
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
             <thead class="bg-gray-50">
@@ -103,20 +103,17 @@ export class ComponentList extends BaseComponent {
             <tbody class="bg-white divide-y divide-gray-200" data-testid="components-tbody">
               <tr>
                 <td colspan="5" class="px-6 py-4 text-center">
-                  <div class="text-sm text-red-500" data-testid="error-message">Error: ${escapeHtml(
-                    this.error
-                  )}</div>
+                  <div class="text-sm text-red-500" data-testid="error-message">Error: ${escapeHtml(this.error)}</div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       `;
-      return;
     }
 
     if (this.components.length === 0) {
-      this.innerHTML = `
+      return html`
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
             <thead class="bg-gray-50">
@@ -138,11 +135,9 @@ export class ComponentList extends BaseComponent {
           </table>
         </div>
       `;
-      return;
     }
 
-    // Render table rows with clickable links
-    this.innerHTML = `
+    return html`
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
           <thead class="bg-gray-50">
@@ -157,41 +152,40 @@ export class ComponentList extends BaseComponent {
           <tbody class="bg-white divide-y divide-gray-200" data-testid="components-tbody">
             ${this.components
               .map(
-                (comp) => `
-              <tr class="hover:bg-gray-50 cursor-pointer" data-testid="component-row" data-component-id="${escapeHtml(
-                comp.id || comp.name
-              )}">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <a href="/components/${escapeHtml(
+                (comp) => html`
+                  <tr class="hover:bg-gray-50 cursor-pointer" data-testid="component-row" data-component-id="${escapeHtml(
                     comp.id || comp.name
-                  )}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900" data-testid="component-name">
-                    ${escapeHtml(comp.name)}
-                  </a>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-500" data-testid="component-id">${escapeHtml(
-                    comp.id || comp.name
-                  )}</div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="text-sm text-gray-900" data-testid="component-description">${escapeHtml(
-                    comp.description || ""
-                  )}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-500" data-testid="component-team">${escapeHtml(
-                    comp.owners?.team || ""
-                  )}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-500" data-testid="component-maintainers">${escapeHtml(
-                    comp.owners?.maintainers?.join(", ") || ""
-                  )}</div>
-                </td>
-              </tr>
-            `
-              )
-              .join("")}
+                  )}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <a href="/components/${escapeHtml(
+                        comp.id || comp.name
+                      )}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900" data-testid="component-name">
+                        ${escapeHtml(comp.name)}
+                      </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-500" data-testid="component-id">${escapeHtml(
+                        comp.id || comp.name
+                      )}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="text-sm text-gray-900" data-testid="component-description">${escapeHtml(
+                        comp.description || ""
+                      )}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-500" data-testid="component-team">${escapeHtml(
+                        comp.owners?.team || ""
+                      )}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-500" data-testid="component-maintainers">${escapeHtml(
+                        comp.owners?.maintainers?.join(", ") || ""
+                      )}</div>
+                    </td>
+                  </tr>
+                `
+              )}
           </tbody>
         </table>
       </div>
@@ -199,7 +193,8 @@ export class ComponentList extends BaseComponent {
   }
 }
 
-// Register the web component
 if (!customElements.get("component-list")) {
   customElements.define("component-list", ComponentList);
 }
+
+
