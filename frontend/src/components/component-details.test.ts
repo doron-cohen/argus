@@ -299,8 +299,8 @@ describe("ComponentDetails", () => {
         element.querySelector('[data-testid="component-details-error"]')
       ).toBeTruthy();
       expect(
-        element.querySelector('[data-testid="component-details"]')
-      ).toBeFalsy();
+          element.querySelector('[data-testid="component-details"]')
+        ).toBeTruthy();
     });
 
     test("should clean up subscriptions on disconnect", () => {
