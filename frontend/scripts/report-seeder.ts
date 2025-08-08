@@ -220,7 +220,8 @@ if (import.meta.main) {
 
     const onlyList: string[] = [];
     for (let i = 0; i < args.length; i++) {
-      if (args[i] === "--only" && i + 1 < args.length) onlyList.push(args[i + 1]);
+      if (args[i] === "--only" && i + 1 < args.length)
+        onlyList.push(args[i + 1]);
     }
     const excludeList: string[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -247,5 +248,3 @@ if (import.meta.main) {
     process.exit(1);
   });
 }
-
-
