@@ -8,7 +8,7 @@ WORKDIR /app
 COPY frontend/ ./frontend/
 
 # Install dependencies and build
-RUN bun install --cwd ./frontend --frozen-lockfile
+RUN bun install --cwd ./frontend
 RUN bun run --cwd ./frontend build
 
 # Backend build stage
