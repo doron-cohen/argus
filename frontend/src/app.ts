@@ -16,7 +16,10 @@ import {
 // Import and register web components
 import "./components/component-list";
 import { ComponentDetails } from "./components/component-details";
-// NOTE: Use explicit fetch to ensure correct base path and consistent error handling
+import {
+  getComponentById,
+  getComponentReports,
+} from "./api/services/components/client";
 
 // Ensure ComponentDetails is registered
 if (!customElements.get("component-details")) {
@@ -97,26 +100,18 @@ async function loadComponentDetails(componentId: string): Promise<void> {
     setLoading(true);
     setError(null);
 
-    const response = await fetch(
-      `/api/catalog/v1/components/${encodeURIComponent(componentId)}`
-    );
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error(`Component not found: ${componentId}`);
-      }
-      let message = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData && typeof errorData.error === "string") {
-          message = errorData.error;
-        }
-      } catch {}
+    const { status, data } = await getComponentById(componentId);
+    if (status === 404) {
+      throw new Error(`Component not found: ${componentId}`);
+    }
+    if (status < 200 || status >= 300) {
+      const message =
+        data && typeof data === "object" && (data as any).error
+          ? (data as any).error
+          : `HTTP ${status}`;
       throw new Error(message);
     }
-
-    const component = await response.json();
-    setComponentDetails(component);
+    setComponentDetails(data as any);
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Failed to fetch component details";
@@ -132,11 +127,9 @@ async function loadComponentReports(componentId: string): Promise<void> {
     setReportsLoading(true);
     setReportsError(null);
 
-    const response = await fetch(
-      `/api/catalog/v1/components/${encodeURIComponent(
-        componentId
-      )}/reports?latest_per_check=true`
-    );
+    const { status, data } = await getComponentReports(componentId, {
+      latest_per_check: true,
+    });
 
     // Check if component changed while we were fetching (race condition protection)
     const currentComponent = componentDetails.get();
@@ -148,23 +141,20 @@ async function loadComponentReports(componentId: string): Promise<void> {
       return; // Component changed, discard this response
     }
 
-    if (response.status === 404) {
+    if (status === 404) {
       // Component not found, but we already loaded component details, so this might be an empty state
       setLatestReports([]);
       return;
     }
-    if (!response.ok) {
-      let message = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData && typeof errorData.error === "string") {
-          message = errorData.error;
-        }
-      } catch {}
+    if (status < 200 || status >= 300) {
+      const message =
+        data && typeof data === "object" && (data as any).error
+          ? (data as any).error
+          : `HTTP ${status}`;
       throw new Error(message);
     }
 
-    const reportsResponse: ComponentReportsResponse = await response.json();
+    const reportsResponse: ComponentReportsResponse = data as any;
 
     // Double-check component ID before setting reports (additional race condition protection)
     const finalComponent = componentDetails.get();

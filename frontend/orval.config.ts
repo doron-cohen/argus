@@ -4,7 +4,12 @@ export default {
     output: {
       target: './src/api/services/components/client.ts',
       client: 'fetch',
-      override: { baseUrl: '/api/catalog/v1' },
+      override: {
+        mutator: {
+          path: './src/api/fetcher.ts',
+          name: 'apiFetch',
+        },
+      },
     },
   },
 } as const;

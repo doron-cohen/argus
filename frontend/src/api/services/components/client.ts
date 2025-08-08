@@ -5,6 +5,7 @@
  * API for managing and discovering components from various sources
  * OpenAPI spec version: 0.1.0
  */
+import { apiFetch } from '../../fetcher';
 export type GetComponentReportsStatus = typeof GetComponentReportsStatus[keyof typeof GetComponentReportsStatus];
 
 
@@ -173,18 +174,13 @@ export const getGetComponentsUrl = () => {
 }
 
 export const getComponents = async ( options?: RequestInit): Promise<getComponentsResponse> => {
-  const res = await fetch(getGetComponentsUrl(),
+return apiFetch<Promise<getComponentsResponse>>(getGetComponentsUrl(),
   {      
     ...options,
     method: 'GET'
     
   }
-
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
+);}
 
 
 /**
@@ -203,18 +199,13 @@ export const getGetComponentByIdUrl = (componentId: string,) => {
 }
 
 export const getComponentById = async (componentId: string, options?: RequestInit): Promise<getComponentByIdResponse> => {
-  const res = await fetch(getGetComponentByIdUrl(componentId),
+return apiFetch<Promise<getComponentByIdResponse>>(getGetComponentByIdUrl(componentId),
   {      
     ...options,
     method: 'GET'
     
   }
-
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
+);}
 
 
 /**
@@ -244,17 +235,12 @@ export const getGetComponentReportsUrl = (componentId: string,
 
 export const getComponentReports = async (componentId: string,
     params?: GetComponentReportsParams, options?: RequestInit): Promise<getComponentReportsResponse> => {
-  const res = await fetch(getGetComponentReportsUrl(componentId,params),
+return apiFetch<Promise<getComponentReportsResponse>>(getGetComponentReportsUrl(componentId,params),
   {      
     ...options,
     method: 'GET'
     
   }
-
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
+);}
 
 
