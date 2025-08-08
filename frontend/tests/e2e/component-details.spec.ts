@@ -136,7 +136,7 @@ test.describe("Component Details Page", () => {
   }) => {
     // Get component details via API
     const apiResponse = await page.request.get(
-      "http://localhost:8080/api/components/v1/components/auth-service"
+      "http://localhost:8080/api/catalog/v1/components/auth-service"
     );
     expect(apiResponse.ok()).toBeTruthy();
 

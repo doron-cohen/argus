@@ -107,7 +107,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
   }) => {
     // Get components via API
     const apiResponse = await page.request.get(
-      "http://localhost:8080/api/components/v1/components"
+      "http://localhost:8080/api/catalog/v1/components"
     );
     expect(apiResponse.ok()).toBeTruthy();
 
