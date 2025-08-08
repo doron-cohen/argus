@@ -2,8 +2,15 @@ import { LitElement, html, type TemplateResult } from "lit";
 import Navigo from "navigo";
 import "../components/component-details";
 import "../pages/home/index";
-import { resetComponentDetails, resetReports, error } from "../stores/app-store";
-import { loadComponentDetails, loadComponentReports } from "../pages/component-details/data";
+import {
+  resetComponentDetails,
+  resetReports,
+  error,
+} from "../stores/app-store";
+import {
+  loadComponentDetails,
+  loadComponentReports,
+} from "../pages/component-details/data";
 
 export class RouterOutlet extends LitElement {
   private router: Navigo | null = null;
@@ -25,8 +32,15 @@ export class RouterOutlet extends LitElement {
           this.setView(html`
             <div class="container mx-auto px-4 py-8">
               <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2" data-testid="page-title">Component Details</h1>
-                <p class="text-gray-600" data-testid="page-description">View detailed information about the component</p>
+                <h1
+                  class="text-3xl font-bold text-gray-900 mb-2"
+                  data-testid="page-title"
+                >
+                  Component Details
+                </h1>
+                <p class="text-gray-600" data-testid="page-description">
+                  View detailed information about the component
+                </p>
               </div>
               <component-details></component-details>
             </div>
@@ -44,12 +58,18 @@ export class RouterOutlet extends LitElement {
             await loadComponentReports(componentId);
           }
         })
-        .notFound(() => this.setView(html`
-          <div class="container mx-auto px-4 py-8">
-            <h1 class="text-2xl font-bold text-gray-900 mb-4">Page not found</h1>
-            <a href="/" class="text-indigo-600 hover:text-indigo-500">Go home</a>
-          </div>
-        `))
+        .notFound(() =>
+          this.setView(html`
+            <div class="container mx-auto px-4 py-8">
+              <h1 class="text-2xl font-bold text-gray-900 mb-4">
+                Page not found
+              </h1>
+              <a href="/" class="text-indigo-600 hover:text-indigo-500"
+                >Go home</a
+              >
+            </div>
+          `),
+        )
         .resolve();
     }
   }
@@ -67,5 +87,3 @@ export class RouterOutlet extends LitElement {
 if (!customElements.get("router-outlet")) {
   customElements.define("router-outlet", RouterOutlet);
 }
-
-

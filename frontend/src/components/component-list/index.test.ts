@@ -14,7 +14,10 @@ function attachHeader() {
   return headerWrapper;
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 100): Promise<void> {
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 100,
+): Promise<void> {
   const start = Date.now();
   while (!predicate()) {
     if (Date.now() - start > timeoutMs) break;
@@ -36,7 +39,8 @@ describe("component-list (Lit)", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     globalThis.fetch = originalFetch;
-    if ((globalThis as any).window) (globalThis as any).window.fetch = originalWindowFetch;
+    if ((globalThis as any).window)
+      (globalThis as any).window.fetch = originalWindowFetch;
   });
 
   test("shows loading state initially", async () => {
@@ -58,7 +62,11 @@ describe("component-list (Lit)", () => {
   });
 
   test("renders empty state and updates header count", async () => {
-    const okEmpty = (() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }) as any) as any;
+    const okEmpty = (() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      }) as any) as any;
     globalThis.fetch = okEmpty;
     if ((globalThis as any).window) (globalThis as any).window.fetch = okEmpty;
 
@@ -69,7 +77,9 @@ describe("component-list (Lit)", () => {
     await new Promise((r) => setTimeout(r, 0));
     await new Promise((r) => setTimeout(r, 0));
 
-    const empty = element.querySelector('[data-testid="no-components-message"]');
+    const empty = element.querySelector(
+      '[data-testid="no-components-message"]',
+    );
     expect(empty).toBeTruthy();
 
     const header = document.querySelector('[data-testid="components-header"]');
@@ -78,7 +88,12 @@ describe("component-list (Lit)", () => {
 
   test("renders error state", async () => {
     const errResp = (() =>
-      Promise.resolve({ ok: false, status: 500, statusText: "Server Error", json: () => Promise.resolve({ error: "Boom" }) }) as any) as any;
+      Promise.resolve({
+        ok: false,
+        status: 500,
+        statusText: "Server Error",
+        json: () => Promise.resolve({ error: "Boom" }),
+      }) as any) as any;
     globalThis.fetch = errResp;
     if ((globalThis as any).window) (globalThis as any).window.fetch = errResp;
 
@@ -98,10 +113,24 @@ describe("component-list (Lit)", () => {
 
   test("renders rows and updates header count", async () => {
     const data = [
-      { id: "a", name: "A", description: "desc", owners: { maintainers: ["m"], team: "t" } },
-      { id: "b", name: "B", description: "desc", owners: { maintainers: [], team: "t" } },
+      {
+        id: "a",
+        name: "A",
+        description: "desc",
+        owners: { maintainers: ["m"], team: "t" },
+      },
+      {
+        id: "b",
+        name: "B",
+        description: "desc",
+        owners: { maintainers: [], team: "t" },
+      },
     ];
-    const okData = (() => Promise.resolve({ ok: true, json: () => Promise.resolve(data) }) as any) as any;
+    const okData = (() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+      }) as any) as any;
     globalThis.fetch = okData;
     if ((globalThis as any).window) (globalThis as any).window.fetch = okData;
 
@@ -110,16 +139,19 @@ describe("component-list (Lit)", () => {
 
     // Wait for fetch and render to complete
     await waitFor(
-      () => (element as HTMLElement).querySelectorAll('[data-testid="component-row"]').length === 2,
-      1000
+      () =>
+        (element as HTMLElement).querySelectorAll(
+          '[data-testid="component-row"]',
+        ).length === 2,
+      1000,
     );
 
-    const rows = (element as HTMLElement).querySelectorAll('[data-testid="component-row"]');
+    const rows = (element as HTMLElement).querySelectorAll(
+      '[data-testid="component-row"]',
+    );
     expect(rows.length).toBe(2);
 
     const header = document.querySelector('[data-testid="components-header"]');
     expect(header?.textContent?.trim()).toBe("Components (2)");
   });
 });
-
-

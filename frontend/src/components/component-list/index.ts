@@ -1,5 +1,6 @@
 import { LitElement, html } from "lit";
 import { escapeHtml } from "../../utils";
+import { getComponents } from "../../api/services/components/client";
 
 export interface ComponentItem {
   id: string;
@@ -31,18 +32,14 @@ export class ComponentList extends LitElement {
       this.error = null;
       this.requestUpdate();
 
-      const response = await fetch("/api/catalog/v1/components");
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          (errorData as any).error || `HTTP ${response.status}: ${response.statusText}`
-        );
+      const { status, data } = await getComponents();
+      if (status < 200 || status >= 300) {
+        throw new Error(`HTTP ${status}`);
       }
-
-      this.components = await response.json();
+      this.components = data as unknown as ComponentItem[];
     } catch (err) {
-      this.error = err instanceof Error ? err.message : "Failed to fetch components";
+      this.error =
+        err instanceof Error ? err.message : "Failed to fetch components";
       console.error("Error fetching components:", err);
     } finally {
       this.isLoading = false;
@@ -65,20 +62,61 @@ export class ComponentList extends LitElement {
     if (this.isLoading) {
       return html`
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
+          <table
+            class="min-w-full divide-y divide-gray-200"
+            data-testid="components-table"
+          >
             <thead class="bg-gray-50">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-name">Name</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-id">ID</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-description">Description</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-team">Team</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-maintainers">Maintainers</th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-name"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-id"
+                >
+                  ID
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-description"
+                >
+                  Description
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-team"
+                >
+                  Team
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-maintainers"
+                >
+                  Maintainers
+                </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200" data-testid="components-tbody">
+            <tbody
+              class="bg-white divide-y divide-gray-200"
+              data-testid="components-tbody"
+            >
               <tr>
                 <td colspan="5" class="px-6 py-4 text-center">
-                  <div class="text-sm text-gray-500" data-testid="loading-message">Loading components...</div>
+                  <div
+                    class="text-sm text-gray-500"
+                    data-testid="loading-message"
+                  >
+                    Loading components...
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -90,20 +128,58 @@ export class ComponentList extends LitElement {
     if (this.error) {
       return html`
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
+          <table
+            class="min-w-full divide-y divide-gray-200"
+            data-testid="components-table"
+          >
             <thead class="bg-gray-50">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-name">Name</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-id">ID</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-description">Description</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-team">Team</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-maintainers">Maintainers</th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-name"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-id"
+                >
+                  ID
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-description"
+                >
+                  Description
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-team"
+                >
+                  Team
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-maintainers"
+                >
+                  Maintainers
+                </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200" data-testid="components-tbody">
+            <tbody
+              class="bg-white divide-y divide-gray-200"
+              data-testid="components-tbody"
+            >
               <tr>
                 <td colspan="5" class="px-6 py-4 text-center">
-                  <div class="text-sm text-red-500" data-testid="error-message">Error: ${escapeHtml(this.error)}</div>
+                  <div class="text-sm text-red-500" data-testid="error-message">
+                    Error: ${escapeHtml(this.error)}
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -115,20 +191,61 @@ export class ComponentList extends LitElement {
     if (this.components.length === 0) {
       return html`
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
+          <table
+            class="min-w-full divide-y divide-gray-200"
+            data-testid="components-table"
+          >
             <thead class="bg-gray-50">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-name">Name</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-id">ID</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-description">Description</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-team">Team</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-maintainers">Maintainers</th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-name"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-id"
+                >
+                  ID
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-description"
+                >
+                  Description
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-team"
+                >
+                  Team
+                </th>
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  data-testid="header-maintainers"
+                >
+                  Maintainers
+                </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200" data-testid="components-tbody">
+            <tbody
+              class="bg-white divide-y divide-gray-200"
+              data-testid="components-tbody"
+            >
               <tr>
                 <td colspan="5" class="px-6 py-4 text-center">
-                  <div class="text-sm text-gray-500" data-testid="no-components-message">No components found</div>
+                  <div
+                    class="text-sm text-gray-500"
+                    data-testid="no-components-message"
+                  >
+                    No components found
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -139,53 +256,104 @@ export class ComponentList extends LitElement {
 
     return html`
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200" data-testid="components-table">
+        <table
+          class="min-w-full divide-y divide-gray-200"
+          data-testid="components-table"
+        >
           <thead class="bg-gray-50">
             <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-name">Name</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-id">ID</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-description">Description</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-team">Team</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-testid="header-maintainers">Maintainers</th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                data-testid="header-name"
+              >
+                Name
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                data-testid="header-id"
+              >
+                ID
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                data-testid="header-description"
+              >
+                Description
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                data-testid="header-team"
+              >
+                Team
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                data-testid="header-maintainers"
+              >
+                Maintainers
+              </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200" data-testid="components-tbody">
-            ${this.components
-              .map(
-                (comp) => html`
-                  <tr class="hover:bg-gray-50 cursor-pointer" data-testid="component-row" data-component-id="${escapeHtml(
-                    comp.id || comp.name
-                  )}">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <a href="/components/${escapeHtml(
-                        comp.id || comp.name
-                      )}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900" data-testid="component-name">
-                        ${escapeHtml(comp.name)}
-                      </a>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm text-gray-500" data-testid="component-id">${escapeHtml(
-                        comp.id || comp.name
-                      )}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                      <div class="text-sm text-gray-900" data-testid="component-description">${escapeHtml(
-                        comp.description || ""
-                      )}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm text-gray-500" data-testid="component-team">${escapeHtml(
-                        comp.owners?.team || ""
-                      )}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm text-gray-500" data-testid="component-maintainers">${escapeHtml(
-                        comp.owners?.maintainers?.join(", ") || ""
-                      )}</div>
-                    </td>
-                  </tr>
-                `
-              )}
+          <tbody
+            class="bg-white divide-y divide-gray-200"
+            data-testid="components-tbody"
+          >
+            ${this.components.map(
+              (comp) => html`
+                <tr
+                  class="hover:bg-gray-50 cursor-pointer"
+                  data-testid="component-row"
+                  data-component-id="${escapeHtml(comp.id || comp.name)}"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <a
+                      href="/components/${escapeHtml(comp.id || comp.name)}"
+                      class="text-sm font-medium text-indigo-600 hover:text-indigo-900"
+                      data-testid="component-name"
+                    >
+                      ${escapeHtml(comp.name)}
+                    </a>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div
+                      class="text-sm text-gray-500"
+                      data-testid="component-id"
+                    >
+                      ${escapeHtml(comp.id || comp.name)}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div
+                      class="text-sm text-gray-900"
+                      data-testid="component-description"
+                    >
+                      ${escapeHtml(comp.description || "")}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div
+                      class="text-sm text-gray-500"
+                      data-testid="component-team"
+                    >
+                      ${escapeHtml(comp.owners?.team || "")}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div
+                      class="text-sm text-gray-500"
+                      data-testid="component-maintainers"
+                    >
+                      ${escapeHtml(comp.owners?.maintainers?.join(", ") || "")}
+                    </div>
+                  </td>
+                </tr>
+              `,
+            )}
           </tbody>
         </table>
       </div>
@@ -196,5 +364,3 @@ export class ComponentList extends LitElement {
 if (!customElements.get("component-list")) {
   customElements.define("component-list", ComponentList);
 }
-
-

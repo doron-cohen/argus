@@ -9,7 +9,10 @@ import {
   error,
   type ComponentReportsResponse,
 } from "../../stores/app-store";
-import { getComponentById, getComponentReports } from "../../api/services/components/client";
+import {
+  getComponentById,
+  getComponentReports,
+} from "../../api/services/components/client";
 
 export async function loadComponentDetails(componentId: string): Promise<void> {
   try {
@@ -51,7 +54,8 @@ export async function loadComponentReports(componentId: string): Promise<void> {
     const currentComponent = componentDetails.get();
     if (
       !currentComponent ||
-      (currentComponent.id !== componentId && currentComponent.name !== componentId)
+      (currentComponent.id !== componentId &&
+        currentComponent.name !== componentId)
     ) {
       return; // Component changed, discard this response
     }
@@ -84,10 +88,13 @@ export async function loadComponentReports(componentId: string): Promise<void> {
     const currentComponent = componentDetails.get();
     if (
       currentComponent &&
-      (currentComponent.id === componentId || currentComponent.name === componentId)
+      (currentComponent.id === componentId ||
+        currentComponent.name === componentId)
     ) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch component reports";
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch component reports";
       setReportsError(errorMessage);
       console.error("Error fetching component reports:", err);
     }
@@ -95,5 +102,3 @@ export async function loadComponentReports(componentId: string): Promise<void> {
     setReportsLoading(false);
   }
 }
-
-

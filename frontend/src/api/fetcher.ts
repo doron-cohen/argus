@@ -7,10 +7,10 @@ export function apiFetch<T>(input: string | URL, init?: RequestInit): T {
   const promise = (async () => {
     const res = await fetch(url, init);
     const data = await res.json().catch(() => ({}));
-    return { status: res.status, data } as unknown as T extends Promise<infer R> ? R : never;
+    return { status: res.status, data } as unknown as T extends Promise<infer R>
+      ? R
+      : never;
   })();
 
-  return (promise as unknown) as T;
+  return promise as unknown as T;
 }
-
-
