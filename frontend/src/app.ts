@@ -16,6 +16,12 @@ import {
 // Import and register web components
 import "./components/component-list";
 import { ComponentDetails } from "./components/component-details";
+import type { Component as ApiComponent } from "./api/services/components/client";
+import type { Component as StoreComponent } from "./stores/app-store";
+import {
+  getComponentById,
+  getComponentReports,
+} from "./api/services/components/client";
 
 // Ensure ComponentDetails is registered
 if (!customElements.get("component-details")) {
@@ -96,22 +102,20 @@ async function loadComponentDetails(componentId: string): Promise<void> {
     setLoading(true);
     setError(null);
 
-    const response = await fetch(
-      `/api/catalog/v1/components/${encodeURIComponent(componentId)}`
-    );
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error(`Component not found: ${componentId}`);
-      }
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`
-      );
+    const { status, data } = await getComponentById(componentId);
+    if (status === 404) {
+      throw new Error(`Component not found: ${componentId}`);
+    }
+    if (status < 200 || status >= 300) {
+      const maybe = data as { error?: string } | unknown;
+      const message =
+        maybe && typeof maybe === "object" && "error" in (maybe as any)
+          ? (maybe as any).error
+          : `HTTP ${status}`;
+      throw new Error(message);
     }
 
-    const component = await response.json();
-    setComponentDetails(component);
+    setComponentDetails(toStoreComponent(data as ApiComponent));
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Failed to fetch component details";
@@ -127,34 +131,35 @@ async function loadComponentReports(componentId: string): Promise<void> {
     setReportsLoading(true);
     setReportsError(null);
 
-    const response = await fetch(
-      `/api/catalog/v1/components/${encodeURIComponent(
-        componentId
-      )}/reports?latest_per_check=true`
-    );
+    const { status, data } = await getComponentReports(componentId, {
+      latest_per_check: true,
+    });
 
     // Check if component changed while we were fetching (race condition protection)
     const currentComponent = componentDetails.get();
     if (
       !currentComponent ||
-      (currentComponent.id !== componentId && currentComponent.name !== componentId)
+      (currentComponent.id !== componentId &&
+        currentComponent.name !== componentId)
     ) {
       return; // Component changed, discard this response
     }
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        // Component not found, but we already loaded component details, so this might be an empty state
-        setLatestReports([]);
-        return;
-      }
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`
-      );
+    if (status === 404) {
+      // Component not found, but we already loaded component details, so this might be an empty state
+      setLatestReports([]);
+      return;
+    }
+    if (status < 200 || status >= 300) {
+      const maybe = data as { error?: string } | unknown;
+      const message =
+        maybe && typeof maybe === "object" && "error" in (maybe as any)
+          ? (maybe as any).error
+          : `HTTP ${status}`;
+      throw new Error(message);
     }
 
-    const reportsResponse: ComponentReportsResponse = await response.json();
+    const reportsResponse: ComponentReportsResponse = data as any;
 
     // Double-check component ID before setting reports (additional race condition protection)
     const finalComponent = componentDetails.get();
@@ -169,7 +174,8 @@ async function loadComponentReports(componentId: string): Promise<void> {
     const currentComponent = componentDetails.get();
     if (
       currentComponent &&
-      (currentComponent.id === componentId || currentComponent.name === componentId)
+      (currentComponent.id === componentId ||
+        currentComponent.name === componentId)
     ) {
       const errorMessage =
         err instanceof Error
@@ -181,6 +187,18 @@ async function loadComponentReports(componentId: string): Promise<void> {
   } finally {
     setReportsLoading(false);
   }
+}
+
+function toStoreComponent(component: ApiComponent): StoreComponent {
+  return {
+    id: component.id ?? component.name,
+    name: component.name,
+    description: component.description ?? "",
+    owners: {
+      maintainers: component.owners?.maintainers ?? [],
+      team: component.owners?.team ?? "",
+    },
+  };
 }
 
 // Start the router
