@@ -5,7 +5,7 @@ export default {
       target: './src/api/services/components/client.ts',
       client: 'fetch',
       override: {
-        baseUrl: '/api/catalog/v1',
+        baseUrl: '/api/components/v1',
       },
     },
   },

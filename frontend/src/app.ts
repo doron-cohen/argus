@@ -1,5 +1,5 @@
 import Navigo from "navigo";
-import { getComponentById } from "./api/services/components/client";
+import { getComponentById } from "./api/services/components/client.ts";
 import {
   setComponentDetails,
   setLoading,
