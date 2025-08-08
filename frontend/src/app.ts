@@ -16,12 +16,7 @@ import {
 // Import and register web components
 import "./components/component-list";
 import { ComponentDetails } from "./components/component-details";
-import type { Component as ApiComponent } from "./api/services/components/client";
-import type { Component as StoreComponent } from "./stores/app-store";
-import {
-  getComponentById,
-  getComponentReports,
-} from "./api/services/components/client";
+// NOTE: Use explicit fetch to ensure correct base path and consistent error handling
 
 // Ensure ComponentDetails is registered
 if (!customElements.get("component-details")) {
@@ -102,20 +97,26 @@ async function loadComponentDetails(componentId: string): Promise<void> {
     setLoading(true);
     setError(null);
 
-    const { status, data } = await getComponentById(componentId);
-    if (status === 404) {
-      throw new Error(`Component not found: ${componentId}`);
-    }
-    if (status < 200 || status >= 300) {
-      const maybe = data as { error?: string } | unknown;
-      const message =
-        maybe && typeof maybe === "object" && "error" in (maybe as any)
-          ? (maybe as any).error
-          : `HTTP ${status}`;
+    const response = await fetch(
+      `/api/catalog/v1/components/${encodeURIComponent(componentId)}`
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Component not found: ${componentId}`);
+      }
+      let message = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && typeof errorData.error === "string") {
+          message = errorData.error;
+        }
+      } catch {}
       throw new Error(message);
     }
 
-    setComponentDetails(toStoreComponent(data as ApiComponent));
+    const component = await response.json();
+    setComponentDetails(component);
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Failed to fetch component details";
@@ -131,9 +132,11 @@ async function loadComponentReports(componentId: string): Promise<void> {
     setReportsLoading(true);
     setReportsError(null);
 
-    const { status, data } = await getComponentReports(componentId, {
-      latest_per_check: true,
-    });
+    const response = await fetch(
+      `/api/catalog/v1/components/${encodeURIComponent(
+        componentId
+      )}/reports?latest_per_check=true`
+    );
 
     // Check if component changed while we were fetching (race condition protection)
     const currentComponent = componentDetails.get();
@@ -145,21 +148,23 @@ async function loadComponentReports(componentId: string): Promise<void> {
       return; // Component changed, discard this response
     }
 
-    if (status === 404) {
+    if (response.status === 404) {
       // Component not found, but we already loaded component details, so this might be an empty state
       setLatestReports([]);
       return;
     }
-    if (status < 200 || status >= 300) {
-      const maybe = data as { error?: string } | unknown;
-      const message =
-        maybe && typeof maybe === "object" && "error" in (maybe as any)
-          ? (maybe as any).error
-          : `HTTP ${status}`;
+    if (!response.ok) {
+      let message = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && typeof errorData.error === "string") {
+          message = errorData.error;
+        }
+      } catch {}
       throw new Error(message);
     }
 
-    const reportsResponse: ComponentReportsResponse = data as any;
+    const reportsResponse: ComponentReportsResponse = await response.json();
 
     // Double-check component ID before setting reports (additional race condition protection)
     const finalComponent = componentDetails.get();
@@ -187,18 +192,6 @@ async function loadComponentReports(componentId: string): Promise<void> {
   } finally {
     setReportsLoading(false);
   }
-}
-
-function toStoreComponent(component: ApiComponent): StoreComponent {
-  return {
-    id: component.id ?? component.name,
-    name: component.name,
-    description: component.description ?? "",
-    owners: {
-      maintainers: component.owners?.maintainers ?? [],
-      team: component.owners?.team ?? "",
-    },
-  };
 }
 
 // Start the router
