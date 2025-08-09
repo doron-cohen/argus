@@ -18,7 +18,7 @@ export class ComponentDetails extends BaseComponent {
     this.bindState(error, (error) => this.showError(error));
     this.bindState(latestReports, (reports) => this.renderReports(reports));
     this.bindState(reportsLoading, (loading) =>
-      this.showReportsLoading(loading)
+      this.showReportsLoading(loading),
     );
     this.bindState(reportsError, (error) => this.showReportsError(error));
   }
@@ -76,12 +76,12 @@ export class ComponentDetails extends BaseComponent {
     const nameText = escapeHtml(component?.name ?? "");
     const idText = escapeHtml(component?.id ?? component?.name ?? "");
     const descriptionText = escapeHtml(
-      component?.description || "No description available"
+      component?.description || "No description available",
     );
     const teamText = escapeHtml(component?.owners?.team || "No team assigned");
     const maintainersText = escapeHtml(
       (component?.owners?.maintainers || []).join(", ") ||
-        "No maintainers assigned"
+        "No maintainers assigned",
     );
     return { nameText, idText, descriptionText, teamText, maintainersText };
   }
@@ -197,7 +197,7 @@ export class ComponentDetails extends BaseComponent {
                   <div class="ml-3">
                     <h3 class="text-sm font-medium text-red-800" data-testid="error-title">Error loading component</h3>
                     <div class="mt-2 text-sm text-red-700" data-testid="error-message">${escapeHtml(
-                      errorMessage
+                      errorMessage,
                     )}</div>
                   </div>
                 </div>
