@@ -143,7 +143,7 @@ describe("component-list (Lit)", () => {
     await waitFor(
       () =>
         (element as HTMLElement).querySelectorAll(
-          '[data-testid="component-row"]',
+          '[data-testid="component-row"]'
         ).length === 2,
       500,
     );
