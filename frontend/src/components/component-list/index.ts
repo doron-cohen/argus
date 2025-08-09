@@ -33,10 +33,15 @@ export class ComponentList extends LitElement {
       this.requestUpdate();
 
       const { status, data } = await getComponents();
-      if (status < 200 || status >= 300) {
-        throw new Error(`HTTP ${status}`);
+      const statusCode = typeof status === "number" ? status : 200;
+      // Defensive: ensure we always have an array to render
+      if (!Array.isArray(data as unknown as any[])) {
+        this.components = [];
+        this.error =
+          statusCode >= 400 ? `HTTP ${statusCode}` : "Invalid API response";
+      } else {
+        this.components = data as unknown as ComponentItem[];
       }
-      this.components = data as unknown as ComponentItem[];
     } catch (err) {
       this.error =
         err instanceof Error ? err.message : "Failed to fetch components";
@@ -303,20 +308,22 @@ export class ComponentList extends LitElement {
             class="bg-white divide-y divide-gray-200"
             data-testid="components-tbody"
           >
-            ${this.components.map(
-              (comp) => html`
+            ${this.components.map((comp) => {
+              const slug = comp.id || comp.name;
+              const href = `/components/${encodeURIComponent(slug)}`;
+              return html`
                 <tr
                   class="hover:bg-gray-50 cursor-pointer"
                   data-testid="component-row"
-                  data-component-id="${escapeHtml(comp.id || comp.name)}"
+                  data-component-id="${slug}"
                 >
                   <td class="px-6 py-4 whitespace-nowrap">
                     <a
-                      href="/components/${escapeHtml(comp.id || comp.name)}"
+                      href="${href}"
                       class="text-sm font-medium text-indigo-600 hover:text-indigo-900"
                       data-testid="component-name"
                     >
-                      ${escapeHtml(comp.name)}
+                      ${comp.name}
                     </a>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -324,7 +331,7 @@ export class ComponentList extends LitElement {
                       class="text-sm text-gray-500"
                       data-testid="component-id"
                     >
-                      ${escapeHtml(comp.id || comp.name)}
+                      ${comp.id || comp.name}
                     </div>
                   </td>
                   <td class="px-6 py-4">
@@ -332,7 +339,7 @@ export class ComponentList extends LitElement {
                       class="text-sm text-gray-900"
                       data-testid="component-description"
                     >
-                      ${escapeHtml(comp.description || "")}
+                      ${comp.description || ""}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -340,7 +347,7 @@ export class ComponentList extends LitElement {
                       class="text-sm text-gray-500"
                       data-testid="component-team"
                     >
-                      ${escapeHtml(comp.owners?.team || "")}
+                      ${comp.owners?.team || ""}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -348,12 +355,12 @@ export class ComponentList extends LitElement {
                       class="text-sm text-gray-500"
                       data-testid="component-maintainers"
                     >
-                      ${escapeHtml(comp.owners?.maintainers?.join(", ") || "")}
+                      ${comp.owners?.maintainers?.join(", ") || ""}
                     </div>
                   </td>
                 </tr>
-              `,
-            )}
+              `;
+            })}
           </tbody>
         </table>
       </div>

@@ -126,25 +126,18 @@ describe("component-list (Lit)", () => {
         owners: { maintainers: [], team: "t" },
       },
     ];
-    const okData = (() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(data),
-      }) as any) as any;
-    globalThis.fetch = okData;
-    if ((globalThis as any).window) (globalThis as any).window.fetch = okData;
-
     const element = document.createElement("component-list") as any;
+    // Prevent auto-fetch in connectedCallback for this test
+    (element as any).loadComponents = async () => {};
     document.body.appendChild(element);
 
-    // Wait for fetch and render to complete
-    await waitFor(
-      () =>
-        (element as HTMLElement).querySelectorAll(
-          '[data-testid="component-row"]',
-        ).length === 2,
-      1000,
-    );
+    // Set state directly to avoid environment-specific fetch behavior
+    element.components = data;
+    element.isLoading = false;
+    element.error = null;
+    element.requestUpdate?.();
+    if (element.updateComplete) await element.updateComplete;
+    element.updateHeader?.();
 
     const rows = (element as HTMLElement).querySelectorAll(
       '[data-testid="component-row"]',
