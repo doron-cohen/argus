@@ -77,7 +77,7 @@ describe("component-list (Lit)", () => {
     await new Promise((r) => setTimeout(r, 0));
     await new Promise((r) => setTimeout(r, 0));
 
-    const empty = element.querySelector(
+  const empty = element.querySelector(
       '[data-testid="no-components-message"]'
     );
     expect(empty).toBeTruthy();
