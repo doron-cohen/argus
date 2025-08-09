@@ -86,27 +86,27 @@ describe("ComponentDetails", () => {
       setComponentDetails(mockComponent);
 
       const nameElement = element.querySelector(
-        '[data-testid="component-name"]'
+        '[data-testid="component-name"]',
       );
       const idElement = element.querySelector('[data-testid="component-id"]');
       const descriptionElement = element.querySelector(
-        '[data-testid="component-description"]'
+        '[data-testid="component-description"]',
       );
       const teamElement = element.querySelector(
-        '[data-testid="component-team"]'
+        '[data-testid="component-team"]',
       );
       const maintainersElement = element.querySelector(
-        '[data-testid="component-maintainers"]'
+        '[data-testid="component-maintainers"]',
       );
 
       expect(nameElement?.textContent?.trim()).toBe("Test Component");
       expect(idElement?.textContent?.trim()).toBe("ID: test-component");
       expect(descriptionElement?.textContent?.trim()).toBe(
-        "This is a test component"
+        "This is a test component",
       );
       expect(teamElement?.textContent?.trim()).toBe("Platform Team");
       expect(maintainersElement?.textContent?.trim()).toBe(
-        "john.doe, jane.smith"
+        "john.doe, jane.smith",
       );
     });
 
@@ -114,21 +114,21 @@ describe("ComponentDetails", () => {
       setComponentDetails(mockComponentWithoutOptionalFields);
 
       const descriptionElement = element.querySelector(
-        '[data-testid="component-description"]'
+        '[data-testid="component-description"]',
       );
       const teamElement = element.querySelector(
-        '[data-testid="component-team"]'
+        '[data-testid="component-team"]',
       );
       const maintainersElement = element.querySelector(
-        '[data-testid="component-maintainers"]'
+        '[data-testid="component-maintainers"]',
       );
 
       expect(descriptionElement?.textContent?.trim()).toBe(
-        "No description available"
+        "No description available",
       );
       expect(teamElement?.textContent?.trim()).toBe("No team assigned");
       expect(maintainersElement?.textContent?.trim()).toBe(
-        "No maintainers assigned"
+        "No maintainers assigned",
       );
     });
 
@@ -152,7 +152,7 @@ describe("ComponentDetails", () => {
       setComponentDetails(mockComponent);
 
       const backLink = element.querySelector(
-        '[data-testid="back-to-components"]'
+        '[data-testid="back-to-components"]',
       ) as HTMLAnchorElement;
       expect(backLink).toBeTruthy();
       expect(backLink.href).toBe("/");
@@ -165,7 +165,7 @@ describe("ComponentDetails", () => {
       setLoading(true);
 
       const loadingElement = element.querySelector(
-        '[data-testid="component-details-loading"]'
+        '[data-testid="component-details-loading"]',
       );
       expect(loadingElement).toBeTruthy();
 
@@ -182,12 +182,12 @@ describe("ComponentDetails", () => {
       setComponentDetails(mockComponent);
 
       const loadingElement = element.querySelector(
-        '[data-testid="component-details-loading"]'
+        '[data-testid="component-details-loading"]',
       );
       expect(loadingElement).toBeFalsy();
 
       const componentElement = element.querySelector(
-        '[data-testid="component-details"]'
+        '[data-testid="component-details"]',
       );
       expect(componentElement).toBeTruthy();
     });
@@ -199,7 +199,7 @@ describe("ComponentDetails", () => {
       setError(errorMessage);
 
       const errorElement = element.querySelector(
-        '[data-testid="component-details-error"]'
+        '[data-testid="component-details-error"]',
       );
       expect(errorElement).toBeTruthy();
 
@@ -207,7 +207,7 @@ describe("ComponentDetails", () => {
       expect(errorTitle?.textContent?.trim()).toBe("Error loading component");
 
       const errorMessageElement = element.querySelector(
-        '[data-testid="error-message"]'
+        '[data-testid="error-message"]',
       );
       expect(errorMessageElement?.textContent?.trim()).toBe(errorMessage);
     });
@@ -216,7 +216,7 @@ describe("ComponentDetails", () => {
       setError("Some error");
 
       const backLink = element.querySelector(
-        '[data-testid="back-to-components"]'
+        '[data-testid="back-to-components"]',
       ) as HTMLAnchorElement;
       expect(backLink).toBeTruthy();
       expect(backLink.href).toBe("/");
@@ -227,7 +227,7 @@ describe("ComponentDetails", () => {
       setComponentDetails(mockComponent);
 
       const errorElement = element.querySelector(
-        '[data-testid="component-details-error"]'
+        '[data-testid="component-details-error"]',
       );
       expect(errorElement).toBeFalsy();
     });
@@ -252,10 +252,10 @@ describe("ComponentDetails", () => {
 
       // Verify actual displayed text is escaped
       const nameElement = element.querySelector(
-        '[data-testid="component-name"]'
+        '[data-testid="component-name"]',
       );
       expect(nameElement?.textContent).toContain(
-        '<img src="x" onerror="alert(1)">'
+        '<img src="x" onerror="alert(1)">',
       );
     });
 
@@ -267,7 +267,7 @@ describe("ComponentDetails", () => {
       expect(element.querySelectorAll("script").length).toBe(0);
 
       const errorMessageElement = element.querySelector(
-        '[data-testid="error-message"]'
+        '[data-testid="error-message"]',
       );
       expect(errorMessageElement?.textContent?.trim()).toBe(maliciousError);
     });
@@ -281,33 +281,33 @@ describe("ComponentDetails", () => {
       // Set loading
       setLoading(true);
       expect(
-        element.querySelector('[data-testid="component-details-loading"]')
+        element.querySelector('[data-testid="component-details-loading"]'),
       ).toBeTruthy();
 
       // Set component data (should override loading)
       setComponentDetails(mockComponent);
       expect(
-        element.querySelector('[data-testid="component-details"]')
+        element.querySelector('[data-testid="component-details"]'),
       ).toBeTruthy();
       expect(
-        element.querySelector('[data-testid="component-details-loading"]')
+        element.querySelector('[data-testid="component-details-loading"]'),
       ).toBeFalsy();
 
       // Set error (should override component data)
       setError("Test error");
       expect(
-        element.querySelector('[data-testid="component-details-error"]')
+        element.querySelector('[data-testid="component-details-error"]'),
       ).toBeTruthy();
       expect(
-          element.querySelector('[data-testid="component-details"]')
-        ).toBeTruthy();
+        element.querySelector('[data-testid="component-details"]'),
+      ).toBeTruthy();
     });
 
     test("should clean up subscriptions on disconnect", () => {
       // Connect element and verify it's subscribed
       setComponentDetails(mockComponent);
       expect(
-        element.querySelector('[data-testid="component-details"]')
+        element.querySelector('[data-testid="component-details"]'),
       ).toBeTruthy();
 
       // Spy on the subscriptions array (through accessing private property for testing)
@@ -338,7 +338,7 @@ describe("ComponentDetails", () => {
       expect(reportsList).toBeTruthy();
 
       const reportItems = element.querySelectorAll(
-        '[data-testid="report-item"]'
+        '[data-testid="report-item"]',
       );
       expect(reportItems.length).toBe(3);
 
@@ -346,7 +346,7 @@ describe("ComponentDetails", () => {
       const firstReport = reportItems[0];
       const firstName = firstReport.querySelector('[data-testid="check-name"]');
       const firstStatus = firstReport.querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(firstName?.textContent?.trim()).toBe("unit-tests");
       expect(firstStatus?.textContent?.trim()).toBe("pass");
@@ -355,10 +355,10 @@ describe("ComponentDetails", () => {
       // Check second report (fail status)
       const secondReport = reportItems[1];
       const secondName = secondReport.querySelector(
-        '[data-testid="check-name"]'
+        '[data-testid="check-name"]',
       );
       const secondStatus = secondReport.querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(secondName?.textContent?.trim()).toBe("security-scan");
       expect(secondStatus?.textContent?.trim()).toBe("fail");
@@ -368,7 +368,7 @@ describe("ComponentDetails", () => {
       const thirdReport = reportItems[2];
       const thirdName = thirdReport.querySelector('[data-testid="check-name"]');
       const thirdStatus = thirdReport.querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(thirdName?.textContent?.trim()).toBe("code-quality");
       expect(thirdStatus?.textContent?.trim()).toBe("disabled");
@@ -384,7 +384,7 @@ describe("ComponentDetails", () => {
       const noReports = element.querySelector('[data-testid="no-reports"]');
       expect(noReports).toBeTruthy();
       expect(noReports?.textContent?.trim()).toBe(
-        "No quality checks available"
+        "No quality checks available",
       );
 
       const reportsList = element.querySelector('[data-testid="reports-list"]');
@@ -398,11 +398,11 @@ describe("ComponentDetails", () => {
       expect(reportsContainer).toBeTruthy();
 
       const loadingElement = element.querySelector(
-        '[data-testid="reports-loading"]'
+        '[data-testid="reports-loading"]',
       );
       expect(loadingElement).toBeTruthy();
       expect(loadingElement?.textContent?.trim()).toBe(
-        "Loading quality checks..."
+        "Loading quality checks...",
       );
     });
 
@@ -414,11 +414,11 @@ describe("ComponentDetails", () => {
       expect(reportsContainer).toBeTruthy();
 
       const errorElement = element.querySelector(
-        '[data-testid="reports-error"]'
+        '[data-testid="reports-error"]',
       );
       expect(errorElement).toBeTruthy();
       expect(errorElement?.textContent?.trim()).toBe(
-        "Error loading quality checks: " + errorMessage
+        "Error loading quality checks: " + errorMessage,
       );
     });
 
@@ -426,7 +426,7 @@ describe("ComponentDetails", () => {
       setLatestReports(mockReports);
 
       const timestamps = element.querySelectorAll(
-        '[data-testid="check-timestamp"]'
+        '[data-testid="check-timestamp"]',
       );
       expect(timestamps.length).toBe(3);
 
@@ -485,51 +485,51 @@ describe("ComponentDetails", () => {
       setLatestReports(allStatusReports);
 
       const reportItems = element.querySelectorAll(
-        '[data-testid="report-item"]'
+        '[data-testid="report-item"]',
       );
       expect(reportItems.length).toBe(7);
 
       // Check pass status (green)
       const passStatus = reportItems[0].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(passStatus?.className).toContain("bg-green-100");
       expect(passStatus?.innerHTML).toContain("svg");
 
       // Check fail status (red)
       const failStatus = reportItems[1].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(failStatus?.className).toContain("bg-red-100");
       expect(failStatus?.innerHTML).toContain("svg");
 
       // Check error status (red)
       const errorStatus = reportItems[2].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(errorStatus?.className).toContain("bg-red-100");
 
       // Check unknown status (red)
       const unknownStatus = reportItems[3].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(unknownStatus?.className).toContain("bg-red-100");
 
       // Check disabled status (yellow)
       const disabledStatus = reportItems[4].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(disabledStatus?.className).toContain("bg-yellow-100");
 
       // Check skipped status (yellow)
       const skippedStatus = reportItems[5].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(skippedStatus?.className).toContain("bg-yellow-100");
 
       // Check completed status (blue)
       const completedStatus = reportItems[6].querySelector(
-        '[data-testid="check-status"]'
+        '[data-testid="check-status"]',
       );
       expect(completedStatus?.className).toContain("bg-blue-100");
     });
@@ -548,14 +548,14 @@ describe("ComponentDetails", () => {
 
       // Check that HTML tags are escaped in the rendered HTML
       expect(element.innerHTML).not.toContain(
-        '<img src="x" onerror="alert(1)">'
+        '<img src="x" onerror="alert(1)">',
       );
       expect(element.innerHTML).toContain("&lt;img");
 
       // Verify actual displayed text is escaped
       const checkName = element.querySelector('[data-testid="check-name"]');
       expect(checkName?.textContent).toContain(
-        '<img src="x" onerror="alert(1)">'
+        '<img src="x" onerror="alert(1)">',
       );
     });
   });
