@@ -30,6 +30,49 @@ export class ComponentList extends LitElement {
     queueMicrotask(() => this.renderRowsImperatively());
   }
 
+  private renderRowsImperatively(): void {
+    if (this.isLoading || this.error || this.components.length === 0) return;
+    const tbody = this.querySelector('[data-testid="components-tbody"]');
+    if (!tbody) return;
+    const rows = this.components
+      .map((comp) => {
+        const slug = comp.id || comp.name;
+        const href = `/components/${encodeURIComponent(slug)}`;
+        return `
+          <tr class="hover:bg-gray-50 cursor-pointer" data-testid="component-row" data-component-id="${escapeHtml(
+            slug
+          )}">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <a href="${href}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900" data-testid="component-name">${escapeHtml(
+                comp.name
+              )}</a>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-500" data-testid="component-id">${escapeHtml(
+                slug
+              )}</div>
+            </td>
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-900" data-testid="component-description">${escapeHtml(
+                comp.description || ""
+              )}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-500" data-testid="component-team">${escapeHtml(
+                comp.owners?.team || ""
+              )}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-500" data-testid="component-maintainers">${escapeHtml(
+                comp.owners?.maintainers?.join(", ") || ""
+              )}</div>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+    tbody.innerHTML = rows;
+  }
   protected createRenderRoot(): this {
     return this;
   }
