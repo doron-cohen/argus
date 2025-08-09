@@ -133,12 +133,20 @@ describe("component-list (Lit)", () => {
 
     // Set state directly to avoid environment-specific fetch behavior
     element.components = data;
-    element.isLoading = false;
-    element.error = null;
+    (element as any).isLoading = false;
+    (element as any).error = null;
     element.requestUpdate?.();
+    await new Promise((r) => setTimeout(r, 0));
     if (element.updateComplete) await element.updateComplete;
     element.updateHeader?.();
 
+    await waitFor(
+      () =>
+        (element as HTMLElement).querySelectorAll(
+          '[data-testid="component-row"]',
+        ).length === 2,
+      500,
+    );
     const rows = (element as HTMLElement).querySelectorAll(
       '[data-testid="component-row"]',
     );

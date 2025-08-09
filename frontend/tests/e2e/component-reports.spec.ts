@@ -7,7 +7,7 @@ async function waitForSync(page: Page): Promise<void> {
     async () => {
       try {
         const response = await fetch(
-          "http://localhost:8080/api/sync/v1/sources/0/status"
+          "http://localhost:8080/api/sync/v1/sources/0/status",
         );
         const data = await response.json();
         return (
@@ -17,13 +17,13 @@ async function waitForSync(page: Page): Promise<void> {
         return false;
       }
     },
-    { timeout: 30000 }
+    { timeout: 30000 },
   );
 }
 
 async function getComponentsFromAPI(): Promise<Component[]> {
   const response = await fetch(
-    "http://localhost:8080/api/catalog/v1/components"
+    "http://localhost:8080/api/catalog/v1/components",
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch components: ${response.status}`);
@@ -33,7 +33,7 @@ async function getComponentsFromAPI(): Promise<Component[]> {
 
 async function getComponentReports(componentId: string): Promise<any> {
   const response = await fetch(
-    `http://localhost:8080/api/catalog/v1/components/${componentId}/reports?latest_per_check=true`
+    `http://localhost:8080/api/catalog/v1/components/${componentId}/reports?latest_per_check=true`,
   );
   if (!response.ok) {
     if (response.status === 404) {
@@ -63,12 +63,12 @@ test.describe("Component Reports", () => {
       // Wait for component details to load
       await expect(page.getByTestId("component-details")).toBeVisible();
       await expect(page.getByTestId("component-name")).toContainText(
-        "User Service"
+        "User Service",
       );
 
       // Check that reports section exists
       await expect(page.getByTestId("reports-label")).toContainText(
-        "Latest Quality Checks"
+        "Latest Quality Checks",
       );
 
       if (apiReports.reports.length > 0) {
@@ -112,12 +112,12 @@ test.describe("Component Reports", () => {
       // Wait for component details to load
       await expect(page.getByTestId("component-details")).toBeVisible();
       await expect(page.getByTestId("component-name")).toContainText(
-        "Authentication Service"
+        "Authentication Service",
       );
 
       // Check that reports section exists and has content
       await expect(page.getByTestId("reports-label")).toContainText(
-        "Latest Quality Checks"
+        "Latest Quality Checks",
       );
 
       // Wait for reports to load and verify reports list is visible
@@ -248,7 +248,7 @@ test.describe("Component Reports", () => {
         "security_scan",
       ];
       const foundChecks = checkNameTexts.filter((name) =>
-        expectedChecks.includes(name || "")
+        expectedChecks.includes(name || ""),
       );
       expect(foundChecks.length).toBeGreaterThan(0);
     });
@@ -351,7 +351,7 @@ test.describe("Component Reports", () => {
       // Should show component error, not reports error
       await expect(page.getByTestId("component-details-error")).toBeVisible();
       await expect(page.getByTestId("error-title")).toContainText(
-        "Error loading component"
+        "Error loading component",
       );
     });
   });

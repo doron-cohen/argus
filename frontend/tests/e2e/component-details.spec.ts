@@ -8,7 +8,7 @@ test.describe("Component Details Page", () => {
       async () => {
         try {
           const response = await fetch(
-            "http://localhost:8080/api/sync/v1/sources/0/status"
+            "http://localhost:8080/api/sync/v1/sources/0/status",
           );
           const data = await response.json();
           return (
@@ -18,7 +18,7 @@ test.describe("Component Details Page", () => {
           return false;
         }
       },
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
   });
 
@@ -38,7 +38,7 @@ test.describe("Component Details Page", () => {
 
     // Verify we're on the component details page
     await expect(page.getByTestId("page-title")).toContainText(
-      "Component Details"
+      "Component Details",
     );
     await expect(page.getByTestId("component-details")).toBeVisible();
   });
@@ -54,19 +54,19 @@ test.describe("Component Details Page", () => {
     // Verify component details are displayed
     await expect(page.getByTestId("component-details")).toBeVisible();
     await expect(page.getByTestId("component-name")).toContainText(
-      "Authentication Service"
+      "Authentication Service",
     );
     await expect(page.getByTestId("component-id")).toContainText(
-      "ID: auth-service"
+      "ID: auth-service",
     );
     await expect(page.getByTestId("component-description")).toContainText(
-      "Handles user authentication and authorization"
+      "Handles user authentication and authorization",
     );
     await expect(page.getByTestId("component-team")).toContainText(
-      "Security Team"
+      "Security Team",
     );
     await expect(page.getByTestId("component-maintainers")).toContainText(
-      "alice@company.com"
+      "alice@company.com",
     );
   });
 
@@ -89,10 +89,10 @@ test.describe("Component Details Page", () => {
     // Verify error state is displayed
     await expect(page.getByTestId("component-details-error")).toBeVisible();
     await expect(page.getByTestId("error-title")).toContainText(
-      "Error loading component"
+      "Error loading component",
     );
     await expect(page.getByTestId("error-message")).toContainText(
-      "Component not found"
+      "Component not found",
     );
   });
 
@@ -109,7 +109,7 @@ test.describe("Component Details Page", () => {
 
     // Verify we're back on the components list page
     await expect(page.getByTestId("page-title")).toContainText(
-      "Component Catalog"
+      "Component Catalog",
     );
     await expect(page.getByTestId("components-table")).toBeVisible();
   });
@@ -125,7 +125,7 @@ test.describe("Component Details Page", () => {
     // Verify component details are displayed
     await expect(page.getByTestId("component-details")).toBeVisible();
     await expect(page.getByTestId("component-name")).toContainText(
-      "Platform Infrastructure"
+      "Platform Infrastructure",
     );
   });
 
@@ -136,7 +136,7 @@ test.describe("Component Details Page", () => {
   }) => {
     // Get component details via API
     const apiResponse = await page.request.get(
-      "http://localhost:8080/api/catalog/v1/components/auth-service"
+      "http://localhost:8080/api/catalog/v1/components/auth-service",
     );
     expect(apiResponse.ok()).toBeTruthy();
 
@@ -148,10 +148,10 @@ test.describe("Component Details Page", () => {
     // Verify frontend displays same data
     await page.goto("/components/auth-service");
     await expect(page.getByTestId("component-name")).toContainText(
-      "Authentication Service"
+      "Authentication Service",
     );
     await expect(page.getByTestId("component-team")).toContainText(
-      "Security Team"
+      "Security Team",
     );
   });
 });

@@ -7,7 +7,7 @@ describe("Security Tests", () => {
       const maliciousName = "<script>alert('XSS')</script>";
       const escapedName = escapeHtml(maliciousName);
       expect(escapedName).toBe(
-        "&lt;script&gt;alert(&#039;XSS&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;XSS&#039;)&lt;/script&gt;",
       );
     });
 
@@ -15,7 +15,7 @@ describe("Security Tests", () => {
       const maliciousDescription = "<img src=x onerror=alert('XSS')>";
       const escapedDescription = escapeHtml(maliciousDescription);
       expect(escapedDescription).toBe(
-        "&lt;img src=x onerror=alert(&#039;XSS&#039;)&gt;"
+        "&lt;img src=x onerror=alert(&#039;XSS&#039;)&gt;",
       );
     });
 
@@ -23,7 +23,7 @@ describe("Security Tests", () => {
       const maliciousTeam = "<script>alert('team')</script>";
       const escapedTeam = escapeHtml(maliciousTeam);
       expect(escapedTeam).toBe(
-        "&lt;script&gt;alert(&#039;team&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;team&#039;)&lt;/script&gt;",
       );
     });
 
@@ -31,7 +31,7 @@ describe("Security Tests", () => {
       const maliciousMaintainer = "<script>alert('maintainer')</script>";
       const escapedMaintainer = escapeHtml(maliciousMaintainer);
       expect(escapedMaintainer).toBe(
-        "&lt;script&gt;alert(&#039;maintainer&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;maintainer&#039;)&lt;/script&gt;",
       );
     });
 
@@ -39,7 +39,7 @@ describe("Security Tests", () => {
       const maliciousError = "<script>alert('error')</script>";
       const escapedError = escapeHtml(maliciousError);
       expect(escapedError).toBe(
-        "&lt;script&gt;alert(&#039;error&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;error&#039;)&lt;/script&gt;",
       );
     });
   });
@@ -138,13 +138,13 @@ describe("Security Tests", () => {
         return `
           <div data-testid="component-name">${escapeHtml(comp.name)}</div>
           <div data-testid="component-description">${escapeHtml(
-            comp.description
+            comp.description,
           )}</div>
           <div data-testid="component-team">${escapeHtml(
-            comp.owners?.team || ""
+            comp.owners?.team || "",
           )}</div>
           <div data-testid="component-maintainers">${escapeHtml(
-            comp.owners?.maintainers?.join(", ") || ""
+            comp.owners?.maintainers?.join(", ") || "",
           )}</div>
         `;
       };
@@ -153,16 +153,16 @@ describe("Security Tests", () => {
 
       // Verify that all malicious content is escaped
       expect(rendered).toContain(
-        "&lt;script&gt;alert(&#039;XSS&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;XSS&#039;)&lt;/script&gt;",
       );
       expect(rendered).toContain(
-        "&lt;img src=x onerror=alert(&#039;XSS&#039;)&gt;"
+        "&lt;img src=x onerror=alert(&#039;XSS&#039;)&gt;",
       );
       expect(rendered).toContain(
-        "&lt;script&gt;alert(&#039;team&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;team&#039;)&lt;/script&gt;",
       );
       expect(rendered).toContain(
-        "&lt;script&gt;alert(&#039;maintainer&#039;)&lt;/script&gt;"
+        "&lt;script&gt;alert(&#039;maintainer&#039;)&lt;/script&gt;",
       );
 
       // Verify no unescaped malicious HTML is present
