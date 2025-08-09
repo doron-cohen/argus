@@ -16,7 +16,7 @@ function attachHeader() {
 
 async function waitFor(
   predicate: () => boolean,
-  timeoutMs = 100
+  timeoutMs = 100,
 ): Promise<void> {
   const start = Date.now();
   while (!predicate()) {
@@ -78,7 +78,7 @@ describe("component-list (Lit)", () => {
     await new Promise((r) => setTimeout(r, 0));
 
     const empty = element.querySelector(
-      '[data-testid="no-components-message"]'
+      '[data-testid="no-components-message"]',
     );
     expect(empty).toBeTruthy();
 
@@ -143,12 +143,12 @@ describe("component-list (Lit)", () => {
     await waitFor(
       () =>
         (element as HTMLElement).querySelectorAll(
-          '[data-testid="component-row"]'
+          '[data-testid="component-row"]',
         ).length === 2,
-      500
+      500,
     );
     const rows = (element as HTMLElement).querySelectorAll(
-      '[data-testid="component-row"]'
+      '[data-testid="component-row"]',
     );
     expect(rows.length).toBe(2);
 

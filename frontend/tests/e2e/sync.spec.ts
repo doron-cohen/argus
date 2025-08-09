@@ -12,7 +12,7 @@ test.describe("Sync Process", () => {
       async () => {
         try {
           const response = await fetch(
-            "http://localhost:8080/api/sync/v1/sources/0/status"
+            "http://localhost:8080/api/sync/v1/sources/0/status",
           );
           const data: SyncStatus = await response.json();
           return (
@@ -22,12 +22,12 @@ test.describe("Sync Process", () => {
           return false;
         }
       },
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     // Verify sync configuration
     const syncResponse = await page.request.get(
-      "http://localhost:8080/api/sync/v1/sources"
+      "http://localhost:8080/api/sync/v1/sources",
     );
     expect(syncResponse.ok()).toBeTruthy();
 
@@ -38,7 +38,7 @@ test.describe("Sync Process", () => {
 
     // Verify components are available via API
     const apiResponse = await page.request.get(
-      "http://localhost:8080/api/catalog/v1/components"
+      "http://localhost:8080/api/catalog/v1/components",
     );
     expect(apiResponse.ok()).toBeTruthy();
 
