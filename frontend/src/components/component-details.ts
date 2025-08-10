@@ -8,7 +8,7 @@ import {
   reportsError,
   type CheckReport,
   type Component,
-} from "../stores/app-store";
+} from "../pages/component-details/store";
 import "../ui/ui-badge";
 
 export class ComponentDetails extends LitElement {
@@ -42,37 +42,37 @@ export class ComponentDetails extends LitElement {
       componentDetails.subscribe((value) => {
         this.currentComponent = value;
         this.requestUpdate();
-      }),
+      })
     );
     this.subscriptions.push(
       loading.subscribe((value) => {
         this.isLoading = value;
         this.requestUpdate();
-      }),
+      })
     );
     this.subscriptions.push(
       error.subscribe((value) => {
         this.errorMessage = value;
         this.requestUpdate();
-      }),
+      })
     );
     this.subscriptions.push(
       latestReports.subscribe((value) => {
         this.currentReports = value as readonly CheckReport[];
         this.requestUpdate();
-      }),
+      })
     );
     this.subscriptions.push(
       reportsLoading.subscribe((value) => {
         this.isReportsLoading = value;
         this.requestUpdate();
-      }),
+      })
     );
     this.subscriptions.push(
       reportsError.subscribe((value) => {
         this.reportsErrorMessage = value;
         this.requestUpdate();
-      }),
+      })
     );
   }
 
@@ -292,12 +292,12 @@ export class ComponentDetails extends LitElement {
                                         class="text-xs text-gray-500"
                                         data-testid="check-timestamp"
                                         >${this.formatTimestamp(
-                                          report.timestamp,
+                                          report.timestamp
                                         )}</span
                                       >
                                     </div>
                                   </div>
-                                `,
+                                `
                               )}
                             </div>`}
                   </div>

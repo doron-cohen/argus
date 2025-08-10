@@ -8,7 +8,7 @@ import {
   componentDetails,
   error,
   type ComponentReportsResponse,
-} from "../../stores/app-store";
+} from "./store";
 import {
   getComponentById,
   getComponentReports,

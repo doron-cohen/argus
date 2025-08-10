@@ -16,8 +16,8 @@ import {
   setReportsError,
   resetComponentDetails,
   resetReports,
-} from "../stores/app-store";
-import type { Component, CheckReport } from "../stores/app-store";
+} from "../pages/component-details/store";
+import type { Component, CheckReport } from "../pages/component-details/store";
 
 // Mock data
 const mockComponent: Component = {
