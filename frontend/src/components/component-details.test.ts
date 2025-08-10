@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { ComponentDetails } from "./component-details";
+import { flushPromises, waitFor } from "../../tests/helpers/lit";
 import {
   componentDetails,
   loading,
@@ -82,8 +83,13 @@ describe("ComponentDetails", () => {
   });
 
   describe("Component rendering", () => {
-    test("should render component details when component data is provided", () => {
+    test("should render component details when component data is provided", async () => {
       setComponentDetails(mockComponent);
+      await flushPromises();
+      await waitFor(
+        () => !!element.querySelector('[data-testid="component-name"]'),
+        500,
+      );
 
       const nameElement = element.querySelector(
         '[data-testid="component-name"]',
@@ -110,8 +116,9 @@ describe("ComponentDetails", () => {
       );
     });
 
-    test("should handle component with missing optional fields", () => {
+    test("should handle component with missing optional fields", async () => {
       setComponentDetails(mockComponentWithoutOptionalFields);
+      await flushPromises();
 
       const descriptionElement = element.querySelector(
         '[data-testid="component-description"]',
@@ -132,24 +139,27 @@ describe("ComponentDetails", () => {
       );
     });
 
-    test("should use component name as ID when id field is missing", () => {
+    test("should use component name as ID when id field is missing", async () => {
       const componentWithoutId = { ...mockComponent };
       delete (componentWithoutId as any).id;
 
       setComponentDetails(componentWithoutId);
-
+      await flushPromises();
       const idElement = element.querySelector('[data-testid="component-id"]');
       expect(idElement?.textContent?.trim()).toBe("ID: Test Component");
     });
 
-    test("should render empty content when component is null", () => {
+    test("should render empty content when component is null", async () => {
       setComponentDetails(null);
-
-      expect(element.innerHTML).toBe("");
+      await flushPromises();
+      expect(
+        element.querySelector('[data-testid="component-details"]'),
+      ).toBeFalsy();
     });
 
-    test("should include back to components link", () => {
+    test("should include back to components link", async () => {
       setComponentDetails(mockComponent);
+      await flushPromises();
 
       const backLink = element.querySelector(
         '[data-testid="back-to-components"]',
@@ -161,8 +171,9 @@ describe("ComponentDetails", () => {
   });
 
   describe("Loading state", () => {
-    test("should render loading skeleton when loading is true", () => {
+    test("should render loading skeleton when loading is true", async () => {
       setLoading(true);
+      await flushPromises();
 
       const loadingElement = element.querySelector(
         '[data-testid="component-details-loading"]',
@@ -177,9 +188,10 @@ describe("ComponentDetails", () => {
       expect(placeholders.length).toBeGreaterThan(0);
     });
 
-    test("should not show loading when loading is false", () => {
+    test("should not show loading when loading is false", async () => {
       setLoading(false);
       setComponentDetails(mockComponent);
+      await flushPromises();
 
       const loadingElement = element.querySelector(
         '[data-testid="component-details-loading"]',
@@ -194,9 +206,10 @@ describe("ComponentDetails", () => {
   });
 
   describe("Error state", () => {
-    test("should render error message when error is set", () => {
+    test("should render error message when error is set", async () => {
       const errorMessage = "Failed to load component details";
       setError(errorMessage);
+      await flushPromises();
 
       const errorElement = element.querySelector(
         '[data-testid="component-details-error"]',
@@ -212,8 +225,9 @@ describe("ComponentDetails", () => {
       expect(errorMessageElement?.textContent?.trim()).toBe(errorMessage);
     });
 
-    test("should include back link in error state", () => {
+    test("should include back link in error state", async () => {
       setError("Some error");
+      await flushPromises();
 
       const backLink = element.querySelector(
         '[data-testid="back-to-components"]',
@@ -234,7 +248,7 @@ describe("ComponentDetails", () => {
   });
 
   describe("XSS Protection", () => {
-    test("should escape HTML in component data", () => {
+    test("should escape HTML in component data", async () => {
       const maliciousComponent: Component = {
         id: '<script>alert("xss")</script>',
         name: '<img src="x" onerror="alert(1)">',
@@ -246,6 +260,7 @@ describe("ComponentDetails", () => {
       };
 
       setComponentDetails(maliciousComponent);
+      await flushPromises();
 
       // Since the component now sets textContent directly, ensure no script tags were injected
       expect(element.querySelectorAll("script").length).toBe(0);
@@ -259,9 +274,10 @@ describe("ComponentDetails", () => {
       );
     });
 
-    test("should escape HTML in error messages", () => {
+    test("should escape HTML in error messages", async () => {
       const maliciousError = '<script>alert("error xss")</script>';
       setError(maliciousError);
+      await flushPromises();
 
       // Ensure no script tags exist in the DOM
       expect(element.querySelectorAll("script").length).toBe(0);
@@ -274,18 +290,22 @@ describe("ComponentDetails", () => {
   });
 
   describe("State management integration", () => {
-    test("should react to store changes", () => {
+    test("should react to store changes", async () => {
       // Initial state
-      expect(element.innerHTML).toBe("");
+      expect(
+        element.querySelector('[data-testid="component-details"]'),
+      ).toBeFalsy();
 
       // Set loading
       setLoading(true);
+      await flushPromises();
       expect(
         element.querySelector('[data-testid="component-details-loading"]'),
       ).toBeTruthy();
 
       // Set component data (should override loading)
       setComponentDetails(mockComponent);
+      await flushPromises();
       expect(
         element.querySelector('[data-testid="component-details"]'),
       ).toBeTruthy();
@@ -295,6 +315,7 @@ describe("ComponentDetails", () => {
 
       // Set error (should override component data)
       setError("Test error");
+      await flushPromises();
       expect(
         element.querySelector('[data-testid="component-details-error"]'),
       ).toBeTruthy();
@@ -303,9 +324,10 @@ describe("ComponentDetails", () => {
       ).toBeTruthy();
     });
 
-    test("should clean up subscriptions on disconnect", () => {
+    test("should clean up subscriptions on disconnect", async () => {
       // Connect element and verify it's subscribed
       setComponentDetails(mockComponent);
+      await flushPromises();
       expect(
         element.querySelector('[data-testid="component-details"]'),
       ).toBeTruthy();
@@ -324,12 +346,14 @@ describe("ComponentDetails", () => {
   });
 
   describe("Reports functionality", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       setComponentDetails(mockComponent);
+      await flushPromises();
     });
 
-    test("should render reports when reports data is provided", () => {
+    test("should render reports when reports data is provided", async () => {
       setLatestReports(mockReports);
+      await flushPromises();
 
       const reportsContainer = element.querySelector("#reports-container");
       expect(reportsContainer).toBeTruthy();
@@ -391,8 +415,9 @@ describe("ComponentDetails", () => {
       expect(reportsList).toBeFalsy();
     });
 
-    test("should show reports loading state", () => {
+    test("should show reports loading state", async () => {
       setReportsLoading(true);
+      await flushPromises();
 
       const reportsContainer = element.querySelector("#reports-container");
       expect(reportsContainer).toBeTruthy();
@@ -406,9 +431,10 @@ describe("ComponentDetails", () => {
       );
     });
 
-    test("should show reports error state", () => {
+    test("should show reports error state", async () => {
       const errorMessage = "Failed to load reports";
       setReportsError(errorMessage);
+      await flushPromises();
 
       const reportsContainer = element.querySelector("#reports-container");
       expect(reportsContainer).toBeTruthy();
@@ -422,8 +448,9 @@ describe("ComponentDetails", () => {
       );
     });
 
-    test("should display timestamps correctly", () => {
+    test("should display timestamps correctly", async () => {
       setLatestReports(mockReports);
+      await flushPromises();
 
       const timestamps = element.querySelectorAll(
         '[data-testid="check-timestamp"]',
@@ -436,7 +463,7 @@ describe("ComponentDetails", () => {
       expect(firstTimestamp).toContain("2024");
     });
 
-    test("should handle all status types with correct colors and icons", () => {
+    test("should handle all status types with correct colors and icons", async () => {
       const allStatusReports: CheckReport[] = [
         {
           id: "1",
@@ -483,6 +510,7 @@ describe("ComponentDetails", () => {
       ];
 
       setLatestReports(allStatusReports);
+      await flushPromises();
 
       const reportItems = element.querySelectorAll(
         '[data-testid="report-item"]',
@@ -534,7 +562,7 @@ describe("ComponentDetails", () => {
       expect(completedStatus?.className).toContain("bg-blue-100");
     });
 
-    test("should escape HTML in report data", () => {
+    test("should escape HTML in report data", async () => {
       const maliciousReports: CheckReport[] = [
         {
           id: '<script>alert("xss")</script>',
@@ -545,6 +573,7 @@ describe("ComponentDetails", () => {
       ];
 
       setLatestReports(maliciousReports);
+      await flushPromises();
 
       // Check that HTML tags are escaped in the rendered HTML
       expect(element.innerHTML).not.toContain(
