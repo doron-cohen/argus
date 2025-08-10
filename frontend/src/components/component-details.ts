@@ -29,6 +29,14 @@ export class ComponentDetails extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // Seed initial state from current store values before subscribing
+    this.currentComponent = componentDetails.get();
+    this.isLoading = loading.get();
+    this.errorMessage = error.get();
+    this.currentReports = latestReports.get();
+    this.isReportsLoading = reportsLoading.get();
+    this.reportsErrorMessage = reportsError.get();
+    this.requestUpdate();
     // Subscribe to stores and trigger updates
     this.subscriptions.push(
       componentDetails.subscribe((value) => {
@@ -247,13 +255,7 @@ export class ComponentDetails extends LitElement {
                           Loading quality checks...
                         </div>`
                       : this.reportsErrorMessage
-                        ? html`<div
-                            class="text-red-600 text-sm"
-                            data-testid="reports-error"
-                          >
-                            Error loading quality checks:
-                            ${this.reportsErrorMessage}
-                          </div>`
+                        ? html`<div class="text-red-600 text-sm" data-testid="reports-error">Error loading quality checks: ${this.reportsErrorMessage}</div>`
                         : (this.currentReports?.length || 0) === 0
                           ? html`<div
                               class="text-gray-500 italic"
