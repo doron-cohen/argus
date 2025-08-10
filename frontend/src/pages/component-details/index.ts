@@ -2,6 +2,14 @@ import { LitElement, html } from "lit";
 import { loadComponentDetails, loadComponentReports } from "./data";
 import { resetComponentDetails, resetReports, error } from "./store";
 import "../../components/component-details";
+import {
+  componentDetails,
+  loading,
+  error as errorStore,
+  latestReports,
+  reportsLoading,
+  reportsError,
+} from "./store";
 
 export class ComponentDetailsPage extends LitElement {
   static properties = {
@@ -53,7 +61,14 @@ export class ComponentDetailsPage extends LitElement {
             View detailed information about the component
           </p>
         </div>
-        <component-details></component-details>
+        <component-details
+          .component=${componentDetails.get()}
+          .isLoading=${loading.get()}
+          .errorMessage=${errorStore.get()}
+          .reports=${latestReports.get()}
+          .isReportsLoading=${reportsLoading.get()}
+          .reportsErrorMessage=${reportsError.get()}
+        ></component-details>
       </div>
     `;
   }

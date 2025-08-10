@@ -1,85 +1,29 @@
 import { LitElement, html } from "lit";
-import {
-  componentDetails,
-  loading,
-  error,
-  latestReports,
-  reportsLoading,
-  reportsError,
-  type CheckReport,
-  type Component,
-} from "../pages/component-details/store";
-import "../ui/ui-badge";
+import type {
+  CheckReport,
+  Component,
+} from "../../pages/component-details/store";
+import "../../ui/ui-badge";
 
 export class ComponentDetails extends LitElement {
-  // Keep unsubscribe handles for cleanup and test visibility
-  private subscriptions: Array<() => void> = [];
+  static properties = {
+    component: { type: Object },
+    isLoading: { type: Boolean, attribute: "is-loading" },
+    errorMessage: { type: String, attribute: "error-message" },
+    reports: { type: Array },
+    isReportsLoading: { type: Boolean, attribute: "is-reports-loading" },
+    reportsErrorMessage: { type: String, attribute: "reports-error-message" },
+  } as const;
 
-  private currentComponent: Component | null = null;
-  private isLoading = false;
-  private errorMessage: string | null = null;
-  private currentReports: readonly CheckReport[] = [];
-  private isReportsLoading = false;
-  private reportsErrorMessage: string | null = null;
+  component: Component | null = null;
+  isLoading = false;
+  errorMessage: string | null = null;
+  reports: readonly CheckReport[] = [];
+  isReportsLoading = false;
+  reportsErrorMessage: string | null = null;
 
-  // Render into light DOM to preserve global styles and test selectors
   protected createRenderRoot(): this {
     return this;
-  }
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    // Seed initial state from current store values before subscribing
-    this.currentComponent = componentDetails.get();
-    this.isLoading = loading.get();
-    this.errorMessage = error.get();
-    this.currentReports = latestReports.get();
-    this.isReportsLoading = reportsLoading.get();
-    this.reportsErrorMessage = reportsError.get();
-    this.requestUpdate();
-    // Subscribe to stores and trigger updates
-    this.subscriptions.push(
-      componentDetails.subscribe((value) => {
-        this.currentComponent = value;
-        this.requestUpdate();
-      })
-    );
-    this.subscriptions.push(
-      loading.subscribe((value) => {
-        this.isLoading = value;
-        this.requestUpdate();
-      })
-    );
-    this.subscriptions.push(
-      error.subscribe((value) => {
-        this.errorMessage = value;
-        this.requestUpdate();
-      })
-    );
-    this.subscriptions.push(
-      latestReports.subscribe((value) => {
-        this.currentReports = value as readonly CheckReport[];
-        this.requestUpdate();
-      })
-    );
-    this.subscriptions.push(
-      reportsLoading.subscribe((value) => {
-        this.isReportsLoading = value;
-        this.requestUpdate();
-      })
-    );
-    this.subscriptions.push(
-      reportsError.subscribe((value) => {
-        this.reportsErrorMessage = value;
-        this.requestUpdate();
-      })
-    );
-  }
-
-  disconnectedCallback(): void {
-    super.disconnectedCallback();
-    this.subscriptions.forEach((off) => off());
-    this.subscriptions = [];
   }
 
   private formatTimestamp(timestamp: string): string {
@@ -99,7 +43,6 @@ export class ComponentDetails extends LitElement {
   }
 
   render() {
-    // Error state has highest priority
     if (this.errorMessage) {
       return html`
         <div data-testid="component-details">
@@ -153,9 +96,8 @@ export class ComponentDetails extends LitElement {
       `;
     }
 
-    // Empty when no component
-    if (this.currentComponent) {
-      const component = this.currentComponent;
+    if (this.component) {
+      const component = this.component;
       const idText = component.id || component.name || "";
       const descriptionText =
         component.description || "No description available";
@@ -261,7 +203,7 @@ export class ComponentDetails extends LitElement {
                           >
                             ${`Error loading quality checks: ${this.reportsErrorMessage}`}
                           </div>`
-                        : (this.currentReports?.length || 0) === 0
+                        : (this.reports?.length || 0) === 0
                           ? html`<div
                               class="text-gray-500 italic"
                               data-testid="no-reports"
@@ -272,7 +214,7 @@ export class ComponentDetails extends LitElement {
                               class="space-y-1"
                               data-testid="reports-list"
                             >
-                              ${this.currentReports.map(
+                              ${this.reports.map(
                                 (report) => html`
                                   <div
                                     class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
@@ -292,12 +234,12 @@ export class ComponentDetails extends LitElement {
                                         class="text-xs text-gray-500"
                                         data-testid="check-timestamp"
                                         >${this.formatTimestamp(
-                                          report.timestamp
+                                          report.timestamp,
                                         )}</span
                                       >
                                     </div>
                                   </div>
-                                `
+                                `,
                               )}
                             </div>`}
                   </div>
@@ -317,7 +259,6 @@ export class ComponentDetails extends LitElement {
       `;
     }
 
-    // Loading fallback when no component yet
     if (this.isLoading) {
       return html`
         <div data-testid="component-details">
@@ -362,7 +303,6 @@ export class ComponentDetails extends LitElement {
       `;
     }
 
-    // Default empty
     return html``;
   }
 }
