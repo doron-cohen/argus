@@ -1,6 +1,11 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import "./index";
-import { attachHeader, waitFor, flushPromises, renderElement } from "../../../tests/helpers/lit";
+import {
+  attachHeader,
+  waitFor,
+  flushPromises,
+  renderElement,
+} from "../../../tests/helpers/lit";
 
 describe("component-list (Lit)", () => {
   let headerContainer: HTMLElement;

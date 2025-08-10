@@ -52,5 +52,3 @@ export function attachHeader(): HTMLElement {
   document.body.appendChild(headerWrapper);
   return headerWrapper;
 }
-
-

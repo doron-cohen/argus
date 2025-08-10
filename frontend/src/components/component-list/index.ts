@@ -89,31 +89,31 @@ export class ComponentList extends LitElement {
         const href = `/components/${encodeURIComponent(slug)}`;
         return `
           <tr class="hover:bg-gray-50 cursor-pointer" data-testid="component-row" data-component-id="${escapeHtml(
-            slug
+            slug,
           )}">
             <td class="px-6 py-4 whitespace-nowrap">
               <a href="${href}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900" data-testid="component-name">${escapeHtml(
-                comp.name
+                comp.name,
               )}</a>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-500" data-testid="component-id">${escapeHtml(
-                slug
+                slug,
               )}</div>
             </td>
             <td class="px-6 py-4">
               <div class="text-sm text-gray-900" data-testid="component-description">${escapeHtml(
-                comp.description || ""
+                comp.description || "",
               )}</div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-500" data-testid="component-team">${escapeHtml(
-                comp.owners?.team || ""
+                comp.owners?.team || "",
               )}</div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-500" data-testid="component-maintainers">${escapeHtml(
-                comp.owners?.maintainers?.join(", ") || ""
+                comp.owners?.maintainers?.join(", ") || "",
               )}</div>
             </td>
           </tr>
