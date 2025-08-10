@@ -1,29 +1,11 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import "./index";
-
-function attachHeader() {
-  const headerWrapper = document.createElement("div");
-  headerWrapper.innerHTML = `
-    <div class="px-4 py-5 sm:px-6">
-      <h3 class="text-lg leading-6 font-medium text-gray-900" data-testid="components-header">
-        Components
-      </h3>
-    </div>
-  `;
-  document.body.appendChild(headerWrapper);
-  return headerWrapper;
-}
-
-async function waitFor(
-  predicate: () => boolean,
-  timeoutMs = 100,
-): Promise<void> {
-  const start = Date.now();
-  while (!predicate()) {
-    if (Date.now() - start > timeoutMs) break;
-    await new Promise((r) => setTimeout(r, 0));
-  }
-}
+import {
+  attachHeader,
+  waitFor,
+  flushPromises,
+  renderElement,
+} from "../../../tests/helpers/lit";
 
 describe("component-list (Lit)", () => {
   let headerContainer: HTMLElement;
@@ -49,11 +31,10 @@ describe("component-list (Lit)", () => {
     globalThis.fetch = pending;
     if ((globalThis as any).window) (globalThis as any).window.fetch = pending;
 
-    const element = document.createElement("component-list");
-    document.body.appendChild(element);
+    const element = renderElement<HTMLElement>("component-list");
 
     // Allow connectedCallback to run
-    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
 
     const loading = element.querySelector('[data-testid="loading-message"]');
     expect(loading).toBeTruthy();
@@ -70,12 +51,10 @@ describe("component-list (Lit)", () => {
     globalThis.fetch = okEmpty;
     if ((globalThis as any).window) (globalThis as any).window.fetch = okEmpty;
 
-    const element = document.createElement("component-list");
-    document.body.appendChild(element);
+    const element = renderElement<HTMLElement>("component-list");
 
     // Wait for fetch + render
-    await new Promise((r) => setTimeout(r, 0));
-    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
 
     const empty = element.querySelector(
       '[data-testid="no-components-message"]',
@@ -97,11 +76,9 @@ describe("component-list (Lit)", () => {
     globalThis.fetch = errResp;
     if ((globalThis as any).window) (globalThis as any).window.fetch = errResp;
 
-    const element = document.createElement("component-list");
-    document.body.appendChild(element);
+    const element = renderElement<HTMLElement>("component-list");
 
-    await new Promise((r) => setTimeout(r, 0));
-    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
 
     const errorEl = element.querySelector('[data-testid="error-message"]');
     expect(errorEl).toBeTruthy();
@@ -126,9 +103,11 @@ describe("component-list (Lit)", () => {
         owners: { maintainers: [], team: "t" },
       },
     ];
+    // Create without appending to DOM first so we can stub loadComponents
     const element = document.createElement("component-list") as any;
     // Prevent auto-fetch in connectedCallback for this test
     (element as any).loadComponents = async () => {};
+    // Now append to DOM
     document.body.appendChild(element);
 
     // Set state directly to avoid environment-specific fetch behavior
@@ -136,7 +115,7 @@ describe("component-list (Lit)", () => {
     (element as any).isLoading = false;
     (element as any).error = null;
     element.requestUpdate?.();
-    await new Promise((r) => setTimeout(r, 0));
+    await flushPromises();
     if (element.updateComplete) await element.updateComplete;
     element.updateHeader?.();
 
