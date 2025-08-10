@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { Component } from "./types";
-// Seeding is handled by CI before tests; no seeding from within tests
+import { ensureReports } from "./fixtures";
 
 async function waitForSync(page: Page): Promise<void> {
   await page.waitForFunction(
@@ -56,6 +56,7 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      await ensureReports(page.request, "user-service", 1);
       const apiReports = await getComponentReports("user-service");
       // Navigate to a component that should have no reports initially
       await page.goto("/components/user-service");
@@ -85,6 +86,7 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      await ensureReports(page.request, "user-service", 1);
       await page.goto("/components/user-service");
 
       await expect(page.getByTestId("component-details")).toBeVisible();
@@ -96,9 +98,8 @@ test.describe("Component Reports", () => {
   });
 
   test.describe("Populated State", () => {
-    // Data is already seeded by the CI script, no need to seed here
-    test.beforeAll(async () => {
-      console.log("🧪 Using pre-seeded data for populated state tests...");
+    test.beforeAll(async ({ request }) => {
+      await ensureReports(request, "auth-service", 3);
     });
 
     test("should display reports when component has quality checks", async ({
@@ -144,6 +145,7 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      await ensureReports(page.request, "auth-service", 1);
       await page.goto("/components/auth-service");
 
       await expect(page.getByTestId("component-details")).toBeVisible();
@@ -189,6 +191,7 @@ test.describe("Component Reports", () => {
     }: {
       page: Page;
     }) => {
+      await ensureReports(page.request, "auth-service", 2);
       await page.goto("/components/auth-service");
 
       await expect(page.getByTestId("reports-list")).toBeVisible();

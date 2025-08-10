@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ensureReports } from "./fixtures";
 import type { Component, SyncSource, SyncStatus } from "./types";
 
 test.describe("Component Catalog - Real Application Flow", () => {
@@ -105,6 +106,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
   }: {
     page: Page;
   }) => {
+    await ensureReports(page.request, "auth-service", 1);
     // Get components via API
     const apiResponse = await page.request.get(
       "http://localhost:8080/api/catalog/v1/components",
