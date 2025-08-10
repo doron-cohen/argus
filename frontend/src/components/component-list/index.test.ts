@@ -145,7 +145,7 @@ describe("component-list (Lit)", () => {
         (element as HTMLElement).querySelectorAll(
           '[data-testid="component-row"]'
         ).length === 2,
-      500,
+      500
     );
     const rows = (element as HTMLElement).querySelectorAll(
       '[data-testid="component-row"]'
