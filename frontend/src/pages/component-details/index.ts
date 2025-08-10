@@ -17,6 +17,7 @@ export class ComponentDetailsPage extends LitElement {
   };
 
   componentId = "";
+  private unsubscribers: Array<() => void> = [];
 
   protected createRenderRoot(): this {
     return this;
@@ -24,6 +25,19 @@ export class ComponentDetailsPage extends LitElement {
 
   async connectedCallback(): Promise<void> {
     super.connectedCallback();
+    // Subscribe to page stores to trigger re-render on changes
+    this.unsubscribers.push(
+      componentDetails.subscribe(() => this.requestUpdate()),
+    );
+    this.unsubscribers.push(loading.subscribe(() => this.requestUpdate()));
+    this.unsubscribers.push(errorStore.subscribe(() => this.requestUpdate()));
+    this.unsubscribers.push(latestReports.subscribe(() => this.requestUpdate()));
+    this.unsubscribers.push(
+      reportsLoading.subscribe(() => this.requestUpdate()),
+    );
+    this.unsubscribers.push(
+      reportsError.subscribe(() => this.requestUpdate()),
+    );
     // Reset and load data when mounted or when componentId changes
     await this.load();
   }
@@ -45,6 +59,12 @@ export class ComponentDetailsPage extends LitElement {
     if (!error.get()) {
       await loadComponentReports(this.componentId);
     }
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.unsubscribers.forEach((off) => off());
+    this.unsubscribers = [];
   }
 
   render() {
