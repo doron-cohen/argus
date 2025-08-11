@@ -48,10 +48,10 @@ func Start(cfg config.Config) (stop func(), err error) {
 	// Mount sync API under /api/sync/v1
 	mux.Mount("/api/sync/v1", syncapi.Handler(syncapi.NewSyncAPIServer(syncService)))
 
-    // Serve static files and client routes from embedded frontend
-    // This must come after all API routes to ensure proper precedence
-    slog.Info("Serving static files from embedded frontend")
-    mux.Handle("/*", frontend.Handler())
+	// Serve static files and client routes from embedded frontend
+	// This must come after all API routes to ensure proper precedence
+	slog.Info("Serving static files from embedded frontend")
+	mux.Handle("/*", frontend.Handler())
 
 	srv := &http.Server{
 		Addr:              ":8080",
