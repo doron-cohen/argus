@@ -51,17 +51,7 @@ func Start(cfg config.Config) (stop func(), err error) {
     // Serve static files and client routes from embedded frontend
     // This must come after all API routes to ensure proper precedence
     slog.Info("Serving static files from embedded frontend")
-    mux.Handle("/*", frontend.NewStaticHandler(frontend.RouteConfig{
-        StaticPrefixes: []string{"/dist/"},
-        APIPrefixes:    []string{"/api/"},
-        ClientRoutes: []string{
-            "/",
-            "/components",
-            "/components/*",
-            "/settings",
-            "/sync",
-        },
-    }))
+    mux.Handle("/*", frontend.Handler())
 
 	srv := &http.Server{
 		Addr:              ":8080",
