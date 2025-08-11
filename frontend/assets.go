@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"embed"
+    "errors"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -38,11 +39,12 @@ func applyCacheHeaders(w http.ResponseWriter, path string) {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
-	file, err := assets.Open("index.html")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
+    file, err := assets.Open("index.html")
+    if err != nil {
+        slog.Error("failed to open index.html", "path", r.URL.Path, "error", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
 	var responseWritten bool
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
@@ -52,12 +54,13 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
-	readSeeker, ok := file.(io.ReadSeeker)
-	if !ok {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		responseWritten = true
-		return
-	}
+    readSeeker, ok := file.(io.ReadSeeker)
+    if !ok {
+        slog.Error("index.html does not implement io.ReadSeeker", "path", r.URL.Path)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        responseWritten = true
+        return
+    }
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
@@ -65,32 +68,40 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveDistFile(w http.ResponseWriter, r *http.Request, path string) {
-	// Create a sub-filesystem for dist files
-	distFS, err := fs.Sub(assets, "dist")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
+    // Create a sub-filesystem for dist files
+    distFS, err := fs.Sub(assets, "dist")
+    if err != nil {
+        slog.Error("failed to create dist filesystem", "path", path, "error", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
 	filePath := strings.TrimPrefix(path, "/dist/")
 	if filePath == "" || strings.HasSuffix(path, "/") {
-		http.NotFound(w, r)
+        http.NotFound(w, r)
 		return
 	}
-	file, err := distFS.Open(filePath)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
+    file, err := distFS.Open(filePath)
+    if err != nil {
+        // Return 404 if not found; otherwise 500
+        if errors.Is(err, fs.ErrNotExist) {
+            http.NotFound(w, r)
+            return
+        }
+        slog.Error("failed to open dist file", "path", path, "error", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
 			slog.Error("Failed to close file", "error", closeErr)
 		}
 	}()
-	readSeeker, ok := file.(io.ReadSeeker)
-	if !ok {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
+    readSeeker, ok := file.(io.ReadSeeker)
+    if !ok {
+        slog.Error("dist file does not implement io.ReadSeeker", "path", path)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
 	applyCacheHeaders(w, path)
 	http.ServeContent(w, r, filepath.Base(filePath), time.Now(), readSeeker)
 }
