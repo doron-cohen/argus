@@ -12,15 +12,17 @@ export default defineConfig({
     ? [
         ["json", { outputFile: "test-results/results.json" }],
         ["junit", { outputFile: "test-results/results.xml" }],
+        ["html", { outputFolder: "playwright-report", open: "never" }],
       ]
     : [
         ["list"],
         ["json", { outputFile: "test-results/results.json" }],
         ["junit", { outputFile: "test-results/results.xml" }],
+        ["html", { outputFolder: "playwright-report", open: "never" }],
       ],
   use: {
     baseURL: "http://localhost:8080", // Point to real application
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     actionTimeout: 10000,
@@ -42,7 +44,7 @@ export default defineConfig({
       },
   timeout: 60000,
   expect: {
-    timeout: 10000,
+    timeout: 3000,
   },
   outputDir: "test-results/",
 });

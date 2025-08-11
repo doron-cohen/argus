@@ -48,7 +48,26 @@ jobs:
           ARGUS_BASE_URL: http://localhost:8080
         run: |
           docker compose up -d --wait
-          cd frontend && CI=true bun run test:e2e --reporter=list
+          cd frontend && CI=true bun run test:e2e --reporter=list || true
+          # Always upload Playwright artifacts (screenshots, videos, traces, HTML report)
+          cd ..
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+      - name: Upload Playwright test-results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results
+          retention-days: 7
+      - name: Fail if tests failed
+        if: failure()
+        run: exit 1
 
   docker-build:
     name: Build Docker Image
