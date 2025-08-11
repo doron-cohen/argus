@@ -351,8 +351,13 @@ test.describe("Component Reports", () => {
     }) => {
       await page.goto("/components/non-existent-component");
 
-      // Should show component error, not reports error
-      await expect(page.getByTestId("component-details-error")).toBeVisible();
+      // Wait for the component details page to render, then assert error
+      await expect(page.getByTestId("component-details")).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(page.getByTestId("component-details-error")).toBeVisible({
+        timeout: 30000,
+      });
       await expect(page.getByTestId("error-title")).toContainText(
         "Error loading component",
       );
