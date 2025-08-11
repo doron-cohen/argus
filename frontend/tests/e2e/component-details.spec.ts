@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ensureReports } from "./fixtures";
 import type { Component } from "./types";
 
 test.describe("Component Details Page", () => {
@@ -18,7 +19,7 @@ test.describe("Component Details Page", () => {
           return false;
         }
       },
-      { timeout: 30000 },
+      { timeout: 5000 },
     );
   });
 
@@ -134,6 +135,7 @@ test.describe("Component Details Page", () => {
   }: {
     page: Page;
   }) => {
+    await ensureReports(page.request, "auth-service", 1);
     // Get component details via API
     const apiResponse = await page.request.get(
       "http://localhost:8080/api/catalog/v1/components/auth-service",

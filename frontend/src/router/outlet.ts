@@ -2,15 +2,7 @@ import { LitElement, html, type TemplateResult } from "lit";
 import Navigo from "navigo";
 import "../components/component-details";
 import "../pages/home/index";
-import {
-  resetComponentDetails,
-  resetReports,
-  error,
-} from "../stores/app-store";
-import {
-  loadComponentDetails,
-  loadComponentReports,
-} from "../pages/component-details/data";
+import "../pages/component-details/index";
 
 export class RouterOutlet extends LitElement {
   private router: Navigo | null = null;
@@ -28,35 +20,13 @@ export class RouterOutlet extends LitElement {
       this.router
         .on("/", () => this.setView(html`<home-page></home-page>`))
         .on("/components", () => this.setView(html`<home-page></home-page>`))
-        .on("/components/:id", async (match) => {
-          this.setView(html`
-            <div class="container mx-auto px-4 py-8">
-              <div class="mb-8">
-                <h1
-                  class="text-3xl font-bold text-gray-900 mb-2"
-                  data-testid="page-title"
-                >
-                  Component Details
-                </h1>
-                <p class="text-gray-600" data-testid="page-description">
-                  View detailed information about the component
-                </p>
-              </div>
-              <component-details></component-details>
-            </div>
-          `);
-
-          const componentId = match?.data?.id as string | undefined;
-          if (!componentId) return;
-
-          // Reset state and load data as in previous implementation
-          resetComponentDetails();
-          resetReports();
-
-          await loadComponentDetails(componentId);
-          if (!error.get()) {
-            await loadComponentReports(componentId);
-          }
+        .on("/components/:id", (match) => {
+          const componentId = (match?.data?.id as string) || "";
+          this.setView(
+            html`<component-details-page
+              component-id="${componentId}"
+            ></component-details-page>`,
+          );
         })
         .notFound(() =>
           this.setView(html`
