@@ -189,12 +189,53 @@ func TestHandlerRootServing(t *testing.T) {
 	// Just check that content exists, don't validate specific content
 }
 
+func TestClientRoutePatterns(t *testing.T) {
+	handler := Handler()
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	// Parameterized route should serve index.html
+	resp, err := http.Get(server.URL + "/components/123")
+	if err != nil {
+		t.Fatalf("Failed to GET /components/123: %v", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", contentType)
+	}
+
+	// API route should also serve index.html in the frontend handler context;
+	// backend router will override this in the application
+	resp, err = http.Get(server.URL + "/api/test")
+	if err != nil {
+		t.Fatalf("Failed to GET /api/test: %v", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			t.Logf("Failed to close response body: %v", closeErr)
+		}
+	}()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for /api/test under frontend handler, got %d", resp.StatusCode)
+	}
+}
+
 func TestHandlerNotFound(t *testing.T) {
 	handler := Handler()
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	// Test non-existent file
+	// For any non-dist path, the SPA index should be served
 	resp, err := http.Get(server.URL + "/non-existent.html")
 	if err != nil {
 		t.Fatalf("Failed to GET /non-existent.html: %v", err)
@@ -205,8 +246,12 @@ func TestHandlerNotFound(t *testing.T) {
 		}
 	}()
 
-	if resp.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected status 404, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", contentType)
 	}
 }
 
@@ -216,9 +261,9 @@ func TestDistFilesServed(t *testing.T) {
 	defer server.Close()
 
 	// Test that dist/app.js is served
-	resp, err := http.Get(server.URL + "/app.js")
+	resp, err := http.Get(server.URL + "/dist/main.js")
 	if err != nil {
-		t.Fatalf("Failed to GET /app.js: %v", err)
+		t.Fatalf("Failed to GET /dist/main.js: %v", err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -227,7 +272,7 @@ func TestDistFilesServed(t *testing.T) {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200 for app.js, got %d", resp.StatusCode)
+		t.Errorf("Expected status 200 for /dist/main.js, got %d", resp.StatusCode)
 	}
 
 	// Test that dist files are served (generic test, not specific filenames)

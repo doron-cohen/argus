@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"embed"
+    "errors"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -25,175 +26,123 @@ func applyCacheHeaders(w http.ResponseWriter, path string) {
 	switch ext {
 	case ".css":
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
-		w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
+		w.Header().Set("Cache-Control", "public, max-age=31536000")
 	case ".js":
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
+		w.Header().Set("Cache-Control", "public, max-age=31536000")
 	case ".map":
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year
+		w.Header().Set("Cache-Control", "public, max-age=31536000")
 	default:
-		w.Header().Set("Cache-Control", "public, max-age=86400") // 1 day
+		w.Header().Set("Cache-Control", "public, max-age=86400")
 	}
 }
 
-// isStaticFile checks if the path corresponds to a static file
-func isStaticFile(path string) bool {
-	// Check if path has a file extension
-	ext := filepath.Ext(path)
-	if ext != "" {
-		return true
-	}
-
-	// Check if path starts with /dist/ (static assets)
-	if strings.HasPrefix(path, "/dist/") {
-		return true
-	}
-
-	// Check if path is for API endpoints - these are NOT static files
-	if strings.HasPrefix(path, "/api/") {
-		return false
-	}
-
-	return false
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+    file, err := assets.Open("index.html")
+    if err != nil {
+        slog.Error("failed to open index.html", "path", r.URL.Path, "error", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+	var responseWritten bool
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			slog.Error("Failed to close file", "error", closeErr)
+			if !responseWritten {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+		}
+	}()
+    readSeeker, ok := file.(io.ReadSeeker)
+    if !ok {
+        slog.Error("index.html does not implement io.ReadSeeker", "path", r.URL.Path)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        responseWritten = true
+        return
+    }
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
+	responseWritten = true
 }
 
-// Handler returns an http.Handler that serves the embedded frontend assets
+func serveDistFile(w http.ResponseWriter, r *http.Request, path string) {
+    // Create a sub-filesystem for dist files
+    distFS, err := fs.Sub(assets, "dist")
+    if err != nil {
+        slog.Error("failed to create dist filesystem", "path", path, "error", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+	filePath := strings.TrimPrefix(path, "/dist/")
+	if filePath == "" || strings.HasSuffix(path, "/") {
+        http.NotFound(w, r)
+		return
+	}
+    file, err := distFS.Open(filePath)
+    if err != nil {
+        // Return 404 if not found; otherwise 500
+        if errors.Is(err, fs.ErrNotExist) {
+            http.NotFound(w, r)
+            return
+        }
+        slog.Error("failed to open dist file", "path", path, "error", err)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			slog.Error("Failed to close file", "error", closeErr)
+		}
+	}()
+    readSeeker, ok := file.(io.ReadSeeker)
+    if !ok {
+        slog.Error("dist file does not implement io.ReadSeeker", "path", path)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+	applyCacheHeaders(w, path)
+	http.ServeContent(w, r, filepath.Base(filePath), time.Now(), readSeeker)
+}
+
+// Handler serves /dist/* as static assets and serves index.html for any other path
 func Handler() http.Handler {
-	// Create a sub-filesystem for dist files
-	distFS, err := fs.Sub(assets, "dist")
-	if err != nil {
-		panic(err)
-	}
-
-	// Create a custom file server that serves index.html from root and dist files from their paths
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// If requesting root path or a client-side route, serve index.html
-		if r.URL.Path == "/" || !isStaticFile(r.URL.Path) {
-			file, err := assets.Open("index.html")
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-
-			var responseWritten bool
-			defer func() {
-				if closeErr := file.Close(); closeErr != nil {
-					// Log the error but don't fail the request if response already written
-					slog.Error("Failed to close file", "error", closeErr)
-					if !responseWritten {
-						http.Error(w, "Internal server error", http.StatusInternalServerError)
-					}
-				}
-			}()
-
-			// Type-safe assertion with proper error handling
-			readSeeker, ok := file.(io.ReadSeeker)
-			if !ok {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				responseWritten = true
-				return
-			}
-
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			// Cache HTML for 5 minutes
-			w.Header().Set("Cache-Control", "public, max-age=300")
-			http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
-			responseWritten = true
-			return
-		}
-
-		// For dist files, serve from dist directory
 		if strings.HasPrefix(r.URL.Path, "/dist/") {
-			// Add cache headers for static assets
-			applyCacheHeaders(w, r.URL.Path)
-
-			// Strip the /dist/ prefix and serve from dist subdirectory
-			filePath := strings.TrimPrefix(r.URL.Path, "/dist/")
-			file, err := distFS.Open(filePath)
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-			defer file.Close()
-
-			// Type-safe assertion with proper error handling
-			readSeeker, ok := file.(io.ReadSeeker)
-			if !ok {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-
-			http.ServeContent(w, r, filepath.Base(filePath), time.Now(), readSeeker)
+			serveDistFile(w, r, r.URL.Path)
 			return
 		}
-
-		// For all other paths, return 404
-		http.NotFound(w, r)
+		// Everything else is a client route (SPA)
+		serveIndex(w, r)
 	})
 }
 
-// HandlerWithPrefix returns an http.Handler that serves the embedded frontend assets
-// with an optional path prefix (e.g., "/static/")
+// HandlerWithPrefix restricts serving to a given prefix (e.g. "/static/")
 func HandlerWithPrefix(prefix string) http.Handler {
 	if prefix == "" {
 		return Handler()
 	}
-
-	// Create a sub-filesystem for dist files
-	distFS, err := fs.Sub(assets, "dist")
-	if err != nil {
-		panic(err)
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the path starts with the prefix
 		if !strings.HasPrefix(r.URL.Path, prefix) {
 			http.NotFound(w, r)
 			return
 		}
-
-		// Remove the prefix from the path
-		path := r.URL.Path[len(prefix):]
-
-		// If requesting root path (after prefix removal), serve index.html
-		if path == "/" || path == "" {
-			file, err := assets.Open("index.html")
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-
-			var responseWritten bool
-			defer func() {
-				if closeErr := file.Close(); closeErr != nil {
-					// Log the error but don't fail the request if response already written
-					slog.Error("Failed to close file", "error", closeErr)
-					if !responseWritten {
-						http.Error(w, "Internal server error", http.StatusInternalServerError)
-					}
-				}
-			}()
-
-			// Type-safe assertion with proper error handling
-			readSeeker, ok := file.(io.ReadSeeker)
-			if !ok {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				responseWritten = true
-				return
-			}
-
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			// Cache HTML for 5 minutes
-			w.Header().Set("Cache-Control", "public, max-age=300")
-			http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
-			responseWritten = true
+		stripped := strings.TrimPrefix(r.URL.Path, prefix)
+		if stripped == "" || stripped == "/" || stripped == "index.html" || stripped == "/index.html" {
+			serveIndex(w, r)
 			return
 		}
-
-		// For all other paths, serve from dist directory with cache headers
-		applyCacheHeaders(w, path)
-		r.URL.Path = path
-		http.FileServer(http.FS(distFS)).ServeHTTP(w, r)
+		if strings.HasPrefix(stripped, "dist/") || strings.HasPrefix(stripped, "/dist/") {
+			// Reconstruct a path starting with /dist/
+			path := stripped
+			if !strings.HasPrefix(path, "/") {
+				path = "/" + path
+			}
+			serveDistFile(w, r, path)
+			return
+		}
+		// Any other path under the prefix is treated as client route
+		serveIndex(w, r)
 	})
 }

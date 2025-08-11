@@ -255,7 +255,12 @@ export class ComponentDetails extends LitElement {
                           Loading quality checks...
                         </div>`
                       : this.reportsErrorMessage
-                        ? html`<div class="text-red-600 text-sm" data-testid="reports-error">${`Error loading quality checks: ${this.reportsErrorMessage}`}</div>`
+                        ? html`<div
+                            class="text-red-600 text-sm"
+                            data-testid="reports-error"
+                          >
+                            ${`Error loading quality checks: ${this.reportsErrorMessage}`}
+                          </div>`
                         : (this.currentReports?.length || 0) === 0
                           ? html`<div
                               class="text-gray-500 italic"
