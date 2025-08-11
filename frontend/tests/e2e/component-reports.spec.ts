@@ -17,7 +17,7 @@ async function waitForSync(page: Page): Promise<void> {
         return false;
       }
     },
-    { timeout: 30000 },
+    { timeout: 5000 },
   );
 }
 
@@ -353,10 +353,10 @@ test.describe("Component Reports", () => {
 
       // Wait for the component details page to render, then assert error
       await expect(page.getByTestId("component-details")).toBeVisible({
-        timeout: 30000,
+        timeout: 5000,
       });
       await expect(page.getByTestId("component-details-error")).toBeVisible({
-        timeout: 30000,
+        timeout: 5000,
       });
       await expect(page.getByTestId("error-title")).toContainText(
         "Error loading component",

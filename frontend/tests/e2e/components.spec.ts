@@ -19,7 +19,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
           return false;
         }
       },
-      { timeout: 30000 },
+      { timeout: 5000 },
     );
   });
 

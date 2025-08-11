@@ -22,7 +22,7 @@ test.describe("Sync Process", () => {
           return false;
         }
       },
-      { timeout: 30000 },
+      { timeout: 5000 },
     );
 
     // Verify sync configuration
