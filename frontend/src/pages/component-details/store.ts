@@ -1,39 +1,14 @@
 import { atom } from "nanostores";
-
-export interface Component {
-  id: string;
-  name: string;
-  description: string;
-  owners: {
-    maintainers: string[];
-    team: string;
-  };
-}
-
-export interface CheckReport {
-  id: string;
-  check_slug: string;
-  status:
-    | "pass"
-    | "fail"
-    | "disabled"
-    | "skipped"
-    | "unknown"
-    | "error"
-    | "completed";
-  timestamp: string;
-}
-
-export interface ComponentReportsResponse {
-  reports: CheckReport[];
-  pagination: {
-    total: number;
-    limit: number;
-    offset: number;
-    has_more: boolean;
-  };
-}
-
+import type {
+  Component,
+  CheckReport,
+  ComponentReportsResponse,
+} from "../../api/services/components/client";
+export type {
+  Component,
+  CheckReport,
+  ComponentReportsResponse,
+} from "../../api/services/components/client";
 export interface ApiError {
   error: string;
   code?: string;

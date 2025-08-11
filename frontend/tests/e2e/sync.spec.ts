@@ -1,5 +1,4 @@
 import { test, expect, type Page } from "@playwright/test";
-import { ensureReports } from "./fixtures";
 import type { Component, SyncSource, SyncStatus } from "./types";
 
 test.describe("Sync Process", () => {
