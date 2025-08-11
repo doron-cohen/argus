@@ -28,6 +28,23 @@ export async function waitForSync(
   throw new Error("Timed out waiting for sync to complete");
 }
 
+export async function waitForCatalogReady(
+  request: APIRequestContext,
+  timeoutMs = 30000,
+): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await request.get(`${BASE_URL}/api/catalog/v1/components`);
+      if (res.ok()) {
+        const list = (await res.json()) as any[];
+        if (Array.isArray(list) && list.length > 0) return;
+      }
+    } catch {}
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}
+
 export type CreateReportOptions = {
   checkSlug?: string;
   checkName?: string;
@@ -95,16 +112,23 @@ export async function ensureReports(
   componentId: string,
   desiredCount = 1,
 ): Promise<void> {
+  // Ensure catalog is serving components before attempting to create reports
   try {
-    await waitForSync(request, 10000);
-  } catch {
-    // continue; report creation does not require sync to be completed
-  }
+    await waitForSync(request, 15000);
+  } catch {}
+  await waitForCatalogReady(request, 15000);
   const current = await getLatestReports(request, componentId);
   const toCreate = Math.max(0, desiredCount - current.reports.length);
   for (let i = 0; i < toCreate; i++) {
     await createReport(request, componentId, {
       status: i % 2 ? "fail" : "pass",
     });
+  }
+  // Verify creation became visible via catalog endpoint
+  const start = Date.now();
+  while (Date.now() - start < 20000) {
+    const after = await getLatestReports(request, componentId);
+    if ((after.reports?.length || 0) >= desiredCount) return;
+    await new Promise((r) => setTimeout(r, 500));
   }
 }
