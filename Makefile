@@ -94,7 +94,7 @@ frontend/test:
 	cd frontend && bun run type-check
 
 frontend/test-unit:
-	cd frontend && bun run test:unit
+	cd frontend && bun run test:unit:pure
 
 # E2E tests against backend-served frontend (backend serves built frontend)
 frontend/test-e2e-backend: frontend/install
