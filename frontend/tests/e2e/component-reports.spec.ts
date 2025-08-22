@@ -2,10 +2,10 @@ import { test, expect, type Page } from "@playwright/test";
 import { ensureReports } from "./fixtures";
 
 async function getComponentReports(
-  componentId: string,
+  componentId: string
 ): Promise<{ reports: any[] }> {
   const response = await fetch(
-    `http://localhost:8080/api/catalog/v1/components/${componentId}/reports?latest_per_check=true`,
+    `http://localhost:8080/api/catalog/v1/components/${componentId}/reports?latest_per_check=true`
   );
   if (!response.ok) {
     return { reports: [] };
@@ -204,16 +204,15 @@ test.describe("Component Reports", () => {
   }) => {
     await page.goto("/components/non-existent-component");
 
-    // Wait for the component details page to render, then assert error
-    await expect(page.getByTestId("component-details")).toBeVisible({
+    // Wait for the error state to render, then assert error
+    await expect(page.getByTestId("component-details-error")).toBeVisible({
       timeout: 10000,
     });
 
     // Verify error state is displayed
-    await expect(page.getByTestId("component-details-error")).toBeVisible();
     await expect(page.getByTestId("error-title")).toBeVisible();
     await expect(page.getByTestId("error-title")).toHaveText(
-      "Error loading component",
+      "Error loading component"
     );
   });
 });
