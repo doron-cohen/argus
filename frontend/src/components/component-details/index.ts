@@ -147,13 +147,13 @@ export class ComponentDetails extends LitElement {
               "Description",
               "description-label",
               "component-description",
-              this.component!.description || "No description available"
+              this.component!.description || "No description available",
             )}
             ${this.renderInfoRow(
               "Team",
               "team-label",
               "component-team",
-              this.component!.owners?.team || "No team assigned"
+              this.component!.owners?.team || "No team assigned",
             )}
             ${this.renderMaintainersRow()}
           </dl>
@@ -166,7 +166,7 @@ export class ComponentDetails extends LitElement {
     label: string,
     labelTestId: string,
     valueTestId: string,
-    value: string
+    value: string,
   ) {
     return html`
       <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

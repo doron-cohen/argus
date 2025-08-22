@@ -38,7 +38,7 @@ describe("component-list (Lit)", () => {
     if (element.updateComplete) await element.updateComplete;
 
     const loading = element.shadowRoot?.querySelector(
-      '[data-testid="loading-message"]'
+      '[data-testid="loading-message"]',
     );
     expect(loading).toBeTruthy();
     expect(loading?.textContent?.trim()).toBe("Loading components...");
@@ -60,7 +60,7 @@ describe("component-list (Lit)", () => {
     if (element.updateComplete) await element.updateComplete;
 
     const empty = element.shadowRoot?.querySelector(
-      '[data-testid="no-components-message"]'
+      '[data-testid="no-components-message"]',
     );
     expect(empty).toBeTruthy();
     expect(empty?.textContent?.trim()).toBe("No components found");
@@ -82,7 +82,7 @@ describe("component-list (Lit)", () => {
     if (element.updateComplete) await element.updateComplete;
 
     const errorEl = element.shadowRoot?.querySelector(
-      '[data-testid="error-message"]'
+      '[data-testid="error-message"]',
     );
     expect(errorEl).toBeTruthy();
     expect(errorEl?.textContent || "").toContain("Error:");
@@ -121,7 +121,7 @@ describe("component-list (Lit)", () => {
 
     // Since the <tr> elements aren't rendering properly, test the component names directly
     const componentNames = element.shadowRoot?.querySelectorAll(
-      '[data-testid="component-name"]'
+      '[data-testid="component-name"]',
     );
     // Verify we have 2 components
     expect(componentNames?.length).toBe(2);

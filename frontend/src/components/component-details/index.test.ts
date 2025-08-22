@@ -79,7 +79,7 @@ describe("component-details (unit)", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const componentName = el.shadowRoot?.querySelector(
-      '[data-testid="component-name"]'
+      '[data-testid="component-name"]',
     );
     expect(componentName).toBeTruthy();
     expect(componentName?.textContent?.trim()).toBe("Test Component");
@@ -92,33 +92,33 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="component-name"]'),
-        500
+        500,
       );
 
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="component-name"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("Test Component");
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="component-id"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("ID: test-component");
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="component-description"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("This is a test component");
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="component-team"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("Platform Team");
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="component-maintainers"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("john.doe, jane.smith");
     });
 
@@ -130,12 +130,12 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="component-id"]'),
-        500
+        500,
       );
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="component-id"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("ID: Test Component");
     });
 
@@ -144,7 +144,7 @@ describe("component-details (unit)", () => {
       el.requestUpdate();
       await flushPromises();
       expect(
-        el.shadowRoot?.querySelector('[data-testid="component-details"]')
+        el.shadowRoot?.querySelector('[data-testid="component-details"]'),
       ).toBeFalsy();
     });
 
@@ -155,7 +155,7 @@ describe("component-details (unit)", () => {
       el.requestUpdate();
       await flushPromises();
       expect(
-        el.shadowRoot?.querySelector('[data-testid="component-maintainers"]')
+        el.shadowRoot?.querySelector('[data-testid="component-maintainers"]'),
       ).toBeFalsy();
     });
 
@@ -168,7 +168,7 @@ describe("component-details (unit)", () => {
       el.requestUpdate();
       await flushPromises();
       expect(
-        el.shadowRoot?.querySelector('[data-testid="component-maintainers"]')
+        el.shadowRoot?.querySelector('[data-testid="component-maintainers"]'),
       ).toBeFalsy();
     });
   });
@@ -181,14 +181,14 @@ describe("component-details (unit)", () => {
       await waitFor(
         () =>
           !!el.shadowRoot?.querySelector(
-            '[data-testid="component-details-loading"]'
+            '[data-testid="component-details-loading"]',
           ),
-        500
+        500,
       );
       expect(
         el.shadowRoot?.querySelector(
-          '[data-testid="component-details-loading"]'
-        )
+          '[data-testid="component-details-loading"]',
+        ),
       ).toBeTruthy();
     });
 
@@ -199,17 +199,17 @@ describe("component-details (unit)", () => {
       await waitFor(
         () =>
           !!el.shadowRoot?.querySelector(
-            '[data-testid="component-details-error"]'
+            '[data-testid="component-details-error"]',
           ),
-        500
+        500,
       );
       expect(
-        el.shadowRoot?.querySelector('[data-testid="component-details-error"]')
+        el.shadowRoot?.querySelector('[data-testid="component-details-error"]'),
       ).toBeTruthy();
       expect(
         el.shadowRoot
           ?.querySelector('[data-testid="error-title"]')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).toBe("Error loading component");
     });
   });
@@ -221,7 +221,7 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="component-name"]'),
-        500
+        500,
       );
     });
 
@@ -233,10 +233,10 @@ describe("component-details (unit)", () => {
         () =>
           el.shadowRoot?.querySelectorAll('[data-testid="report-item"]')
             .length > 0,
-        500
+        500,
       );
       const items = el.shadowRoot?.querySelectorAll(
-        '[data-testid="report-item"]'
+        '[data-testid="report-item"]',
       );
       expect(items?.length).toBe(3);
 
@@ -255,13 +255,13 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="no-reports"]'),
-        500
+        500,
       );
       expect(
-        el.shadowRoot?.querySelector('[data-testid="no-reports"]')
+        el.shadowRoot?.querySelector('[data-testid="no-reports"]'),
       ).toBeTruthy();
       expect(
-        el.shadowRoot?.querySelector('[data-testid="reports-list"]')
+        el.shadowRoot?.querySelector('[data-testid="reports-list"]'),
       ).toBeFalsy();
     });
 
@@ -271,10 +271,10 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="reports-loading"]'),
-        500
+        500,
       );
       expect(
-        el.shadowRoot?.querySelector('[data-testid="reports-loading"]')
+        el.shadowRoot?.querySelector('[data-testid="reports-loading"]'),
       ).toBeTruthy();
 
       el.isReportsLoading = false;
@@ -283,10 +283,10 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="reports-error"]'),
-        500
+        500,
       );
       expect(
-        el.shadowRoot?.querySelector('[data-testid="reports-error"]')
+        el.shadowRoot?.querySelector('[data-testid="reports-error"]'),
       ).toBeTruthy();
     });
 
@@ -296,10 +296,10 @@ describe("component-details (unit)", () => {
       await flushPromises();
       await waitFor(
         () => !!el.shadowRoot?.querySelector('[data-testid="check-timestamp"]'),
-        500
+        500,
       );
       const ts = el.shadowRoot?.querySelector(
-        '[data-testid="check-timestamp"]'
+        '[data-testid="check-timestamp"]',
       );
       expect(ts?.textContent).toBeTruthy();
     });

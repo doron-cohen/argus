@@ -41,7 +41,7 @@ export class RouterOutlet extends LitElement {
         this.setView(
           html`<component-details-page
             component-id="${componentId}"
-          ></component-details-page>`
+          ></component-details-page>`,
         );
       })
       .notFound(() => {

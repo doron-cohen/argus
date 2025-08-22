@@ -60,42 +60,42 @@ export class ComponentDetailsPage extends LitElement {
       componentDetails.subscribe((value) => {
         this.component = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       loading.subscribe((value) => {
         this.isLoading = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       errorStore.subscribe((value) => {
         this.errorMessage = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       latestReports.subscribe((value) => {
         this.reports = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       reportsLoading.subscribe((value) => {
         this.isReportsLoading = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       reportsError.subscribe((value) => {
         this.reportsErrorMessage = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     if (this.componentId) {
