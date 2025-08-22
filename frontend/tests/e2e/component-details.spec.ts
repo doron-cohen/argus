@@ -15,7 +15,7 @@ test.describe("Component Details Page", () => {
     // Verify the page title is displayed
     await expect(page.getByTestId("page-title")).toBeVisible();
     await expect(page.getByTestId("page-title")).toHaveText(
-      "Component Details"
+      "Component Details",
     );
 
     // Verify component information is displayed
@@ -96,7 +96,7 @@ test.describe("Component Details Page", () => {
     // Verify error state is displayed
     await expect(page.getByTestId("error-title")).toBeVisible();
     await expect(page.getByTestId("error-title")).toHaveText(
-      "Error loading component"
+      "Error loading component",
     );
   });
 
@@ -115,7 +115,7 @@ test.describe("Component Details Page", () => {
     // Verify back link is present
     await expect(page.getByTestId("back-to-components")).toBeVisible();
     await expect(page.getByTestId("back-to-components")).toHaveText(
-      "← Back to Components"
+      "← Back to Components",
     );
   });
 
