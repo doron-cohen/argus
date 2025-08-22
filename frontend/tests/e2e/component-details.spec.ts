@@ -88,13 +88,12 @@ test.describe("Component Details Page", () => {
   }) => {
     await page.goto("/components/non-existent-component");
 
-    // Wait for the component details page to render, then assert error
-    await expect(page.getByTestId("component-details")).toBeVisible({
+    // Wait for the error state to render, then assert error
+    await expect(page.getByTestId("component-details-error")).toBeVisible({
       timeout: 10000,
     });
 
     // Verify error state is displayed
-    await expect(page.getByTestId("component-details-error")).toBeVisible();
     await expect(page.getByTestId("error-title")).toBeVisible();
     await expect(page.getByTestId("error-title")).toHaveText(
       "Error loading component",
