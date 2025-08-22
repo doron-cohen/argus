@@ -8,7 +8,7 @@ declare global {
   interface Window {
     __ARGUS_API_HOST?: string;
   }
-  const __ARGUS_API_HOST__: string;
+  const __ARGUS_API_HOST__: string | undefined;
 }
 
 // Set API host from build-time constant
