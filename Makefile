@@ -104,8 +104,12 @@ frontend/test-e2e-backend: frontend/install
 # E2E tests against frontend dev server (separate frontend server on :3000)
 frontend/test-e2e-dev: frontend/install
 	docker compose up -d --wait
-	cd frontend && bun run serve &
-	cd frontend && sleep 5 && BASE_URL=http://localhost:3000 bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; pkill -f "bun run serve" || true; exit $$test_exit_code
+	cd frontend && bun run serve & \
+	sleep 5 && \
+	cd frontend && BASE_URL=http://localhost:3000 bun run test:e2e --reporter=list; test_exit_code=$$?; \
+	docker compose down; \
+	pkill -f "bun run serve" || true; \
+	exit $$test_exit_code
 
 # Run backend in Docker and serve frontend in dev mode
 .PHONY: dev/full-stack
