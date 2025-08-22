@@ -9,7 +9,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
       async () => {
         try {
           const response = await fetch(
-            "http://localhost:8080/api/sync/v1/sources/0/status",
+            "http://localhost:8080/api/sync/v1/sources/0/status"
           );
           const data: SyncStatus = await response.json();
           return (
@@ -19,7 +19,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
           return false;
         }
       },
-      { timeout: 5000 },
+      { timeout: 5000 }
     );
   });
 
@@ -33,7 +33,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
     // Wait for components to load and verify count
     await expect(page.getByTestId("component-row")).toHaveCount(4);
     await expect(page.getByTestId("components-header")).toContainText(
-      "Components (4)",
+      "Components (4)"
     );
 
     // Verify specific components from test data by finding them by name
@@ -43,10 +43,10 @@ test.describe("Component Catalog - Real Application Flow", () => {
       .filter({ hasText: "Authentication Service" });
     await expect(authServiceRow).toHaveCount(1);
     await expect(authServiceRow.getByTestId("component-team")).toContainText(
-      "Security Team",
+      "Security Team"
     );
     await expect(
-      authServiceRow.getByTestId("component-maintainers"),
+      authServiceRow.getByTestId("component-maintainers")
     ).toContainText("alice@company.com");
 
     // Platform Infrastructure
@@ -55,7 +55,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
       .filter({ hasText: "Platform Infrastructure" });
     await expect(platformInfraRow).toHaveCount(1);
     await expect(platformInfraRow.getByTestId("component-team")).toContainText(
-      "Infrastructure Team",
+      "Infrastructure Team"
     );
 
     // API Gateway
@@ -64,7 +64,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
       .filter({ hasText: "API Gateway" });
     await expect(apiGatewayRow).toHaveCount(1);
     await expect(apiGatewayRow.getByTestId("component-team")).toContainText(
-      "Platform Team",
+      "Platform Team"
     );
 
     // User Service
@@ -73,7 +73,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
       .filter({ hasText: "User Service" });
     await expect(userServiceRow).toHaveCount(1);
     await expect(userServiceRow.getByTestId("component-team")).toContainText(
-      "User Experience Team",
+      "User Experience Team"
     );
   });
 
@@ -84,7 +84,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
   }) => {
     // Test sync sources endpoint
     const sourcesResponse = await page.request.get(
-      "http://localhost:8080/api/sync/v1/sources",
+      "http://localhost:8080/api/sync/v1/sources"
     );
     expect(sourcesResponse.ok()).toBeTruthy();
 
@@ -96,7 +96,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
 
     // Test sync status endpoint
     const statusResponse = await page.request.get(
-      "http://localhost:8080/api/sync/v1/sources/0/status",
+      "http://localhost:8080/api/sync/v1/sources/0/status"
     );
     expect(statusResponse.ok()).toBeTruthy();
   });
@@ -109,7 +109,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
     await ensureReports(page.request, "auth-service", 1);
     // Get components via API
     const apiResponse = await page.request.get(
-      "http://localhost:8080/api/catalog/v1/components",
+      "http://localhost:8080/api/catalog/v1/components"
     );
     expect(apiResponse.ok()).toBeTruthy();
 
@@ -118,7 +118,7 @@ test.describe("Component Catalog - Real Application Flow", () => {
 
     // Verify component structure
     const authService = components.find(
-      (c: Component) => c.id === "auth-service",
+      (c: Component) => c.id === "auth-service"
     );
     expect(authService?.name).toBe("Authentication Service");
     expect(authService?.owners?.team).toBe("Security Team");

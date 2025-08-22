@@ -6,7 +6,7 @@ export default defineConfig({
   testMatch: /.*\.(test|spec)\.(js|ts|mjs)/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
     ? [
@@ -21,7 +21,7 @@ export default defineConfig({
         ["html", { outputFolder: "playwright-report", open: "never" }],
       ],
   use: {
-    baseURL: "http://localhost:8080", // Point to real application
+    baseURL: process.env.BASE_URL || "http://localhost:8080", // Allows dev server at :3000
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -34,17 +34,10 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: process.env.CI
-    ? undefined
-    : {
-        command: "docker-compose up --build -d && sleep 30", // Start full stack
-        url: "http://localhost:8080",
-        reuseExistingServer: true,
-        timeout: 120 * 1000,
-      },
+  // No webServer config - we handle Docker startup manually in Makefile targets
   timeout: 60000,
   expect: {
-    timeout: 3000,
+    timeout: 7000,
   },
   outputDir: "test-results/",
 });

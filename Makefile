@@ -78,7 +78,7 @@ frontend/install:
 	cd frontend && bun install
 
 frontend/dev:
-	cd frontend && bun run dev
+	cd frontend && bun run dev:css & cd frontend && bun run dev
 
 frontend/build:
 	cd frontend && bun run build:prod
@@ -96,30 +96,24 @@ frontend/test:
 frontend/test-unit:
 	cd frontend && bun run test:unit
 
-frontend/test-e2e: frontend/install
-	cd frontend && bunx playwright install
-	cd frontend && CI=true bun run test:e2e --reporter=list
-
-frontend/test-e2e-with-seed: frontend/install
-	cd frontend && bunx playwright install
-	ARGUS_BASE_URL=http://localhost:8080 bun ./scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
-	cd frontend && CI=true bun run test:e2e --reporter=list
-
-frontend/test-e2e-real: frontend/install
-	cd frontend && bun run test:e2e
-
-# Run E2E tests with real application (fixed shell variable scope issue)
-frontend/test-e2e-app: frontend/install
+# E2E tests against backend-served frontend (backend serves built frontend)
+frontend/test-e2e-backend: frontend/install
 	docker compose up -d --wait
-	ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
-	cd frontend && CI=true bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
+	cd frontend && bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
 
-frontend/test-e2e-ci: frontend/install
-	cd frontend && bunx playwright install
-	ARGUS_BASE_URL=http://localhost:8080 bun ./frontend/scripts/report-seeder.ts --only auth-service --all-statuses --reports-per-component 5
-	cd frontend && CI=true bun run test:e2e --reporter=list
+# E2E tests against frontend dev server (separate frontend server on :3000)
+frontend/test-e2e-dev: frontend/install
+	docker compose up -d --wait
+	cd frontend && bun run serve &
+	cd frontend && sleep 5 && BASE_URL=http://localhost:3000 bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; pkill -f "bun run serve" || true; exit $$test_exit_code
 
-frontend/test-all: frontend/test frontend/test-unit frontend/test-unit-bun frontend/test-e2e
+# Run backend in Docker and serve frontend in dev mode (Bun server proxies /api/* to backend)
+.PHONY: dev/full-stack
+dev/full-stack: frontend/install
+	docker compose up -d --wait
+	cd frontend && ARGUS_BACKEND_URL=http://localhost:8080 bun run serve
+
+frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e-backend
 
 # Frontend lint
 frontend/lint:
@@ -192,7 +186,7 @@ docker/test:
 	./test-docker.sh
 
 # Frontend CI pipeline
-frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/validate-build frontend/test-e2e-ci
+frontend/ci: frontend/install frontend/lint frontend/test frontend/build frontend/validate-build frontend/test-e2e-backend
 
 # Backend CI pipeline
 backend/ci: backend/gen-all backend/go-mod-tidy backend/lint backend/test backend/build

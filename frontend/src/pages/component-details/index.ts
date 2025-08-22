@@ -1,6 +1,7 @@
 import { LitElement, html } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 import { loadComponentDetails, loadComponentReports } from "./data";
-import { resetComponentDetails, resetReports, error } from "./store";
+import { resetComponentDetails, resetReports } from "./store";
 import "../../components/component-details";
 import {
   componentDetails,
@@ -9,91 +10,185 @@ import {
   latestReports,
   reportsLoading,
   reportsError,
+  type Component,
+  type CheckReport,
 } from "./store";
 
+@customElement("component-details-page")
 export class ComponentDetailsPage extends LitElement {
-  static properties = {
-    componentId: { type: String, attribute: "component-id" },
-  };
-
+  @property({ type: String, attribute: "component-id" })
   componentId = "";
-  private unsubscribers: Array<() => void> = [];
 
-  protected createRenderRoot(): this {
-    return this;
-  }
+  @state()
+  component: Component | null = null;
+
+  @state()
+  isLoading = false;
+
+  @state()
+  errorMessage: string | null = null;
+
+  @state()
+  reports: readonly CheckReport[] = [];
+
+  @state()
+  isReportsLoading = false;
+
+  @state()
+  reportsErrorMessage: string | null = null;
+
+  private unsubscribers: Array<() => void> = [];
 
   async connectedCallback(): Promise<void> {
     super.connectedCallback();
-    // Subscribe to page stores to trigger re-render on changes
-    this.unsubscribers.push(
-      componentDetails.subscribe(() => this.requestUpdate()),
-    );
-    this.unsubscribers.push(loading.subscribe(() => this.requestUpdate()));
-    this.unsubscribers.push(errorStore.subscribe(() => this.requestUpdate()));
-    this.unsubscribers.push(
-      latestReports.subscribe(() => this.requestUpdate()),
-    );
-    this.unsubscribers.push(
-      reportsLoading.subscribe(() => this.requestUpdate()),
-    );
-    this.unsubscribers.push(reportsError.subscribe(() => this.requestUpdate()));
-    // Reset and load data when mounted or when componentId changes
-    await this.load();
-  }
 
-  async updated(prev: Map<string, unknown>): Promise<void> {
-    if (
-      prev.has("componentId") &&
-      prev.get("componentId") !== this.componentId
-    ) {
-      await this.load();
+    // Initialize componentId from attribute or URL
+    if (!this.componentId) {
+      const fromAttr = this.getAttribute("component-id") || "";
+      if (fromAttr) {
+        this.componentId = fromAttr;
+      } else if (typeof location !== "undefined") {
+        const parts = location.pathname.split("/").filter(Boolean);
+        if (parts[0] === "components" && parts[1]) {
+          this.componentId = parts[1];
+        }
+      }
     }
-  }
 
-  private async load(): Promise<void> {
-    resetComponentDetails();
-    resetReports();
-    if (!this.componentId) return;
-    await loadComponentDetails(this.componentId);
-    if (!error.get()) {
-      await loadComponentReports(this.componentId);
+    // Subscribe to stores
+    this.unsubscribers.push(
+      componentDetails.subscribe((value) => {
+        this.component = value;
+        this.requestUpdate();
+      })
+    );
+
+    this.unsubscribers.push(
+      loading.subscribe((value) => {
+        this.isLoading = value;
+        this.requestUpdate();
+      })
+    );
+
+    this.unsubscribers.push(
+      errorStore.subscribe((value) => {
+        this.errorMessage = value;
+        this.requestUpdate();
+      })
+    );
+
+    this.unsubscribers.push(
+      latestReports.subscribe((value) => {
+        this.reports = value;
+        this.requestUpdate();
+      })
+    );
+
+    this.unsubscribers.push(
+      reportsLoading.subscribe((value) => {
+        this.isReportsLoading = value;
+        this.requestUpdate();
+      })
+    );
+
+    this.unsubscribers.push(
+      reportsError.subscribe((value) => {
+        this.reportsErrorMessage = value;
+        this.requestUpdate();
+      })
+    );
+
+    if (this.componentId) {
+      void this.load();
     }
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.unsubscribers.forEach((off) => off());
+    this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.unsubscribers = [];
+  }
+
+  protected willUpdate(changed: Map<string, unknown>): void {
+    // Trigger load as soon as componentId becomes available
+    if (changed.has("componentId") && this.componentId) {
+      void this.load();
+    }
+  }
+
+  private async load(): Promise<void> {
+    try {
+      resetComponentDetails();
+      resetReports();
+      if (!this.componentId) return;
+
+      await loadComponentDetails(this.componentId);
+
+      if (!errorStore.get()) {
+        await loadComponentReports(this.componentId);
+      }
+    } catch (err) {
+      console.error("[ComponentDetailsPage] Error loading data:", err);
+    }
   }
 
   render() {
     return html`
       <div class="container mx-auto px-4 py-8">
-        <div class="mb-8">
-          <h1
-            class="text-3xl font-bold text-gray-900 mb-2"
-            data-testid="page-title"
-          >
-            Component Details
-          </h1>
-          <p class="text-gray-600" data-testid="page-description">
-            View detailed information about the component
-          </p>
-        </div>
-        <component-details
-          .component=${componentDetails.get()}
-          .isLoading=${loading.get()}
-          .errorMessage=${errorStore.get()}
-          .reports=${latestReports.get()}
-          .isReportsLoading=${reportsLoading.get()}
-          .reportsErrorMessage=${reportsError.get()}
-        ></component-details>
+        ${this.renderPageHeader()} ${this.renderComponentDetails()}
       </div>
+    `;
+  }
+
+  private renderPageHeader() {
+    return html`
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1
+              class="text-3xl font-bold text-gray-900 mb-2"
+              data-testid="page-title"
+            >
+              Component Details
+            </h1>
+            <p class="text-gray-600" data-testid="page-description">
+              View detailed information about the component
+            </p>
+          </div>
+          ${this.renderBackButton()}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderBackButton() {
+    return html`
+      <a
+        href="/components"
+        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+        data-testid="back-to-components"
+      >
+        ← Back to Components
+      </a>
+    `;
+  }
+
+  private renderComponentDetails() {
+    return html`
+      <component-details
+        .component=${this.component}
+        .isLoading=${this.isLoading}
+        .errorMessage=${this.errorMessage}
+        .reports=${this.reports}
+        .isReportsLoading=${this.isReportsLoading}
+        .reportsErrorMessage=${this.reportsErrorMessage}
+      ></component-details>
     `;
   }
 }
 
-if (!customElements.get("component-details-page")) {
-  customElements.define("component-details-page", ComponentDetailsPage);
+declare global {
+  interface HTMLElementTagNameMap {
+    "component-details-page": ComponentDetailsPage;
+  }
 }

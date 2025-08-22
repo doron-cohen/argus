@@ -18,7 +18,6 @@ export async function loadComponentDetails(componentId: string): Promise<void> {
   try {
     setLoading(true);
     setError(null);
-
     const { status, data } = await getComponentById(componentId);
     if (status === 404) {
       throw new Error(`Component not found: ${componentId}`);
@@ -45,7 +44,6 @@ export async function loadComponentReports(componentId: string): Promise<void> {
   try {
     setReportsLoading(true);
     setReportsError(null);
-
     const { status, data } = await getComponentReports(componentId, {
       latest_per_check: true,
     });
