@@ -107,11 +107,27 @@ frontend/test-e2e-dev: frontend/install
 	cd frontend && bun run serve &
 	cd frontend && sleep 5 && BASE_URL=http://localhost:3000 bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; pkill -f "bun run serve" || true; exit $$test_exit_code
 
-# Run backend in Docker and serve frontend in dev mode (Bun server proxies /api/* to backend)
+# Run backend in Docker and serve frontend in dev mode
 .PHONY: dev/full-stack
 dev/full-stack: frontend/install
 	docker compose up -d --wait
-	cd frontend && ARGUS_BACKEND_URL=http://localhost:8080 bun run serve
+	cd frontend && VITE_API_HOST=http://localhost:8080 bun run serve
+
+# Start frontend dev server (assumes backend is running)
+.PHONY: frontend/dev-server
+frontend/dev-server:
+	cd frontend && bun server.js
+
+# Build frontend and start dev server
+.PHONY: frontend/dev-build
+frontend/dev-build:
+	cd frontend && bun run build:dev
+	cd frontend && bun server.js
+
+# Start frontend with watch mode (rebuilds on file changes)
+.PHONY: frontend/dev-watch
+frontend/dev-watch:
+	cd frontend && bun run dev:css & cd frontend && bun server.js
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e-backend
 

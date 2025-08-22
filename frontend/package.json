@@ -4,8 +4,8 @@
   "description": "Argus Component Catalog Web UI",
   "scripts": {
     "generate:api": "orval --config orval.config.ts",
-    "build": "bun run generate:api && bun run build:css && bun build src/main.ts --outdir dist --minify",
-    "build:dev": "bun run generate:api && bun run build:css:dev && bun build src/main.ts --outdir dist",
+    "build": "bun run generate:api && bun run build:css && bun build src/main.ts --outdir dist --minify --define __ARGUS_API_HOST__=http://localhost:8080",
+    "build:dev": "bun run generate:api && bun run build:css:dev && bun build src/main.ts --outdir dist --define __ARGUS_API_HOST__=http://localhost:8080",
     "build:prod": "bun run generate:api && bun run build:css && bun build src/main.ts --outdir dist --minify",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
     "build:css:dev": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",

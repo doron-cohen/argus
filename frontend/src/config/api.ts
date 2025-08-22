@@ -8,12 +8,16 @@ declare global {
   interface Window {
     __ARGUS_API_HOST?: string;
   }
+  const __ARGUS_API_HOST__: string;
 }
 
-// Set API host from environment variable
+// Set API host from build-time constant
 function initializeApiHost(): void {
+  // Use build-time constant defined by Bun
   const envApiHost =
-    import.meta.env?.VITE_API_HOST || process.env?.VITE_API_HOST;
+    typeof __ARGUS_API_HOST__ !== "undefined"
+      ? __ARGUS_API_HOST__
+      : "http://localhost:8080";
 
   if (envApiHost) {
     window.__ARGUS_API_HOST = envApiHost;
