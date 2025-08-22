@@ -20,6 +20,20 @@ import (
 func Start(cfg config.Config) (stop func(), err error) {
 	mux := chi.NewRouter()
 
+	// Basic CORS middleware to allow dev frontend (and tests) to call the API from another origin
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	// Connect to PostgreSQL using storage.ConnectAndMigrate
 	dsn := cfg.Storage.DSN()
 	repo, dberr := storage.ConnectAndMigrate(context.Background(), dsn)

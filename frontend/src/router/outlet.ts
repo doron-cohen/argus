@@ -1,47 +1,55 @@
 import { LitElement, html, type TemplateResult } from "lit";
+import { customElement } from "lit/decorators.js";
 import Navigo from "navigo";
 import "../components/component-details";
 import "../pages/home/index";
 import "../pages/component-details/index";
 
+@customElement("router-outlet")
 export class RouterOutlet extends LitElement {
   private router: Navigo | null = null;
   private currentView: TemplateResult = html``;
 
-  // Render into light DOM to keep global styles and testing selectors
-  protected createRenderRoot(): this {
-    return this;
-  }
-
   connectedCallback(): void {
     super.connectedCallback();
-    if (!this.router) {
-      this.router = new Navigo("/");
-      this.router
-        .on("/", () => this.setView(html`<home-page></home-page>`))
-        .on("/components", () => this.setView(html`<home-page></home-page>`))
-        .on("/components/:id", (match) => {
-          const componentId = (match?.data?.id as string) || "";
-          this.setView(
-            html`<component-details-page
-              component-id="${componentId}"
-            ></component-details-page>`,
-          );
-        })
-        .notFound(() =>
-          this.setView(html`
-            <div class="container mx-auto px-4 py-8">
-              <h1 class="text-2xl font-bold text-gray-900 mb-4">
-                Page not found
-              </h1>
-              <a href="/" class="text-indigo-600 hover:text-indigo-500"
-                >Go home</a
-              >
-            </div>
-          `),
-        )
-        .resolve();
+    this.initializeRouter();
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    // Clean up router when component is destroyed
+    if (this.router) {
+      this.router.destroy();
+      this.router = null;
     }
+  }
+
+  private initializeRouter(): void {
+    this.router = new Navigo("/");
+
+    // Define routes
+    this.router
+      .on("/", () => {
+        this.setView(html`<home-page></home-page>`);
+      })
+      .on("/components", () => {
+        this.setView(html`<home-page></home-page>`);
+      })
+      .on("/components/:componentId", (match) => {
+        // In Navigo v8, parameters are accessed via match.params
+        const componentId = match?.params?.componentId || "";
+        this.setView(
+          html`<component-details-page
+            component-id="${componentId}"
+          ></component-details-page>`,
+        );
+      })
+      .notFound(() => {
+        this.setView(html`<div>Page not found</div>`);
+      });
+
+    // Start the router
+    this.router.resolve();
   }
 
   private setView(view: TemplateResult): void {
@@ -49,11 +57,13 @@ export class RouterOutlet extends LitElement {
     this.requestUpdate();
   }
 
-  render() {
+  render(): TemplateResult {
     return this.currentView;
   }
 }
 
-if (!customElements.get("router-outlet")) {
-  customElements.define("router-outlet", RouterOutlet);
+declare global {
+  interface HTMLElementTagNameMap {
+    "router-outlet": RouterOutlet;
+  }
 }

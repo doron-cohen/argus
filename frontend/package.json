@@ -4,14 +4,15 @@
   "description": "Argus Component Catalog Web UI",
   "scripts": {
     "generate:api": "orval --config orval.config.ts",
-    "build": "bun run generate:api && bun run build:css && bun build src/main.ts --outdir dist --minify",
-    "build:dev": "bun run generate:api && bun run build:css:dev && bun build src/main.ts --outdir dist",
+    "build": "bun run generate:api && bun run build:css && bun build src/main.ts --outdir dist --minify --define __ARGUS_API_HOST__=http://localhost:8080",
+    "build:dev": "bun run generate:api && bun run build:css:dev && bun build src/main.ts --outdir dist --define __ARGUS_API_HOST__=http://localhost:8080",
     "build:prod": "bun run generate:api && bun run build:css && bun build src/main.ts --outdir dist --minify",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
     "build:css:dev": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",
     "dev": "bun build src/main.ts --outdir dist --watch",
     "dev:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",
     "serve": "bun server.js",
+    "dev:serve": "VITE_API_HOST=http://localhost:8080 bun server.js",
     "type-check": "tsc --noEmit",
     "test:unit": "bun test tests/unit/ src/components/",
     "test:e2e": "bun playwright test --config=playwright.config.ts",
@@ -37,6 +38,7 @@
     "node": "20.19.4"
   },
   "dependencies": {
+    "@nanostores/lit": "^0.2.2",
     "lit": "^3.1.2",
     "nanostores": "^1.0.1",
     "navigo": "^8.11.1"

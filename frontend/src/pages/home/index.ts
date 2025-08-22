@@ -1,10 +1,54 @@
 import { LitElement, html } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import {
+  getComponents,
+  type Component,
+} from "../../api/services/components/client";
 import "../../components/component-list/index";
 
+@customElement("home-page")
 export class HomePage extends LitElement {
-  // Keep light DOM for global styles and tests
-  protected createRenderRoot(): this {
-    return this;
+  @state()
+  components: Component[] = [];
+
+  @state()
+  isLoading = true;
+
+  @state()
+  error: string | null = null;
+
+  async connectedCallback(): Promise<void> {
+    super.connectedCallback();
+    await this.loadComponents();
+  }
+
+  private async loadComponents(): Promise<void> {
+    try {
+      this.isLoading = true;
+      this.error = null;
+
+      const response = await getComponents();
+      const statusCode =
+        typeof response.status === "number" ? response.status : 200;
+      const componentsData = response.data;
+
+      // Defensive: ensure we always have an array to render
+      if (!Array.isArray(componentsData)) {
+        this.components = [];
+        this.error =
+          statusCode >= 400 ? `HTTP ${statusCode}` : "Invalid API response";
+      } else if (statusCode < 200 || statusCode >= 300) {
+        throw new Error(`HTTP ${statusCode}`);
+      } else {
+        this.components = componentsData;
+      }
+    } catch (err) {
+      this.error =
+        err instanceof Error ? err.message : "Failed to fetch components";
+      console.error("Error fetching components:", err);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   render() {
@@ -28,16 +72,25 @@ export class HomePage extends LitElement {
               class="text-lg leading-6 font-medium text-gray-900"
               data-testid="components-header"
             >
-              Components
+              Components${this.isLoading || this.error
+                ? ""
+                : ` (${this.components.length})`}
             </h3>
           </div>
-          <component-list></component-list>
+          <component-list
+            .components=${this.components}
+            .isLoading=${this.isLoading}
+            .error=${this.error}
+            id="component-list"
+          ></component-list>
         </div>
       </div>
     `;
   }
 }
 
-if (!customElements.get("home-page")) {
-  customElements.define("home-page", HomePage);
+declare global {
+  interface HTMLElementTagNameMap {
+    "home-page": HomePage;
+  }
 }

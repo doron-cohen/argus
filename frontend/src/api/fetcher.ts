@@ -1,16 +1,22 @@
+declare global {
+  var __ARGUS_API_HOST: string | undefined;
+}
+
 export function apiFetch<T>(input: string | URL, init?: RequestInit): T {
   const path = typeof input === "string" ? input : input.toString();
-  const url = path.startsWith("http")
-    ? path
-    : `/api/catalog/v1${path.startsWith("/") ? "" : "/"}${path}`;
+  const apiHost = globalThis.__ARGUS_API_HOST;
+  const basePrefix = `${
+    apiHost && apiHost.length > 0 ? apiHost.replace(/\/$/, "") : ""
+  }/api/catalog/v1`;
 
-  const promise = (async () => {
-    const res = await fetch(url, init);
-    const data = await res.json().catch(() => ({}));
-    return { status: res.status, data } as unknown as T extends Promise<infer R>
-      ? R
-      : never;
-  })();
+  const isAbsoluteUrl = /^https?:\/\//.test(basePrefix);
+  const base = isAbsoluteUrl
+    ? basePrefix
+    : basePrefix.startsWith("/api/")
+      ? basePrefix
+      : `/${basePrefix}`;
 
-  return promise as unknown as T;
+  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+
+  return fetch(url, init) as T;
 }
