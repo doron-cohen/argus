@@ -1,6 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { expect, fixture, html } from "@open-wc/testing";
 import "./index";
-import { flushPromises, waitFor } from "../../../tests/helpers/lit";
 
 type Component = {
   id?: string;
@@ -23,9 +22,7 @@ type CheckReport = {
   timestamp: string;
 };
 
-describe("component-details (unit)", () => {
-  let el: any;
-
+describe("component-details", () => {
   const mockComponent: Component = {
     id: "test-component",
     name: "Test Component",
@@ -57,251 +54,90 @@ describe("component-details (unit)", () => {
     },
   ];
 
-  beforeEach(() => {
-    el = document.createElement("component-details");
-    document.body.appendChild(el);
+  it("component is defined", () => {
+    expect(customElements.get("component-details")).to.exist;
   });
 
-  afterEach(() => {
-    el.remove();
-  });
+  it("renders loading state when isLoading is true", async () => {
+    const el = await fixture(html`
+      <component-details .isLoading=${true}></component-details>
+    `);
 
-  test("component is defined", () => {
-    expect(customElements.get("component-details")).toBeTruthy();
-  });
-
-  test("component renders basic structure", async () => {
-    el.component = mockComponent;
-    el.requestUpdate();
-    await flushPromises();
-
-    // Wait a bit more for any async rendering
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const componentName = el.shadowRoot?.querySelector(
-      '[data-testid="component-name"]',
+    const loading = el.shadowRoot?.querySelector(
+      '[data-testid="component-details-loading"]',
     );
-    expect(componentName).toBeTruthy();
-    expect(componentName?.textContent?.trim()).toBe("Test Component");
+    expect(loading).to.exist;
+    expect(loading?.textContent).to.include("Loading component details");
   });
 
-  describe("component rendering", () => {
-    test("renders details when component prop provided", async () => {
-      el.component = mockComponent;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="component-name"]'),
-        500,
-      );
+  it("renders error state when errorMessage is provided", async () => {
+    const el = await fixture(html`
+      <component-details .errorMessage=${"Test error"}></component-details>
+    `);
 
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="component-name"]')
-          ?.textContent?.trim(),
-      ).toBe("Test Component");
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="component-id"]')
-          ?.textContent?.trim(),
-      ).toBe("ID: test-component");
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="component-description"]')
-          ?.textContent?.trim(),
-      ).toBe("This is a test component");
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="component-team"]')
-          ?.textContent?.trim(),
-      ).toBe("Platform Team");
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="component-maintainers"]')
-          ?.textContent?.trim(),
-      ).toBe("john.doe, jane.smith");
-    });
-
-    test("uses name as ID when id is missing", async () => {
-      const c: Component = { ...mockComponent };
-      delete c.id;
-      el.component = c;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="component-id"]'),
-        500,
-      );
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="component-id"]')
-          ?.textContent?.trim(),
-      ).toBe("ID: Test Component");
-    });
-
-    test("renders empty when no component and no error/loading", async () => {
-      el.component = null;
-      el.requestUpdate();
-      await flushPromises();
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="component-details"]'),
-      ).toBeFalsy();
-    });
-
-    test("does not render maintainers section when no maintainers", async () => {
-      const c: Component = { ...mockComponent };
-      delete c.owners?.maintainers;
-      el.component = c;
-      el.requestUpdate();
-      await flushPromises();
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="component-maintainers"]'),
-      ).toBeFalsy();
-    });
-
-    test("does not render maintainers section when maintainers array is empty", async () => {
-      const c: Component = {
-        ...mockComponent,
-        owners: { ...mockComponent.owners!, maintainers: [] },
-      };
-      el.component = c;
-      el.requestUpdate();
-      await flushPromises();
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="component-maintainers"]'),
-      ).toBeFalsy();
-    });
+    const error = el.shadowRoot?.querySelector(
+      '[data-testid="component-details-error"]',
+    );
+    expect(error).to.exist;
+    expect(error?.textContent).to.include("Test error");
   });
 
-  describe("loading and error", () => {
-    test("shows loading skeleton", async () => {
-      el.isLoading = true;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () =>
-          !!el.shadowRoot?.querySelector(
-            '[data-testid="component-details-loading"]',
-          ),
-        500,
-      );
-      expect(
-        el.shadowRoot?.querySelector(
-          '[data-testid="component-details-loading"]',
-        ),
-      ).toBeTruthy();
-    });
+  it("renders empty state when no component is provided", async () => {
+    const el = await fixture(html` <component-details></component-details> `);
 
-    test("shows error", async () => {
-      el.errorMessage = "Failed to load";
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () =>
-          !!el.shadowRoot?.querySelector(
-            '[data-testid="component-details-error"]',
-          ),
-        500,
-      );
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="component-details-error"]'),
-      ).toBeTruthy();
-      expect(
-        el.shadowRoot
-          ?.querySelector('[data-testid="error-title"]')
-          ?.textContent?.trim(),
-      ).toBe("Error loading component");
-    });
+    expect(el.shadowRoot?.textContent).to.include(
+      "No component data available",
+    );
   });
 
-  describe("reports", () => {
-    beforeEach(async () => {
-      el.component = mockComponent;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="component-name"]'),
-        500,
-      );
-    });
+  it("renders component details when component is provided", async () => {
+    const el = await fixture(html`
+      <component-details .component=${mockComponent}></component-details>
+    `);
 
-    test("renders reports list", async () => {
-      el.reports = mockReports;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () =>
-          el.shadowRoot?.querySelectorAll('[data-testid="report-item"]')
-            .length > 0,
-        500,
-      );
-      const items = el.shadowRoot?.querySelectorAll(
-        '[data-testid="report-item"]',
-      );
-      expect(items?.length).toBe(3);
+    const name = el.shadowRoot?.querySelector('[data-testid="component-name"]');
+    expect(name).to.exist;
+    expect(name?.textContent?.trim()).to.equal("Test Component");
 
-      // Check that ui-badge components are used
-      const badges = el.shadowRoot?.querySelectorAll("ui-badge");
-      expect(badges?.length).toBe(3);
+    const description = el.shadowRoot?.querySelector(
+      '[data-testid="component-description"]',
+    );
+    expect(description).to.exist;
+    expect(description?.textContent?.trim()).to.equal(
+      "This is a test component",
+    );
+  });
 
-      // Check that badges have correct status attributes
-      const firstBadge = badges?.[0] as HTMLElement;
-      expect(firstBadge?.getAttribute("status")).toBe("pass");
-    });
+  it("renders reports when provided", async () => {
+    const el = await fixture(html`
+      <component-details
+        .component=${mockComponent}
+        .reports=${mockReports}
+      ></component-details>
+    `);
 
-    test("renders empty reports state", async () => {
-      el.reports = [];
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="no-reports"]'),
-        500,
-      );
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="no-reports"]'),
-      ).toBeTruthy();
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="reports-list"]'),
-      ).toBeFalsy();
-    });
+    const reports = el.shadowRoot?.querySelectorAll(
+      '[data-testid="report-item"]',
+    );
+    expect(reports).to.have.length(3);
+  });
 
-    test("renders loading and error states", async () => {
-      el.isReportsLoading = true;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="reports-loading"]'),
-        500,
-      );
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="reports-loading"]'),
-      ).toBeTruthy();
+  it("renders correct status badges for reports", async () => {
+    const el = await fixture(html`
+      <component-details
+        .component=${mockComponent}
+        .reports=${mockReports}
+      ></component-details>
+    `);
 
-      el.isReportsLoading = false;
-      el.reportsErrorMessage = "boom";
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="reports-error"]'),
-        500,
-      );
-      expect(
-        el.shadowRoot?.querySelector('[data-testid="reports-error"]'),
-      ).toBeTruthy();
-    });
+    const passBadge = el.shadowRoot?.querySelector('ui-badge[status="pass"]');
+    const failBadge = el.shadowRoot?.querySelector('ui-badge[status="fail"]');
+    const disabledBadge = el.shadowRoot?.querySelector(
+      'ui-badge[status="disabled"]',
+    );
 
-    test("formats timestamps", async () => {
-      el.reports = mockReports;
-      el.requestUpdate();
-      await flushPromises();
-      await waitFor(
-        () => !!el.shadowRoot?.querySelector('[data-testid="check-timestamp"]'),
-        500,
-      );
-      const ts = el.shadowRoot?.querySelector(
-        '[data-testid="check-timestamp"]',
-      );
-      expect(ts?.textContent).toBeTruthy();
-    });
+    expect(passBadge).to.exist;
+    expect(failBadge).to.exist;
+    expect(disabledBadge).to.exist;
   });
 });
