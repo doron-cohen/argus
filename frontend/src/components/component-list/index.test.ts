@@ -1,129 +1,189 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { expect, fixture, html } from "@open-wc/testing";
 import "./index";
-import {
-  attachHeader,
-  waitFor,
-  flushPromises,
-  renderElement,
-} from "../../../tests/helpers/lit";
 
-describe("component-list (Lit)", () => {
-  let headerContainer: HTMLElement;
-  let originalFetch: any;
-  let originalWindowFetch: any;
+describe("component-list", () => {
+  const mockComponents = [
+    {
+      id: "a",
+      name: "Component A",
+      description: "Description A",
+      owners: { maintainers: ["user1"], team: "Team A" },
+    },
+    {
+      id: "b",
+      name: "Component B",
+      description: "Description B",
+      owners: { maintainers: ["user2"], team: "Team B" },
+    },
+  ];
 
-  beforeEach(() => {
-    originalFetch = globalThis.fetch;
-    originalWindowFetch = (globalThis as any).window?.fetch;
-    headerContainer = attachHeader();
+  it("component is defined", () => {
+    expect(customElements.get("component-list")).to.exist;
   });
 
-  afterEach(() => {
-    document.body.innerHTML = "";
-    globalThis.fetch = originalFetch;
-    if ((globalThis as any).window)
-      (globalThis as any).window.fetch = originalWindowFetch;
-  });
+  it("shows loading state when isLoading is true", async () => {
+    const el = await fixture(html`
+      <component-list
+        .isLoading=${true}
+        .components=${[]}
+        .error=${null}
+      ></component-list>
+    `);
 
-  test("shows loading state when isLoading is true", async () => {
-    const element = document.createElement("component-list") as any;
-
-    // Set loading state
-    element.isLoading = true;
-    element.components = [];
-    element.error = null;
-
-    document.body.appendChild(element);
-    await flushPromises();
-    if (element.updateComplete) await element.updateComplete;
-
-    const loading = element.shadowRoot?.querySelector(
+    const loading = el.shadowRoot?.querySelector(
       '[data-testid="loading-message"]',
     );
-    expect(loading).toBeTruthy();
-    expect(loading?.textContent?.trim()).toBe("Loading components...");
+    expect(loading).to.exist;
+    expect(loading?.textContent?.trim()).to.equal("Loading components...");
   });
 
-  test("renders empty state", async () => {
-    const element = document.createElement("component-list") as any;
+  it("renders empty state when no components", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${[]}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
 
-    // Set properties directly - this is the component's API
-    element.components = [];
-    element.isLoading = false;
-    element.error = null;
-
-    // Append to DOM
-    document.body.appendChild(element);
-
-    // Wait for render
-    await flushPromises();
-    if (element.updateComplete) await element.updateComplete;
-
-    const empty = element.shadowRoot?.querySelector(
+    const empty = el.shadowRoot?.querySelector(
       '[data-testid="no-components-message"]',
     );
-    expect(empty).toBeTruthy();
-    expect(empty?.textContent?.trim()).toBe("No components found");
+    expect(empty).to.exist;
+    expect(empty?.textContent?.trim()).to.equal("No components found");
   });
 
-  test("renders error state", async () => {
-    const element = document.createElement("component-list") as any;
+  it("renders error state when error is provided", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${[]}
+        .isLoading=${false}
+        .error=${"HTTP 500"}
+      ></component-list>
+    `);
 
-    // Set properties directly - this is the component's API
-    element.components = [];
-    element.isLoading = false;
-    element.error = "HTTP 500";
-
-    // Append to DOM
-    document.body.appendChild(element);
-
-    // Wait for render
-    await flushPromises();
-    if (element.updateComplete) await element.updateComplete;
-
-    const errorEl = element.shadowRoot?.querySelector(
+    const errorEl = el.shadowRoot?.querySelector(
       '[data-testid="error-message"]',
     );
-    expect(errorEl).toBeTruthy();
-    expect(errorEl?.textContent || "").toContain("Error:");
-    expect(errorEl?.textContent || "").toContain("HTTP 500");
+    expect(errorEl).to.exist;
+    expect(errorEl?.textContent || "").to.include("Error:");
+    expect(errorEl?.textContent || "").to.include("HTTP 500");
   });
 
-  test("renders component rows", async () => {
-    const data = [
+  it("renders component rows when components are provided", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${mockComponents}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
+
+    const rows = el.shadowRoot?.querySelectorAll(
+      '[data-testid="component-row"]',
+    );
+    expect(rows).to.have.length(2);
+  });
+
+  it("renders component names correctly", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${mockComponents}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
+
+    const rows = el.shadowRoot?.querySelectorAll(
+      '[data-testid="component-row"]',
+    );
+    expect(rows).to.have.length(2);
+
+    const firstRow = rows?.[0];
+    const name = firstRow?.querySelector('[data-testid="component-name"]');
+    expect(name?.textContent?.trim()).to.equal("Component A");
+  });
+
+  it("renders component descriptions correctly", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${mockComponents}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
+
+    const rows = el.shadowRoot?.querySelectorAll(
+      '[data-testid="component-row"]',
+    );
+    const firstRow = rows?.[0];
+    const description = firstRow?.querySelector(
+      '[data-testid="component-description"]',
+    );
+    expect(description?.textContent?.trim()).to.equal("Description A");
+  });
+
+  it("renders team information correctly", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${mockComponents}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
+
+    const rows = el.shadowRoot?.querySelectorAll(
+      '[data-testid="component-row"]',
+    );
+    const firstRow = rows?.[0];
+    const team = firstRow?.querySelector('[data-testid="component-team"]');
+    expect(team?.textContent?.trim()).to.equal("Team A");
+  });
+
+  it("renders maintainers correctly", async () => {
+    const el = await fixture(html`
+      <component-list
+        .components=${mockComponents}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
+
+    const rows = el.shadowRoot?.querySelectorAll(
+      '[data-testid="component-row"]',
+    );
+    const firstRow = rows?.[0];
+    const maintainers = firstRow?.querySelector(
+      '[data-testid="component-maintainers"]',
+    );
+    expect(maintainers?.textContent?.trim()).to.equal("user1");
+  });
+
+  it("handles components without maintainers", async () => {
+    const componentsWithoutMaintainers = [
       {
-        id: "a",
-        name: "A",
-        description: "desc",
-        owners: { maintainers: ["m"], team: "t" },
-      },
-      {
-        id: "b",
-        name: "B",
-        description: "desc",
-        owners: { maintainers: [], team: "t" },
+        id: "c",
+        name: "Component C",
+        description: "Description C",
+        owners: { team: "Team C" },
       },
     ];
 
-    const element = document.createElement("component-list") as any;
+    const el = await fixture(html`
+      <component-list
+        .components=${componentsWithoutMaintainers}
+        .isLoading=${false}
+        .error=${null}
+      ></component-list>
+    `);
 
-    // Set properties directly - this is the component's API
-    element.components = data;
-    element.isLoading = false;
-    element.error = null;
-
-    // Append to DOM
-    document.body.appendChild(element);
-
-    // Wait for render
-    await flushPromises();
-    if (element.updateComplete) await element.updateComplete;
-
-    // Since the <tr> elements aren't rendering properly, test the component names directly
-    const componentNames = element.shadowRoot?.querySelectorAll(
-      '[data-testid="component-name"]',
+    const rows = el.shadowRoot?.querySelectorAll(
+      '[data-testid="component-row"]',
     );
-    // Verify we have 2 components
-    expect(componentNames?.length).toBe(2);
+    const row = rows?.[0];
+    const maintainers = row?.querySelector(
+      '[data-testid="component-maintainers"]',
+    );
+    expect(maintainers?.textContent?.trim()).to.equal("");
   });
 });

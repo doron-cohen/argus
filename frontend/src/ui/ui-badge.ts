@@ -1,3 +1,5 @@
+import { LitElement, html, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
 import { escapeHtml } from "../utils";
 
 type StatusVariant =
@@ -62,33 +64,96 @@ function normalizeStatus(value: string | null): StatusVariant {
   }
 }
 
-export class UiBadge extends HTMLElement {
-  static get observedAttributes() {
-    return ["status"] as const;
+@customElement("ui-badge")
+export class UiBadge extends LitElement {
+  @property({ type: String, attribute: true })
+  status: string = "default";
+
+  static styles = css`
+    :host {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .icon {
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-right: 0.25rem;
+    }
+
+    /* Status-based styling */
+    :host(.pass) {
+      background-color: rgb(220 252 231);
+      color: rgb(22 163 74);
+    }
+
+    :host(.fail),
+    :host(.error),
+    :host(.unknown) {
+      background-color: rgb(254 226 226);
+      color: rgb(220 38 38);
+    }
+
+    :host(.disabled),
+    :host(.skipped) {
+      background-color: rgb(254 249 195);
+      color: rgb(161 98 7);
+    }
+
+    :host(.completed) {
+      background-color: rgb(219 234 254);
+      color: rgb(29 78 216);
+    }
+
+    :host(.default) {
+      background-color: rgb(243 244 246);
+      color: rgb(55 65 81);
+    }
+  `;
+
+  updated(changedProperties: Map<string, any>) {
+    super.updated(changedProperties);
+    if (changedProperties.has("status")) {
+      this.updateHostClasses();
+    }
   }
 
-  connectedCallback(): void {
-    this.render();
+  connectedCallback() {
+    super.connectedCallback();
+    this.updateHostClasses();
   }
 
-  attributeChangedCallback(): void {
-    this.render();
+  private updateHostClasses() {
+    const status = normalizeStatus(this.status);
+
+    // Remove all status classes
+    this.classList.remove(
+      "pass",
+      "fail",
+      "error",
+      "unknown",
+      "disabled",
+      "skipped",
+      "completed",
+      "default",
+    );
+
+    // Add the current status class
+    this.classList.add(status);
   }
 
-  private render(): void {
-    const status = normalizeStatus(this.getAttribute("status"));
-    const colorClasses = getColorClasses(status);
-
-    // Keep the classes on the host element for test compatibility and simplicity
-    this.className = `${colorClasses} px-2 py-1 rounded-full text-xs font-medium flex items-center`;
-
+  render() {
+    const status = normalizeStatus(this.status);
     const icon = getIconSvg(status);
-    const label = escapeHtml(this.getAttribute("status") || status);
+    const label = escapeHtml(this.status || status);
 
-    this.innerHTML = `${icon}${label}`;
+    return html`
+      ${icon ? html`<span class="icon" .innerHTML=${icon}></span>` : ""}
+      ${label}
+    `;
   }
-}
-
-if (!customElements.get("ui-badge")) {
-  customElements.define("ui-badge", UiBadge);
 }
