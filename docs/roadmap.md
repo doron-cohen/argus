@@ -33,3 +33,6 @@ This milestone adds quality monitoring capabilities to the software catalog.
 - **Simple Design**: Minimal, functional UI focused on usability over aesthetics.
 
 This milestone provides a basic web interface for interacting with the component registry and quality check data.
+
+### Design Notes
+- See `docs/designs/006-css-tokens-and-theme.md` for the CSS tokens and theme groundwork used by UI components (initially `ui-badge`).

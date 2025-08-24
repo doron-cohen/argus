@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Design tokens and themes */
+@import "./ui/tokens/core.css";
+@import "./ui/tokens/palette.css";
+@import "./ui/tokens/semantic.css";
+@import "./ui/tokens/themes/light.css";
+@import "./ui/tokens/themes/dark.css";

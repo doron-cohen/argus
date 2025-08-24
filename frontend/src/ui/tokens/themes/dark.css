@@ -1,0 +1,22 @@
+/* Dark theme overrides */
+
+:root[data-theme="dark"] {
+  --color-bg: var(--palette-gray-900);
+  --color-fg: var(--palette-gray-200);
+  --color-border: var(--palette-gray-700);
+
+  --color-success-bg: var(--palette-green-900);
+  --color-success-fg: var(--palette-green-300);
+
+  --color-danger-bg: var(--palette-red-900);
+  --color-danger-fg: var(--palette-red-300);
+
+  --color-warning-bg: var(--palette-amber-900);
+  --color-warning-fg: var(--palette-yellow-200);
+
+  --color-info-bg: var(--palette-blue-900);
+  --color-info-fg: var(--palette-blue-300);
+
+  --color-neutral-bg: var(--palette-gray-800);
+  --color-neutral-fg: var(--palette-gray-200);
+}

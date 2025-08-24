@@ -1,0 +1,38 @@
+/* Color palette tokens (Tailwind-aligned values) */
+
+:root {
+  --palette-white: rgb(255 255 255);
+  --palette-black: rgb(0 0 0);
+
+  /* Gray */
+  --palette-gray-50: rgb(249 250 251);
+  --palette-gray-100: rgb(243 244 246);
+  --palette-gray-200: rgb(229 231 235);
+  --palette-gray-700: rgb(55 65 81);
+  --palette-gray-800: rgb(31 41 55);
+  --palette-gray-900: rgb(17 24 39);
+
+  /* Green */
+  --palette-green-100: rgb(220 252 231);
+  --palette-green-300: rgb(134 239 172);
+  --palette-green-600: rgb(22 163 74);
+  --palette-green-900: rgb(20 83 45);
+
+  /* Red */
+  --palette-red-100: rgb(254 226 226);
+  --palette-red-300: rgb(252 165 165);
+  --palette-red-600: rgb(220 38 38);
+  --palette-red-900: rgb(127 29 29);
+
+  /* Yellow / Amber */
+  --palette-yellow-100: rgb(254 249 195);
+  --palette-yellow-200: rgb(254 240 138);
+  --palette-yellow-700: rgb(161 98 7);
+  --palette-amber-900: rgb(113 63 18);
+
+  /* Blue */
+  --palette-blue-100: rgb(219 234 254);
+  --palette-blue-300: rgb(147 197 253);
+  --palette-blue-700: rgb(29 78 216);
+  --palette-blue-900: rgb(30 58 138);
+}

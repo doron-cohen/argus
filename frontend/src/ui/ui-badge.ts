@@ -12,24 +12,6 @@ type StatusVariant =
   | "completed"
   | "default";
 
-function getColorClasses(status: StatusVariant): string {
-  switch (status) {
-    case "pass":
-      return "bg-green-100 text-green-800";
-    case "fail":
-    case "error":
-    case "unknown":
-      return "bg-red-100 text-red-800";
-    case "disabled":
-    case "skipped":
-      return "bg-yellow-100 text-yellow-800";
-    case "completed":
-      return "bg-blue-100 text-blue-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-}
-
 function getIconSvg(status: StatusVariant): string {
   switch (status) {
     case "pass":
@@ -73,45 +55,47 @@ export class UiBadge extends LitElement {
     :host {
       display: inline-flex;
       align-items: center;
-      padding: 0.25rem 0.5rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
+      padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+      border-radius: var(--radius-pill, 9999px);
+      font-size: var(--font-size-xs, 0.75rem);
+      font-weight: var(--font-weight-medium, 500);
+      background-color: var(--color-neutral-bg, rgb(243 244 246));
+      color: var(--color-neutral-fg, rgb(55 65 81));
     }
 
     .icon {
       width: 0.75rem;
       height: 0.75rem;
-      margin-right: 0.25rem;
+      margin-right: var(--space-1, 0.25rem);
     }
 
     /* Status-based styling */
     :host(.pass) {
-      background-color: rgb(220 252 231);
-      color: rgb(22 163 74);
+      background-color: var(--color-success-bg, rgb(220 252 231));
+      color: var(--color-success-fg, rgb(22 163 74));
     }
 
     :host(.fail),
     :host(.error),
     :host(.unknown) {
-      background-color: rgb(254 226 226);
-      color: rgb(220 38 38);
+      background-color: var(--color-danger-bg, rgb(254 226 226));
+      color: var(--color-danger-fg, rgb(220 38 38));
     }
 
     :host(.disabled),
     :host(.skipped) {
-      background-color: rgb(254 249 195);
-      color: rgb(161 98 7);
+      background-color: var(--color-warning-bg, rgb(254 249 195));
+      color: var(--color-warning-fg, rgb(161 98 7));
     }
 
     :host(.completed) {
-      background-color: rgb(219 234 254);
-      color: rgb(29 78 216);
+      background-color: var(--color-info-bg, rgb(219 234 254));
+      color: var(--color-info-fg, rgb(29 78 216));
     }
 
     :host(.default) {
-      background-color: rgb(243 244 246);
-      color: rgb(55 65 81);
+      background-color: var(--color-neutral-bg, rgb(243 244 246));
+      color: var(--color-neutral-fg, rgb(55 65 81));
     }
   `;
 

@@ -1,0 +1,24 @@
+/* Semantic tokens map roles to palette. Defaults align with light theme. */
+
+:root {
+  /* Content/base roles */
+  --color-bg: var(--palette-white);
+  --color-fg: var(--palette-gray-900);
+  --color-border: var(--palette-gray-200);
+
+  /* Status roles used by ui-badge */
+  --color-success-bg: var(--palette-green-100);
+  --color-success-fg: var(--palette-green-600);
+
+  --color-danger-bg: var(--palette-red-100);
+  --color-danger-fg: var(--palette-red-600);
+
+  --color-warning-bg: var(--palette-yellow-100);
+  --color-warning-fg: var(--palette-yellow-700);
+
+  --color-info-bg: var(--palette-blue-100);
+  --color-info-fg: var(--palette-blue-700);
+
+  --color-neutral-bg: var(--palette-gray-100);
+  --color-neutral-fg: var(--palette-gray-700);
+}
