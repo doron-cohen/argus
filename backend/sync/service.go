@@ -131,29 +131,8 @@ func (s *Service) TriggerSync(index int) error {
 			Status: StatusRunning,
 		})
 
-		startTime := time.Now()
-
-		// Perform sync
-		err := s.SyncSource(ctx, source)
-
-		duration := time.Since(startTime)
-
-		// Update status based on result
-		status := &SourceStatus{
-			Duration: duration,
-		}
-
-		if err != nil {
-			status.Status = StatusFailed
-			errorMsg := err.Error()
-			status.LastError = &errorMsg
-		} else {
-			status.Status = StatusCompleted
-		}
-
-		now := time.Now()
-		status.LastSync = &now
-
+		// Perform sync and get status
+		status := s.SyncSource(ctx, source)
 		s.updateStatus(index, status)
 	}()
 
@@ -162,6 +141,12 @@ func (s *Service) TriggerSync(index int) error {
 
 // updateStatus updates the status for a source (thread-safe)
 func (s *Service) updateStatus(index int, status *SourceStatus) {
+	// Set LastSync if not already set
+	if status.LastSync == nil {
+		now := time.Now()
+		status.LastSync = &now
+	}
+
 	s.statusMutex.Lock()
 	defer s.statusMutex.Unlock()
 	s.statuses[index] = status
@@ -202,9 +187,11 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 	slog.Info("Starting periodic sync for source", "source", sourceInfo, "interval", interval)
 
 	// Initial sync
-	if err := s.SyncSource(ctx, source); err != nil {
-		slog.Error("Initial sync failed", "source", sourceInfo, "error", err)
+	status := s.SyncSource(ctx, source)
+	if status.Status == StatusFailed {
+		slog.Error("Initial sync failed", "source", sourceInfo, "error", *status.LastError)
 	}
+	s.updateStatus(index, status)
 
 	for {
 		select {
@@ -212,15 +199,19 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 			slog.Info("Stopping sync for source", "source", sourceInfo)
 			return
 		case <-ticker.C:
-			if err := s.SyncSource(ctx, source); err != nil {
-				slog.Error("Sync failed", "source", sourceInfo, "error", err)
+			status := s.SyncSource(ctx, source)
+			if status.Status == StatusFailed {
+				slog.Error("Sync failed", "source", sourceInfo, "error", *status.LastError)
 			}
+			s.updateStatus(index, status)
 		}
 	}
 }
 
 // SyncSource performs a full sync for a single source
-func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
+// Returns the status of the sync operation
+func (s *Service) SyncSource(ctx context.Context, source SourceConfig) *SourceStatus {
+	startTime := time.Now()
 	sourceInfo := s.getSourceInfo(source)
 	cfg := source.GetConfig()
 	sourceType := "unknown"
@@ -229,22 +220,39 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 	}
 	slog.Info("Starting sync", "source", sourceInfo, "type", sourceType)
 
+	// Initialize status
+	now := time.Now()
+	status := &SourceStatus{
+		Status:          StatusCompleted,
+		LastSync:        &now,
+		ComponentsCount: 0,
+		Duration:        time.Since(startTime),
+	}
+
 	// Skip sources with nil config (fig library limitation)
 	if cfg == nil {
 		slog.Warn("Skipping sync source with nil config", "source", sourceInfo)
-		return nil
+		return status
 	}
 
 	// Get or create fetcher for this source type
 	fetcher, err := s.getFetcher(sourceType)
 	if err != nil {
-		return fmt.Errorf("failed to get fetcher: %w", err)
+		status.Status = StatusFailed
+		errorMsg := err.Error()
+		status.LastError = &errorMsg
+		status.Duration = time.Since(startTime)
+		return status
 	}
 
 	// Fetch all components from the source
 	components, err := fetcher.Fetch(ctx, source)
 	if err != nil {
-		return fmt.Errorf("failed to fetch components: %w", err)
+		status.Status = StatusFailed
+		errorMsg := err.Error()
+		status.LastError = &errorMsg
+		status.Duration = time.Since(startTime)
+		return status
 	}
 
 	slog.Info("Fetched components", "count", len(components), "source", sourceInfo)
@@ -267,7 +275,9 @@ func (s *Service) SyncSource(ctx context.Context, source SourceConfig) error {
 		"total", len(components),
 		"created", created)
 
-	return nil
+	status.ComponentsCount = len(components)
+	status.Duration = time.Since(startTime)
+	return status
 }
 
 // processComponent handles a single component (create only for now)
