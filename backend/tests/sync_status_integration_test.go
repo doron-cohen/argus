@@ -9,7 +9,6 @@ import (
 	"time"
 
 	catalogclient "github.com/doron-cohen/argus/backend/api/client"
-	"github.com/doron-cohen/argus/backend/internal/server"
 	"github.com/doron-cohen/argus/backend/sync"
 	syncclient "github.com/doron-cohen/argus/backend/sync/api/client"
 	"github.com/stretchr/testify/assert"
@@ -36,13 +35,9 @@ func TestSyncStatusComponentsCountBasic(t *testing.T) {
 		},
 	}
 
-	// Start server with sync enabled
-	stop, err := server.Start(testConfig)
-	require.NoError(t, err)
+	// Start server with sync enabled and wait for health
+	stop := startServerAndWaitForHealth(t, testConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(2 * time.Second)
 
 	// Create API clients
 	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -131,13 +126,9 @@ func TestSyncStatusComponentsCountEdgeCases(t *testing.T) {
 			},
 		}
 
-		// Start server with sync enabled
-		stop, err := server.Start(testConfig)
-		require.NoError(t, err)
+		// Start server with sync enabled and wait for health
+		stop := startServerAndWaitForHealth(t, testConfig)
 		defer stop()
-
-		// Wait for server to start
-		time.Sleep(2 * time.Second)
 
 		// Create sync API client
 		syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -177,13 +168,9 @@ func TestSyncStatusComponentsCountEdgeCases(t *testing.T) {
 			},
 		}
 
-		// Start server with sync enabled
-		stop, err := server.Start(testConfig)
-		require.NoError(t, err)
+		// Start server with sync enabled and wait for health
+		stop := startServerAndWaitForHealth(t, testConfig)
 		defer stop()
-
-		// Wait for server to start
-		time.Sleep(2 * time.Second)
 
 		// Create sync API client
 		syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -227,13 +214,9 @@ func TestSyncStatusComponentsCountEdgeCases(t *testing.T) {
 			},
 		}
 
-		// Start server with sync enabled
-		stop, err := server.Start(testConfig)
-		require.NoError(t, err)
+		// Start server with sync enabled and wait for health
+		stop := startServerAndWaitForHealth(t, testConfig)
 		defer stop()
-
-		// Wait for server to start
-		time.Sleep(2 * time.Second)
 
 		// Create API clients
 		syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -293,13 +276,9 @@ func TestSyncStatusComponentsCountMultipleSyncs(t *testing.T) {
 		},
 	}
 
-	// Start server with sync enabled
-	stop, err := server.Start(testConfig)
-	require.NoError(t, err)
+	// Start server with sync enabled and wait for health
+	stop := startServerAndWaitForHealth(t, testConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(2 * time.Second)
 
 	// Create sync API client
 	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -387,13 +366,9 @@ func TestSyncStatusComponentsCountConcurrent(t *testing.T) {
 		},
 	}
 
-	// Start server with sync enabled
-	stop, err := server.Start(testConfig)
-	require.NoError(t, err)
+	// Start server with sync enabled and wait for health
+	stop := startServerAndWaitForHealth(t, testConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(2 * time.Second)
 
 	// Create sync API client
 	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -446,13 +421,9 @@ func TestSyncStatusComponentsCountErrorHandling(t *testing.T) {
 			},
 		}
 
-		// Start server with sync enabled
-		stop, err := server.Start(testConfig)
-		require.NoError(t, err)
+		// Start server with sync enabled and wait for health
+		stop := startServerAndWaitForHealth(t, testConfig)
 		defer stop()
-
-		// Wait for server to start
-		time.Sleep(2 * time.Second)
 
 		// Create sync API client
 		syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -501,13 +472,9 @@ func TestSyncStatusComponentsCountScheduledSync(t *testing.T) {
 		},
 	}
 
-	// Start server with sync enabled
-	stop, err := server.Start(testConfig)
-	require.NoError(t, err)
+	// Start server with sync enabled and wait for health
+	stop := startServerAndWaitForHealth(t, testConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(2 * time.Second)
 
 	// Create API clients
 	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")
@@ -609,13 +576,9 @@ func TestSyncStatusComponentsCountNoSources(t *testing.T) {
 		Sources: []sync.SourceConfig{}, // Empty sources
 	}
 
-	// Start server
-	stop, err := server.Start(testConfig)
-	require.NoError(t, err)
+	// Start server and wait for health
+	stop := startServerAndWaitForHealth(t, testConfig)
 	defer stop()
-
-	// Wait for server to start
-	time.Sleep(2 * time.Second)
 
 	// Create sync API client
 	syncClient, err := syncclient.NewClientWithResponses("http://localhost:8080/api/sync/v1")

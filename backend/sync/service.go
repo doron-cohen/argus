@@ -188,9 +188,23 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 	slog.Info("Starting periodic sync for source", "source", sourceInfo, "interval", interval)
 
 	// Initial sync
-	status := s.SyncSourceWithStatus(ctx, source)
-	if status.Status == StatusFailed {
-		slog.Error("Initial sync failed", "source", sourceInfo, "error", *status.LastError)
+	componentsCount, err := s.SyncSource(ctx, source)
+	if err != nil {
+		slog.Error("Initial sync failed", "source", sourceInfo, "error", err)
+	}
+	// Update status with sync result
+	now := time.Now()
+	status := &SourceStatus{
+		Status:          StatusCompleted,
+		LastSync:        &now,
+		ComponentsCount: componentsCount,
+		Duration:        time.Since(time.Now()), // We don't have startTime anymore
+	}
+	if err != nil {
+		status.Status = StatusFailed
+		errorMsg := err.Error()
+		status.LastError = &errorMsg
+		status.ComponentsCount = 0
 	}
 	s.updateStatusFromSyncResult(index, status)
 
@@ -212,16 +226,6 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 // SyncSource performs a full sync for a single source
 // Returns the number of components discovered during sync
 func (s *Service) SyncSource(ctx context.Context, source SourceConfig) (int, error) {
-	status := s.SyncSourceWithStatus(ctx, source)
-	if status.LastError != nil {
-		return status.ComponentsCount, errors.New(*status.LastError)
-	}
-	return status.ComponentsCount, nil
-}
-
-// SyncSourceWithStatus performs a full sync for a single source
-// Returns the complete SourceStatus with timing information
-func (s *Service) SyncSourceWithStatus(ctx context.Context, source SourceConfig) *SourceStatus {
 	startTime := time.Now()
 	sourceInfo := s.getSourceInfo(source)
 	cfg := source.GetConfig()
@@ -234,35 +238,19 @@ func (s *Service) SyncSourceWithStatus(ctx context.Context, source SourceConfig)
 	// Skip sources with nil config (fig library limitation)
 	if cfg == nil {
 		slog.Warn("Skipping sync source with nil config", "source", sourceInfo)
-		return &SourceStatus{
-			Status:          StatusCompleted,
-			ComponentsCount: 0,
-			Duration:        time.Since(startTime),
-		}
+		return 0, nil
 	}
 
 	// Get or create fetcher for this source type
 	fetcher, err := s.getFetcher(sourceType)
 	if err != nil {
-		errorMsg := err.Error()
-		return &SourceStatus{
-			Status:          StatusFailed,
-			LastError:       &errorMsg,
-			ComponentsCount: 0,
-			Duration:        time.Since(startTime),
-		}
+		return 0, err
 	}
 
 	// Fetch all components from the source
 	components, err := fetcher.Fetch(ctx, source)
 	if err != nil {
-		errorMsg := err.Error()
-		return &SourceStatus{
-			Status:          StatusFailed,
-			LastError:       &errorMsg,
-			ComponentsCount: 0,
-			Duration:        time.Since(startTime),
-		}
+		return 0, err
 	}
 
 	slog.Info("Fetched components", "count", len(components), "source", sourceInfo)
@@ -285,13 +273,7 @@ func (s *Service) SyncSourceWithStatus(ctx context.Context, source SourceConfig)
 		"total", len(components),
 		"created", created)
 
-	now := time.Now()
-	return &SourceStatus{
-		Status:          StatusCompleted,
-		LastSync:        &now,
-		ComponentsCount: len(components),
-		Duration:        time.Since(startTime),
-	}
+	return len(components), nil
 }
 
 // processComponent handles a single component (create only for now)
