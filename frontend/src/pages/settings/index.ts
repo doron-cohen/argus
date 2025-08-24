@@ -12,6 +12,10 @@ import {
   type SyncSource,
   type SyncStatus,
 } from "./store";
+import type {
+  GitSourceConfig,
+  FilesystemSourceConfig,
+} from "../../api/services/sync/client";
 
 @customElement("settings-page")
 export class SettingsPage extends LitElement {
@@ -120,17 +124,17 @@ export class SettingsPage extends LitElement {
   }
 
   private renderSourceConfig(source: SyncSource) {
-    if (source.type === "git") {
-      const config = source.config as any;
+    if (source.type === "git" && source.config) {
+      const config = source.config as GitSourceConfig;
       return html`
         <div class="space-y-2">
           <div>
             <span class="font-medium text-gray-700">Repository:</span>
-            <span class="text-gray-900">${config.url}</span>
+            <span class="text-gray-900">${config.url || "N/A"}</span>
           </div>
           <div>
             <span class="font-medium text-gray-700">Branch:</span>
-            <span class="text-gray-900">${config.branch}</span>
+            <span class="text-gray-900">${config.branch || "N/A"}</span>
           </div>
           ${config.basePath
             ? html`
@@ -142,8 +146,8 @@ export class SettingsPage extends LitElement {
             : nothing}
         </div>
       `;
-    } else {
-      const config = source.config as any;
+    } else if (source.config) {
+      const config = source.config as FilesystemSourceConfig;
       return html`
         <div class="space-y-2">
           <div>

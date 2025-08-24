@@ -25,8 +25,9 @@ export async function loadSyncSources(): Promise<void> {
       const message =
         sourcesData &&
         typeof sourcesData === "object" &&
-        (sourcesData as any).message
-          ? (sourcesData as any).message
+        "message" in sourcesData &&
+        typeof sourcesData.message === "string"
+          ? sourcesData.message
           : `HTTP ${statusCode}`;
       throw new Error(message);
     }
@@ -72,8 +73,9 @@ export async function loadSourceStatus(
       const message =
         statusData &&
         typeof statusData === "object" &&
-        (statusData as any).message
-          ? (statusData as any).message
+        "message" in statusData &&
+        typeof statusData.message === "string"
+          ? statusData.message
           : `HTTP ${statusCode}`;
       throw new Error(message);
     }
