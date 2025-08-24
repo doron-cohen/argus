@@ -2,21 +2,36 @@ declare global {
   var __ARGUS_API_HOST: string | undefined;
 }
 
-export function apiFetch<T>(input: string | URL, init?: RequestInit): T {
-  const path = typeof input === "string" ? input : input.toString();
-  const apiHost = globalThis.__ARGUS_API_HOST;
-  const basePrefix = `${
-    apiHost && apiHost.length > 0 ? apiHost.replace(/\/$/, "") : ""
-  }/api/catalog/v1`;
+const getUrl = (contextUrl: string): string => {
+  const url = new URL(contextUrl, "http://localhost");
+  const pathname = url.pathname;
+  const search = url.search;
+  const apiHost = globalThis.__ARGUS_API_HOST || "http://localhost:8080";
 
-  const isAbsoluteUrl = /^https?:\/\//.test(basePrefix);
-  const base = isAbsoluteUrl
-    ? basePrefix
-    : basePrefix.startsWith("/api/")
-      ? basePrefix
-      : `/${basePrefix}`;
+  // If apiHost is empty, use relative URLs (for production build served by backend)
+  if (apiHost === "") {
+    return `${pathname}${search}`;
+  }
 
-  const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const baseUrl = apiHost.replace(/\/$/, "");
+  const requestUrl = new URL(`${baseUrl}${pathname}${search}`);
+  return requestUrl.toString();
+};
 
-  return fetch(url, init) as T;
-}
+export const apiFetch = async <T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> => {
+  const requestUrl = getUrl(url);
+  const requestInit: RequestInit = {
+    ...options,
+  };
+
+  const request = new Request(requestUrl, requestInit);
+  const response = await fetch(request);
+  const data = await response.json();
+
+  // Handle the case where T is Promise<U> by unwrapping it
+  const result = { status: response.status, data };
+  return result as any;
+};
