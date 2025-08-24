@@ -132,8 +132,23 @@ func (s *Service) TriggerSync(index int) error {
 		})
 
 		// Perform sync and get status
-		status := s.SyncSourceWithStatus(ctx, source)
-		s.updateStatusFromSyncResult(index, status)
+		startTime := time.Now()
+		componentsCount, err := s.SyncSource(ctx, source)
+		duration := time.Since(startTime)
+		now := time.Now()
+		status := &SourceStatus{
+			Status:          StatusCompleted,
+			LastSync:        &now,
+			ComponentsCount: componentsCount,
+			Duration:        duration,
+		}
+		if err != nil {
+			status.Status = StatusFailed
+			errorMsg := err.Error()
+			status.LastError = &errorMsg
+			status.ComponentsCount = 0
+		}
+		s.updateStatus(index, status)
 	}()
 
 	return nil
@@ -141,16 +156,15 @@ func (s *Service) TriggerSync(index int) error {
 
 // updateStatus updates the status for a source (thread-safe)
 func (s *Service) updateStatus(index int, status *SourceStatus) {
+	// Set LastSync if not already set
+	if status.LastSync == nil {
+		now := time.Now()
+		status.LastSync = &now
+	}
+
 	s.statusMutex.Lock()
 	defer s.statusMutex.Unlock()
 	s.statuses[index] = status
-}
-
-// updateStatusFromSyncResult updates the status for a source based on sync result
-func (s *Service) updateStatusFromSyncResult(index int, status *SourceStatus) {
-	now := time.Now()
-	status.LastSync = &now
-	s.updateStatus(index, status)
 }
 
 // StartPeriodicSync starts the sync process if sources are configured
@@ -188,7 +202,10 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 	slog.Info("Starting periodic sync for source", "source", sourceInfo, "interval", interval)
 
 	// Initial sync
+	startTime := time.Now()
 	componentsCount, err := s.SyncSource(ctx, source)
+	duration := time.Since(startTime)
+
 	if err != nil {
 		slog.Error("Initial sync failed", "source", sourceInfo, "error", err)
 	}
@@ -198,7 +215,7 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 		Status:          StatusCompleted,
 		LastSync:        &now,
 		ComponentsCount: componentsCount,
-		Duration:        time.Since(time.Now()), // We don't have startTime anymore
+		Duration:        duration,
 	}
 	if err != nil {
 		status.Status = StatusFailed
@@ -206,7 +223,7 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 		status.LastError = &errorMsg
 		status.ComponentsCount = 0
 	}
-	s.updateStatusFromSyncResult(index, status)
+	s.updateStatus(index, status)
 
 	for {
 		select {
@@ -214,11 +231,24 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 			slog.Info("Stopping sync for source", "source", sourceInfo)
 			return
 		case <-ticker.C:
-			status := s.SyncSourceWithStatus(ctx, source)
-			if status.Status == StatusFailed {
-				slog.Error("Sync failed", "source", sourceInfo, "error", *status.LastError)
+			startTime := time.Now()
+			componentsCount, err := s.SyncSource(ctx, source)
+			duration := time.Since(startTime)
+			now := time.Now()
+			status := &SourceStatus{
+				Status:          StatusCompleted,
+				LastSync:        &now,
+				ComponentsCount: componentsCount,
+				Duration:        duration,
 			}
-			s.updateStatusFromSyncResult(index, status)
+			if err != nil {
+				status.Status = StatusFailed
+				errorMsg := err.Error()
+				status.LastError = &errorMsg
+				status.ComponentsCount = 0
+				slog.Error("Sync failed", "source", sourceInfo, "error", err)
+			}
+			s.updateStatus(index, status)
 		}
 	}
 }
@@ -226,7 +256,6 @@ func (s *Service) startSourceSync(ctx context.Context, source SourceConfig, inde
 // SyncSource performs a full sync for a single source
 // Returns the number of components discovered during sync
 func (s *Service) SyncSource(ctx context.Context, source SourceConfig) (int, error) {
-	startTime := time.Now()
 	sourceInfo := s.getSourceInfo(source)
 	cfg := source.GetConfig()
 	sourceType := "unknown"

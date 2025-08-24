@@ -46,6 +46,9 @@ func TestSyncStatusComponentsCountBasic(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("InitialStatusAfterServerStart", func(t *testing.T) {
+		// Wait for initial sync to complete
+		time.Sleep(3 * time.Second)
+
 		// Check sync status after server start (initial sync has already happened)
 		statusResp, err := syncClient.GetSyncSourceStatusWithResponse(context.Background(), 0)
 		require.NoError(t, err)
@@ -56,12 +59,11 @@ func TestSyncStatusComponentsCountBasic(t *testing.T) {
 		require.NotNil(t, status.SourceId)
 		assert.Equal(t, 0, *status.SourceId)
 		require.NotNil(t, status.Status)
-		assert.Contains(t, []string{"idle", "running", "completed"}, string(*status.Status))
+		assert.Equal(t, "completed", string(*status.Status), "Initial sync should be completed")
 
 		// After initial sync, componentsCount should reflect the actual components
-		if status.ComponentsCount != nil {
-			assert.Equal(t, 4, *status.ComponentsCount, "ComponentsCount should be 4 after initial sync")
-		}
+		require.NotNil(t, status.ComponentsCount, "ComponentsCount should not be nil")
+		assert.Equal(t, 4, *status.ComponentsCount, "ComponentsCount should be 4 after initial sync")
 	})
 
 	t.Run("ComponentsCountAfterSuccessfulSync", func(t *testing.T) {

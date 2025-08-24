@@ -159,7 +159,7 @@ func TestService_SyncSource_FetchError(t *testing.T) {
 	// Assert
 	require.Error(t, err)
 	assert.Equal(t, 0, componentsCount)
-	assert.Contains(t, err.Error(), "unsupported source type: svn")
+	assert.Contains(t, err.Error(), "failed to clone repository")
 	mockFetcher.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
 }
