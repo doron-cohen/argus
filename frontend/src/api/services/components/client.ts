@@ -165,7 +165,7 @@ export type getComponentsResponse = {
 };
 
 export const getGetComponentsUrl = () => {
-  return `/components`;
+  return `/api/catalog/v1/components`;
 };
 
 export const getComponents = async (
@@ -187,7 +187,7 @@ export type getComponentByIdResponse = {
 };
 
 export const getGetComponentByIdUrl = (componentId: string) => {
-  return `/components/${componentId}`;
+  return `/api/catalog/v1/components/${componentId}`;
 };
 
 export const getComponentById = async (
@@ -226,7 +226,7 @@ export const getGetComponentReportsUrl = (
     }
   });
 
-  return `/components/${componentId}/reports?${normalizedParams.toString()}`;
+  return `/api/catalog/v1/components/${componentId}/reports?${normalizedParams.toString()}`;
 };
 
 export const getComponentReports = async (

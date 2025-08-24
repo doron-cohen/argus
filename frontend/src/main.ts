@@ -6,6 +6,7 @@ import "./components/component-details";
 import "./components/component-list";
 import "./pages/component-details";
 import "./pages/home";
+import "./pages/settings";
 import "./router/outlet";
 
 // Initialize the app last

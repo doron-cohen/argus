@@ -19,7 +19,8 @@ function initializeApiHost(): void {
       ? __ARGUS_API_HOST__
       : "http://localhost:8080";
 
-  window.__ARGUS_API_HOST = envApiHost;
+  // If envApiHost is empty string, use relative URLs (for production build served by backend)
+  window.__ARGUS_API_HOST = envApiHost === "" ? "" : envApiHost;
 }
 
 // Initialize on module load

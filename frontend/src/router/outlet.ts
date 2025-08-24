@@ -4,6 +4,7 @@ import Navigo from "navigo";
 import "../components/component-details";
 import "../pages/home/index";
 import "../pages/component-details/index";
+import "../pages/settings/index";
 
 @customElement("router-outlet")
 export class RouterOutlet extends LitElement {
@@ -43,6 +44,9 @@ export class RouterOutlet extends LitElement {
             component-id="${componentId}"
           ></component-details-page>`,
         );
+      })
+      .on("/settings", () => {
+        this.setView(html`<settings-page></settings-page>`);
       })
       .notFound(() => {
         this.setView(html`<div>Page not found</div>`);
