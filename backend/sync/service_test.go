@@ -84,10 +84,11 @@ func TestService_SyncSource_Success(t *testing.T) {
 	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "service-b", Name: "service-b"}).Return(nil)
 
 	// Execute
-	err := service.SyncSource(ctx, source)
+	componentsCount, err := service.SyncSource(ctx, source)
 
 	// Assert
 	require.NoError(t, err)
+	assert.Equal(t, 2, componentsCount)
 	mockFetcher.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
 }
@@ -124,10 +125,11 @@ func TestService_SyncSource_SkipExistingComponents(t *testing.T) {
 	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "new-service", Name: "new-service"}).Return(nil)
 
 	// Execute
-	err := service.SyncSource(ctx, source)
+	componentsCount, err := service.SyncSource(ctx, source)
 
 	// Assert
 	require.NoError(t, err)
+	assert.Equal(t, 2, componentsCount)
 	mockFetcher.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
 }
@@ -152,11 +154,11 @@ func TestService_SyncSource_FetchError(t *testing.T) {
 	mockFetcher.On("Fetch", ctx, source).Return([]models.Component{}, fetchError)
 
 	// Execute
-	err := service.SyncSource(ctx, source)
+	componentsCount, err := service.SyncSource(ctx, source)
 
 	// Assert
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch components")
+	assert.Equal(t, 0, componentsCount)
 	assert.Contains(t, err.Error(), "failed to clone repository")
 	mockFetcher.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
@@ -195,10 +197,11 @@ func TestService_SyncSource_CreateComponentError(t *testing.T) {
 	mockRepo.On("CreateComponent", ctx, storage.Component{ComponentID: "working-service", Name: "working-service"}).Return(nil)
 
 	// Execute
-	err := service.SyncSource(ctx, source)
+	componentsCount, err := service.SyncSource(ctx, source)
 
 	// Assert - sync should complete even with individual component failures
 	require.NoError(t, err)
+	assert.Equal(t, 2, componentsCount)
 	mockFetcher.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
 }
@@ -223,11 +226,11 @@ func TestService_SyncSource_UnsupportedSourceType(t *testing.T) {
 	ctx := context.Background()
 
 	// Execute
-	err := service.SyncSource(ctx, source)
+	componentsCount, err := service.SyncSource(ctx, source)
 
 	// Assert
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get fetcher")
+	assert.Equal(t, 0, componentsCount)
 	assert.Contains(t, err.Error(), "unsupported source type: svn")
 }
 
