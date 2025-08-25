@@ -2,7 +2,7 @@ import { playwrightLauncher } from "@web/test-runner-playwright";
 import { esbuildPlugin } from "@web/dev-server-esbuild";
 
 export default {
-  files: "src/ui/**/*.test.ts",
+  files: ["src/**/*.test.ts", "tests/unit/**/*.test.ts"],
   nodeResolve: true,
   browsers: [playwrightLauncher({ product: "chromium" })],
   testsFinishTimeout: 30000,
