@@ -51,42 +51,42 @@ export class SettingsPage extends LitElement {
       syncSources.subscribe((value) => {
         this.sources = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       sourceStatuses.subscribe((value) => {
         this.statuses = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       settingsLoading.subscribe((value) => {
         this.isLoading = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       settingsError.subscribe((value) => {
         this.error = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       statusesLoading.subscribe((value) => {
         this.statusLoading = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       statusesError.subscribe((value) => {
         this.statusErrors = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     await this.load();
@@ -299,7 +299,7 @@ export class SettingsPage extends LitElement {
                 </div>
               </div>
             </ui-card>
-          `
+          `,
         )}
       </div>
     `;

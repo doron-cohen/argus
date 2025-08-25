@@ -5,7 +5,7 @@ import type { UiPageHeader } from "./ui-page-header.js";
 describe("UiPageHeader", () => {
   it("renders with default attributes", async () => {
     const el = await fixture<UiPageHeader>(
-      html`<ui-page-header></ui-page-header>`
+      html`<ui-page-header></ui-page-header>`,
     );
     await el.updateComplete;
     await el.updateComplete;
@@ -19,7 +19,7 @@ describe("UiPageHeader", () => {
       html`<ui-page-header
         title="Test Title"
         description="Test Description"
-      ></ui-page-header>`
+      ></ui-page-header>`,
     );
 
     await el.updateComplete;
@@ -35,7 +35,7 @@ describe("UiPageHeader", () => {
 
   it("renders with different sizes", async () => {
     const el = await fixture<UiPageHeader>(
-      html`<ui-page-header title="Test" size="lg"></ui-page-header>`
+      html`<ui-page-header title="Test" size="lg"></ui-page-header>`,
     );
     await el.updateComplete;
 
@@ -47,12 +47,12 @@ describe("UiPageHeader", () => {
     const el = await fixture<UiPageHeader>(
       html`<ui-page-header title="Test">
         <button slot="actions">Action</button>
-      </ui-page-header>`
+      </ui-page-header>`,
     );
     await el.updateComplete;
 
     const actionsSlot = el.shadowRoot?.querySelector(
-      'slot[name="actions"]'
+      'slot[name="actions"]',
     ) as HTMLSlotElement;
     expect(actionsSlot).to.exist;
 
@@ -63,7 +63,7 @@ describe("UiPageHeader", () => {
 
   it("does not render title when empty", async () => {
     const el = await fixture<UiPageHeader>(
-      html`<ui-page-header description="Test Description"></ui-page-header>`
+      html`<ui-page-header description="Test Description"></ui-page-header>`,
     );
     await el.updateComplete;
 
@@ -73,7 +73,7 @@ describe("UiPageHeader", () => {
 
   it("does not render description when empty", async () => {
     const el = await fixture<UiPageHeader>(
-      html`<ui-page-header title="Test Title"></ui-page-header>`
+      html`<ui-page-header title="Test Title"></ui-page-header>`,
     );
     await el.updateComplete;
 
@@ -86,7 +86,7 @@ describe("UiPageHeader", () => {
       html`<ui-page-header
         title="Old Title"
         description="Old Description"
-      ></ui-page-header>`
+      ></ui-page-header>`,
     );
 
     await el.updateComplete;

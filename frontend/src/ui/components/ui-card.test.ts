@@ -15,7 +15,7 @@ describe("UiCard", () => {
 
   it("renders with different variants", async () => {
     const el = await fixture<UiCard>(
-      html`<ui-card variant="elevated"></ui-card>`
+      html`<ui-card variant="elevated"></ui-card>`,
     );
     await el.updateComplete;
 
@@ -33,12 +33,12 @@ describe("UiCard", () => {
 
   it("renders slot content", async () => {
     const el = await fixture<UiCard>(
-      html`<ui-card><div>Test content</div></ui-card>`
+      html`<ui-card><div>Test content</div></ui-card>`,
     );
     await el.updateComplete;
 
     const contentSlot = el.shadowRoot?.querySelector(
-      ".content slot"
+      ".content slot",
     ) as HTMLSlotElement;
     expect(contentSlot).to.exist;
 
@@ -52,7 +52,7 @@ describe("UiCard", () => {
       html`<ui-card>
         <div slot="header">Header content</div>
         <div>Body content</div>
-      </ui-card>`
+      </ui-card>`,
     );
     await el.updateComplete;
 
@@ -60,7 +60,7 @@ describe("UiCard", () => {
     expect(header).to.exist;
 
     const headerSlot = header?.querySelector(
-      'slot[name="header"]'
+      'slot[name="header"]',
     ) as HTMLSlotElement;
     expect(headerSlot).to.exist;
 
@@ -74,7 +74,7 @@ describe("UiCard", () => {
       html`<ui-card>
         <div>Body content</div>
         <div slot="footer">Footer content</div>
-      </ui-card>`
+      </ui-card>`,
     );
     await el.updateComplete;
 
@@ -82,7 +82,7 @@ describe("UiCard", () => {
     expect(footer).to.exist;
 
     const footerSlot = footer?.querySelector(
-      'slot[name="footer"]'
+      'slot[name="footer"]',
     ) as HTMLSlotElement;
     expect(footerSlot).to.exist;
 
@@ -93,28 +93,28 @@ describe("UiCard", () => {
 
   it("does not render header when no header slot", async () => {
     const el = await fixture<UiCard>(
-      html`<ui-card><div>Body content</div></ui-card>`
+      html`<ui-card><div>Body content</div></ui-card>`,
     );
     await el.updateComplete;
 
     const header = el.shadowRoot?.querySelector(".header");
     expect(header).to.exist;
     const headerSlot = header?.querySelector(
-      'slot[name="header"]'
+      'slot[name="header"]',
     ) as HTMLSlotElement;
     expect(headerSlot?.assignedNodes().length).to.equal(0);
   });
 
   it("does not render footer when no footer slot", async () => {
     const el = await fixture<UiCard>(
-      html`<ui-card><div>Body content</div></ui-card>`
+      html`<ui-card><div>Body content</div></ui-card>`,
     );
     await el.updateComplete;
 
     const footer = el.shadowRoot?.querySelector(".footer");
     expect(footer).to.exist;
     const footerSlot = footer?.querySelector(
-      'slot[name="footer"]'
+      'slot[name="footer"]',
     ) as HTMLSlotElement;
     expect(footerSlot?.assignedNodes().length).to.equal(0);
   });
