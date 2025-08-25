@@ -196,11 +196,11 @@ describe("SettingsPage", () => {
     expect(formatted).to.equal("N/A");
   });
 
-  it("returns correct status badge classes", () => {
-    expect(element.getStatusBadgeClass("idle")).to.include("bg-gray-100");
-    expect(element.getStatusBadgeClass("running")).to.include("bg-blue-100");
-    expect(element.getStatusBadgeClass("completed")).to.include("bg-green-100");
-    expect(element.getStatusBadgeClass("failed")).to.include("bg-red-100");
-    expect(element.getStatusBadgeClass("unknown")).to.include("bg-gray-100");
+  it("returns correct status badge status", () => {
+    expect(element.getStatusBadgeStatus("idle")).to.equal("default");
+    expect(element.getStatusBadgeStatus("running")).to.equal("default");
+    expect(element.getStatusBadgeStatus("completed")).to.equal("pass");
+    expect(element.getStatusBadgeStatus("failed")).to.equal("fail");
+    expect(element.getStatusBadgeStatus("unknown")).to.equal("default");
   });
 });

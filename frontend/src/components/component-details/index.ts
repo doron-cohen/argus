@@ -2,7 +2,7 @@ import { LitElement, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { Component } from "../../api/services/components/client";
 import type { CheckReport } from "../../api/services/components/client";
-import "../../ui/ui-badge";
+import "../../ui/components/ui-badge.js";
 import { nothing } from "lit";
 
 @customElement("component-details")

@@ -139,6 +139,14 @@ frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e-backend
 frontend/lint:
 	cd frontend && bun run type-check
 
+# Frontend format
+frontend/format:
+	cd frontend && bun run format
+
+# Frontend format check (dry run)
+frontend/format-check:
+	cd frontend && bun run format:check
+
 frontend/clean:
 	cd frontend && rm -rf dist coverage.out node_modules
 
@@ -148,6 +156,10 @@ frontend/validate-build:
 	@cd frontend && test -f dist/main.js || (echo "Error: main.js not found in dist/" && exit 1)
 	@cd frontend && test -f dist/styles.css || (echo "Error: styles.css not found in dist/" && exit 1)
 	@echo "Frontend build validation passed"
+
+# Pre-commit checks (quick validation)
+pre-commit: backend/go-mod-tidy frontend/format frontend/lint
+	@echo "✅ Pre-commit checks completed successfully"
 
 # Combined tasks
 
