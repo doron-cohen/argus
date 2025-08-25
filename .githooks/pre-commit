@@ -1,56 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Format Go (iterate all Go modules and run go fmt ./... in each)
-if command -v go >/dev/null 2>&1; then
-  echo "[pre-commit] go fmt ..."
-  while IFS= read -r -d '' gomod; do
-    moddir="$(dirname "$gomod")"
-    echo "  - formatting module: $moddir"
-    (
-      cd "$moddir" && go fmt ./...
-    )
-  done < <(find . -name go.mod -not -path "./frontend/*" -print0)
-fi
-
 # Run pre-commit checks using Makefile
-if command -v make >/dev/null 2>&1; then
-  echo "[pre-commit] running make pre-commit ..."
-  make pre-commit
-else
-  echo "[pre-commit] make not available, running individual checks ..."
-  
-  # Format frontend with Prettier (entire directory)
-  if [ -d "frontend" ]; then
-    echo "[pre-commit] frontend prettier (entire directory) ..."
-    if command -v bun >/dev/null 2>&1; then
-      (
-        cd frontend && bunx prettier -w "src/**/*.{ts,tsx,js,jsx,css,html,json,md}" "tests/**/*.{ts,tsx,js,jsx}"
-      )
-    elif command -v npx >/dev/null 2>&1; then
-      (
-        cd frontend && npx --yes prettier -w "src/**/*.{ts,tsx,js,jsx,css,html,json,md}" "tests/**/*.{ts,tsx,js,jsx}"
-      )
-    fi
-  fi
-
-  # Type check frontend TypeScript
-  if [ -d "frontend" ]; then
-    echo "[pre-commit] frontend type check ..."
-    if command -v bun >/dev/null 2>&1; then
-      (
-        cd frontend && bun run type-check
-      )
-    elif command -v npx >/dev/null 2>&1; then
-      (
-        cd frontend && npx --yes tsc --noEmit
-      )
-    fi
-  fi
-fi
-
-# Re-stage files in case formatting changed them
-git add -A
-
-echo "[pre-commit] formatting and type checking complete"
+echo "[pre-commit] running make pre-commit ..."
+make pre-commit
 
