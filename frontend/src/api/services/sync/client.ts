@@ -4,7 +4,7 @@
  * Argus Sync API
  * OpenAPI spec version: 0.1.0
  */
-import { apiFetch } from '../../fetcher';
+import { apiFetch } from "../../fetcher";
 export interface Error {
   code?: string;
   message?: string;
@@ -17,15 +17,15 @@ export interface SyncTriggerResponse {
   triggered?: boolean;
 }
 
-export type SyncStatusStatus = typeof SyncStatusStatus[keyof typeof SyncStatusStatus];
-
+export type SyncStatusStatus =
+  (typeof SyncStatusStatus)[keyof typeof SyncStatusStatus];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const SyncStatusStatus = {
-  idle: 'idle',
-  running: 'running',
-  completed: 'completed',
-  failed: 'failed',
+  idle: "idle",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
 } as const;
 
 export interface SyncStatus {
@@ -56,13 +56,13 @@ export interface GitSourceConfig {
   url?: string;
 }
 
-export type SyncSourceType = typeof SyncSourceType[keyof typeof SyncSourceType];
-
+export type SyncSourceType =
+  (typeof SyncSourceType)[keyof typeof SyncSourceType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const SyncSourceType = {
-  git: 'git',
-  filesystem: 'filesystem',
+  git: "git",
+  filesystem: "filesystem",
 } as const;
 
 export type SyncSourceConfig = GitSourceConfig | FilesystemSourceConfig;
@@ -79,31 +79,26 @@ export interface SyncSource {
   type?: SyncSourceType;
 }
 
-
-
 /**
  * @summary Get all sync sources
  */
 export type getSyncSourcesResponse = {
   data: SyncSource[];
   status: number;
-}
+};
 
 export const getGetSyncSourcesUrl = () => {
+  return `/api/sync/v1/sources`;
+};
 
-
-  return `/api/sync/v1/sources`
-}
-
-export const getSyncSources = async ( options?: RequestInit): Promise<getSyncSourcesResponse> => {
-return apiFetch<Promise<getSyncSourcesResponse>>(getGetSyncSourcesUrl(),
-  {      
+export const getSyncSources = async (
+  options?: RequestInit,
+): Promise<getSyncSourcesResponse> => {
+  return apiFetch<Promise<getSyncSourcesResponse>>(getGetSyncSourcesUrl(), {
     ...options,
-    method: 'GET'
-    
-  }
-);}
-
+    method: "GET",
+  });
+};
 
 /**
  * @summary Get specific sync source details
@@ -111,23 +106,21 @@ return apiFetch<Promise<getSyncSourcesResponse>>(getGetSyncSourcesUrl(),
 export type getSyncSourceResponse = {
   data: SyncSource;
   status: number;
-}
+};
 
-export const getGetSyncSourceUrl = (id: number,) => {
+export const getGetSyncSourceUrl = (id: number) => {
+  return `/api/sync/v1/sources/${id}`;
+};
 
-
-  return `/api/sync/v1/sources/${id}`
-}
-
-export const getSyncSource = async (id: number, options?: RequestInit): Promise<getSyncSourceResponse> => {
-return apiFetch<Promise<getSyncSourceResponse>>(getGetSyncSourceUrl(id),
-  {      
+export const getSyncSource = async (
+  id: number,
+  options?: RequestInit,
+): Promise<getSyncSourceResponse> => {
+  return apiFetch<Promise<getSyncSourceResponse>>(getGetSyncSourceUrl(id), {
     ...options,
-    method: 'GET'
-    
-  }
-);}
-
+    method: "GET",
+  });
+};
 
 /**
  * @summary Get sync status for specific source
@@ -135,23 +128,24 @@ return apiFetch<Promise<getSyncSourceResponse>>(getGetSyncSourceUrl(id),
 export type getSyncSourceStatusResponse = {
   data: SyncStatus;
   status: number;
-}
+};
 
-export const getGetSyncSourceStatusUrl = (id: number,) => {
+export const getGetSyncSourceStatusUrl = (id: number) => {
+  return `/api/sync/v1/sources/${id}/status`;
+};
 
-
-  return `/api/sync/v1/sources/${id}/status`
-}
-
-export const getSyncSourceStatus = async (id: number, options?: RequestInit): Promise<getSyncSourceStatusResponse> => {
-return apiFetch<Promise<getSyncSourceStatusResponse>>(getGetSyncSourceStatusUrl(id),
-  {      
-    ...options,
-    method: 'GET'
-    
-  }
-);}
-
+export const getSyncSourceStatus = async (
+  id: number,
+  options?: RequestInit,
+): Promise<getSyncSourceStatusResponse> => {
+  return apiFetch<Promise<getSyncSourceStatusResponse>>(
+    getGetSyncSourceStatusUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
 
 /**
  * @summary Trigger manual sync for specific source
@@ -159,21 +153,21 @@ return apiFetch<Promise<getSyncSourceStatusResponse>>(getGetSyncSourceStatusUrl(
 export type triggerSyncSourceResponse = {
   data: SyncTriggerResponse;
   status: number;
-}
+};
 
-export const getTriggerSyncSourceUrl = (id: number,) => {
+export const getTriggerSyncSourceUrl = (id: number) => {
+  return `/api/sync/v1/sources/${id}/trigger`;
+};
 
-
-  return `/api/sync/v1/sources/${id}/trigger`
-}
-
-export const triggerSyncSource = async (id: number, options?: RequestInit): Promise<triggerSyncSourceResponse> => {
-return apiFetch<Promise<triggerSyncSourceResponse>>(getTriggerSyncSourceUrl(id),
-  {      
-    ...options,
-    method: 'POST'
-    
-  }
-);}
-
-
+export const triggerSyncSource = async (
+  id: number,
+  options?: RequestInit,
+): Promise<triggerSyncSourceResponse> => {
+  return apiFetch<Promise<triggerSyncSourceResponse>>(
+    getTriggerSyncSourceUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
