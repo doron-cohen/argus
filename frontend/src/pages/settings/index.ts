@@ -2,10 +2,10 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { loadSyncSources } from "./data";
 import { resetSettings } from "./store";
-import "../ui/primitives/page-container.js";
-import "../ui/components/ui-page-header.js";
-import "../ui/components/ui-card.js";
-import "../ui/components/ui-badge.js";
+import "../../ui/primitives/page-container.js";
+import "../../ui/components/ui-page-header.js";
+import "../../ui/components/ui-card.js";
+import "../../ui/components/ui-badge.js";
 import {
   syncSources,
   sourceStatuses,
@@ -51,42 +51,42 @@ export class SettingsPage extends LitElement {
       syncSources.subscribe((value) => {
         this.sources = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       sourceStatuses.subscribe((value) => {
         this.statuses = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       settingsLoading.subscribe((value) => {
         this.isLoading = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       settingsError.subscribe((value) => {
         this.error = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       statusesLoading.subscribe((value) => {
         this.statusLoading = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       statusesError.subscribe((value) => {
         this.statusErrors = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     await this.load();
@@ -299,7 +299,7 @@ export class SettingsPage extends LitElement {
                 </div>
               </div>
             </ui-card>
-          `,
+          `
         )}
       </div>
     `;
