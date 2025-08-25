@@ -1,6 +1,6 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./ui-icon.js";
-import type { UiIcon } from "./ui-icon.js";
+import type { UiIcon } from "./ui-icon";
 
 describe("UiIcon", () => {
   it("renders with default attributes", async () => {

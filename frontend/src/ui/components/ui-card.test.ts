@@ -1,6 +1,6 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./ui-card.js";
-import type { UiCard } from "./ui-card.js";
+import type { UiCard } from "./ui-card";
 
 describe("UiCard", () => {
   it("renders with default attributes", async () => {

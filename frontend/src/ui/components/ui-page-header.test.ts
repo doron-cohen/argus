@@ -1,6 +1,6 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./ui-page-header.js";
-import type { UiPageHeader } from "./ui-page-header.js";
+import type { UiPageHeader } from "./ui-page-header";
 
 describe("UiPageHeader", () => {
   it("renders with default attributes", async () => {

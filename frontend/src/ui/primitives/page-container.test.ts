@@ -1,6 +1,6 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./page-container.js";
-import type { UiPageContainer } from "./page-container.js";
+import type { UiPageContainer } from "./page-container";
 
 describe("UiPageContainer", () => {
   it("renders with default attributes", async () => {
