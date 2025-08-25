@@ -2,6 +2,10 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { loadSyncSources } from "./data";
 import { resetSettings } from "./store";
+import "../ui/primitives/page-container.js";
+import "../ui/components/ui-page-header.js";
+import "../ui/components/ui-card.js";
+import "../ui/components/ui-badge.js";
 import {
   syncSources,
   sourceStatuses,
@@ -108,18 +112,18 @@ export class SettingsPage extends LitElement {
     return duration;
   }
 
-  getStatusBadgeClass(status: string): string {
+  getStatusBadgeStatus(status: string): string {
     switch (status) {
       case "idle":
-        return "bg-gray-100 text-gray-800";
+        return "default";
       case "running":
-        return "bg-blue-100 text-blue-800";
+        return "default";
       case "completed":
-        return "bg-green-100 text-green-800";
+        return "pass";
       case "failed":
-        return "bg-red-100 text-red-800";
+        return "fail";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "default";
     }
   }
 
@@ -207,13 +211,11 @@ export class SettingsPage extends LitElement {
     return html`
       <div class="space-y-3">
         <div class="flex items-center space-x-2">
-          <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusBadgeClass(
-              status.status || "unknown",
-            )}"
+          <ui-badge
+            status=${this.getStatusBadgeStatus(status.status || "unknown")}
           >
             ${status.status || "unknown"}
-          </span>
+          </ui-badge>
         </div>
 
         <div class="grid grid-cols-2 gap-4 text-sm">
@@ -263,11 +265,12 @@ export class SettingsPage extends LitElement {
       <div class="space-y-6">
         ${this.sources.map(
           (source) => html`
-            <div
-              class="bg-white shadow rounded-lg border border-gray-200"
+            <ui-card
+              variant="default"
+              padding="none"
               data-testid="sync-source-${source.id || "unknown"}"
             >
-              <div class="px-6 py-4 border-b border-gray-200">
+              <div slot="header" class="px-6 py-4">
                 <div class="flex items-center justify-between">
                   <div>
                     <h3 class="text-lg font-medium text-gray-900">
@@ -295,7 +298,7 @@ export class SettingsPage extends LitElement {
                   </div>
                 </div>
               </div>
-            </div>
+            </ui-card>
           `,
         )}
       </div>
@@ -304,18 +307,12 @@ export class SettingsPage extends LitElement {
 
   render() {
     return html`
-      <div class="max-w-6xl mx-auto px-4 py-8">
-        <div class="mb-8">
-          <h1
-            class="text-3xl font-bold text-gray-900 mb-2"
-            data-testid="page-title"
-          >
-            Settings
-          </h1>
-          <p class="text-gray-600" data-testid="page-description">
-            Sync source configuration and status information
-          </p>
-        </div>
+      <ui-page-container max-width="xl" padding="lg">
+        <ui-page-header
+          title="Settings"
+          description="Sync source configuration and status information"
+          size="lg"
+        ></ui-page-header>
 
         ${this.isLoading
           ? html`
@@ -325,15 +322,17 @@ export class SettingsPage extends LitElement {
             `
           : this.error
             ? html`
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h2 class="text-red-800 font-semibold mb-2">
-                    Error loading settings
-                  </h2>
-                  <p class="text-red-600">${this.error}</p>
-                </div>
+                <ui-card variant="outlined" padding="md">
+                  <div class="text-red-600">
+                    <h2 class="text-red-800 font-semibold mb-2">
+                      Error loading settings
+                    </h2>
+                    <p>${this.error}</p>
+                  </div>
+                </ui-card>
               `
             : this.renderSources()}
-      </div>
+      </ui-page-container>
     `;
   }
 }
