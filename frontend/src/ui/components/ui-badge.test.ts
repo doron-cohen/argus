@@ -1,6 +1,6 @@
 import { expect, fixture, html } from "@open-wc/testing";
-import "./ui-badge";
-import type { UiBadge } from "./ui-badge";
+import "./ui-badge.js";
+import type { UiBadge } from "./ui-badge.js";
 
 describe("ui-badge", () => {
   function getClasses(el: UiBadge) {

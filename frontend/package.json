@@ -20,6 +20,8 @@
     "test:components": "bun test src/components/ --reporter=minimal",
     "test:ui": "web-test-runner",
     "test:ui:watch": "web-test-runner --watch",
+    "test:ui:components": "web-test-runner \"src/ui/**/*.test.ts\"",
+    "test:ui:watch:components": "web-test-runner \"src/ui/**/*.test.ts\" --watch",
     "test:e2e": "bun playwright test --config=playwright.config.ts",
     "test:e2e:ui": "bun playwright test --config=playwright.config.ts --ui",
     "test:all": "bun run test:unit && bun run test:ui && bun run test:e2e",
