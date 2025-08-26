@@ -12,11 +12,18 @@ export class UiLoadingIndicator extends LitElement {
   size = "md"; // sm, md, lg
 
   render(): TemplateResult {
-    const spinnerSize = this.size === "sm" ? "h-4 w-4" : this.size === "lg" ? "h-8 w-8" : "h-6 w-6";
+    const spinnerSize =
+      this.size === "sm"
+        ? "h-4 w-4"
+        : this.size === "lg"
+          ? "h-8 w-8"
+          : "h-6 w-6";
 
     return html`
       <div class="flex items-center justify-center space-x-2 py-8">
-        <div class="animate-spin rounded-full border-b-2 border-blue-600 ${spinnerSize}"></div>
+        <div
+          class="animate-spin rounded-full border-b-2 border-blue-600 ${spinnerSize}"
+        ></div>
         <span class="u-text-muted">${this.message}</span>
       </div>
     `;

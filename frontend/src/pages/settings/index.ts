@@ -55,42 +55,42 @@ export class SettingsPage extends LitElement {
       syncSources.subscribe((value) => {
         this.sources = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       sourceStatuses.subscribe((value) => {
         this.statuses = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       settingsLoading.subscribe((value) => {
         this.isLoading = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       settingsError.subscribe((value) => {
         this.error = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       statusesLoading.subscribe((value) => {
         this.statusLoading = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     this.unsubscribers.push(
       statusesError.subscribe((value) => {
         this.statusErrors = value;
         this.requestUpdate();
-      })
+      }),
     );
 
     await this.load();
@@ -137,14 +137,18 @@ export class SettingsPage extends LitElement {
       const items = [
         { label: "Repository", value: config.url || "N/A" },
         { label: "Branch", value: config.branch || "N/A" },
-        ...(config.basePath ? [{ label: "Base Path", value: config.basePath }] : [])
+        ...(config.basePath
+          ? [{ label: "Base Path", value: config.basePath }]
+          : []),
       ];
       return html`<ui-description-list .items=${items}></ui-description-list>`;
     } else if (source.config) {
       const config = source.config as FilesystemSourceConfig;
       const items = [
         { label: "Path", value: config.path },
-        ...(config.basePath ? [{ label: "Base Path", value: config.basePath }] : [])
+        ...(config.basePath
+          ? [{ label: "Base Path", value: config.basePath }]
+          : []),
       ];
       return html`<ui-description-list .items=${items}></ui-description-list>`;
     }
@@ -165,7 +169,10 @@ export class SettingsPage extends LitElement {
 
     if (isLoading) {
       return html`
-        <ui-loading-indicator message="Loading..." size="sm"></ui-loading-indicator>
+        <ui-loading-indicator
+          message="Loading..."
+          size="sm"
+        ></ui-loading-indicator>
       `;
     }
 
@@ -272,7 +279,7 @@ export class SettingsPage extends LitElement {
                 </div>
               </div>
             </ui-card>
-          `
+          `,
         )}
       </div>
     `;
@@ -289,7 +296,9 @@ export class SettingsPage extends LitElement {
 
         ${this.isLoading
           ? html`
-              <ui-loading-indicator message="Loading settings..."></ui-loading-indicator>
+              <ui-loading-indicator
+                message="Loading settings..."
+              ></ui-loading-indicator>
             `
           : this.error
             ? html`

@@ -26,7 +26,7 @@ export class UiDescriptionList extends LitElement {
               <span class="u-font-medium u-text-secondary">${item.label}:</span>
               <span class="u-text-primary">${item.value || "N/A"}</span>
             </div>
-          `
+          `,
         )}
       </div>
     `;

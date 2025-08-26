@@ -1,9 +1,12 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./ui-empty-state.js";
+import type { UiEmptyState } from "./ui-empty-state";
 
 describe("UiEmptyState", () => {
   it("renders with default title", async () => {
-    const el = await fixture(html`<ui-empty-state></ui-empty-state>`);
+    const el = await fixture<UiEmptyState>(
+      html`<ui-empty-state></ui-empty-state>`,
+    );
     await el.updateComplete;
 
     const title = el.shadowRoot?.querySelector(".u-text-muted.text-lg");
@@ -11,7 +14,7 @@ describe("UiEmptyState", () => {
   });
 
   it("renders with custom title and description", async () => {
-    const el = await fixture(html`
+    const el = await fixture<UiEmptyState>(html`
       <ui-empty-state
         title="No items found"
         description="Try adjusting your search criteria"
@@ -23,11 +26,15 @@ describe("UiEmptyState", () => {
     const description = el.shadowRoot?.querySelector(".u-text-muted.text-sm");
 
     expect(title?.textContent?.trim()).to.equal("No items found");
-    expect(description?.textContent?.trim()).to.equal("Try adjusting your search criteria");
+    expect(description?.textContent?.trim()).to.equal(
+      "Try adjusting your search criteria",
+    );
   });
 
   it("renders without description when not provided", async () => {
-    const el = await fixture(html`<ui-empty-state title="Empty"></ui-empty-state>`);
+    const el = await fixture<UiEmptyState>(
+      html`<ui-empty-state title="Empty"></ui-empty-state>`,
+    );
     await el.updateComplete;
 
     const description = el.shadowRoot?.querySelector(".u-text-muted.text-sm");

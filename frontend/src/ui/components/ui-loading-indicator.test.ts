@@ -1,9 +1,12 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./ui-loading-indicator.js";
+import type { UiLoadingIndicator } from "./ui-loading-indicator";
 
 describe("UiLoadingIndicator", () => {
   it("renders with default message", async () => {
-    const el = await fixture(html`<ui-loading-indicator></ui-loading-indicator>`);
+    const el = await fixture<UiLoadingIndicator>(
+      html`<ui-loading-indicator></ui-loading-indicator>`,
+    );
     await el.updateComplete;
 
     const message = el.shadowRoot?.querySelector(".u-text-muted");
@@ -11,7 +14,11 @@ describe("UiLoadingIndicator", () => {
   });
 
   it("renders with custom message", async () => {
-    const el = await fixture(html`<ui-loading-indicator message="Please wait..."></ui-loading-indicator>`);
+    const el = await fixture<UiLoadingIndicator>(
+      html`<ui-loading-indicator
+        message="Please wait..."
+      ></ui-loading-indicator>`,
+    );
     await el.updateComplete;
 
     const message = el.shadowRoot?.querySelector(".u-text-muted");
@@ -19,7 +26,9 @@ describe("UiLoadingIndicator", () => {
   });
 
   it("renders with different sizes", async () => {
-    const el = await fixture(html`<ui-loading-indicator size="lg"></ui-loading-indicator>`);
+    const el = await fixture<UiLoadingIndicator>(
+      html`<ui-loading-indicator size="lg"></ui-loading-indicator>`,
+    );
     await el.updateComplete;
 
     const spinner = el.shadowRoot?.querySelector(".animate-spin");

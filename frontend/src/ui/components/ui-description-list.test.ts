@@ -1,9 +1,12 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./ui-description-list.js";
+import type { UiDescriptionList } from "./ui-description-list";
 
 describe("UiDescriptionList", () => {
   it("renders empty when no items", async () => {
-    const el = await fixture(html`<ui-description-list></ui-description-list>`);
+    const el = await fixture<UiDescriptionList>(
+      html`<ui-description-list></ui-description-list>`,
+    );
     await el.updateComplete;
 
     const container = el.shadowRoot?.querySelector(".u-stack-2");
@@ -13,10 +16,10 @@ describe("UiDescriptionList", () => {
   it("renders items correctly", async () => {
     const items = [
       { label: "Name", value: "John Doe" },
-      { label: "Email", value: "john@example.com" }
+      { label: "Email", value: "john@example.com" },
     ];
 
-    const el = await fixture(html`
+    const el = await fixture<UiDescriptionList>(html`
       <ui-description-list .items=${items}></ui-description-list>
     `);
     await el.updateComplete;
@@ -33,7 +36,7 @@ describe("UiDescriptionList", () => {
   it("renders N/A for empty values", async () => {
     const items = [{ label: "Phone", value: "" }];
 
-    const el = await fixture(html`
+    const el = await fixture<UiDescriptionList>(html`
       <ui-description-list .items=${items}></ui-description-list>
     `);
     await el.updateComplete;

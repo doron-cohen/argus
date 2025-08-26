@@ -18,11 +18,16 @@ export class UiEmptyState extends LitElement {
     return html`
       <div class="text-center py-8">
         ${this.icon
-          ? html`<ui-icon name=${this.icon} class="mx-auto h-12 w-12 text-gray-400 mb-4"></ui-icon>`
+          ? html`<ui-icon
+              name=${this.icon}
+              class="mx-auto h-12 w-12 text-gray-400 mb-4"
+            ></ui-icon>`
           : nothing}
         <div class="u-text-muted text-lg">${this.title}</div>
         ${this.description
-          ? html`<div class="u-text-muted text-sm mt-2">${this.description}</div>`
+          ? html`<div class="u-text-muted text-sm mt-2">
+              ${this.description}
+            </div>`
           : nothing}
       </div>
     `;
