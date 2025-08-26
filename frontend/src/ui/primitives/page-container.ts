@@ -18,8 +18,10 @@ export class UiPageContainer extends LitElement {
   static styles = css`
     :host {
       display: block;
+      box-sizing: border-box;
       width: 100%;
       margin: 0 auto;
+      overflow-x: hidden;
     }
 
     :host([max-width="sm"]) {

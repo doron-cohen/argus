@@ -249,10 +249,10 @@ export class SettingsPage extends LitElement {
           (source) => html`
             <ui-card
               variant="default"
-              padding="none"
+              padding="md"
               data-testid="sync-source-${source.id || "unknown"}"
             >
-              <div slot="header" class="px-6 py-4">
+              <div slot="header">
                 <div class="flex items-center justify-between">
                   <div>
                     <h3 class="text-lg u-font-medium u-text-primary">
@@ -266,8 +266,11 @@ export class SettingsPage extends LitElement {
                 </div>
               </div>
 
-              <div class="px-6 py-4">
-                <div class="grid grid-cols-1 lg:grid-cols-2 u-gap-6">
+              <div>
+                <div
+                  class="grid grid-cols-1 lg:grid-cols-2 u-gap-6"
+                  style="max-width: 100%"
+                >
                   <div>
                     <h4 class="u-section-title">Configuration</h4>
                     ${this.renderSourceConfig(source)}

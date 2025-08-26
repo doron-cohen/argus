@@ -18,6 +18,9 @@ export class UiCard extends LitElement {
   static styles = css`
     :host {
       display: block;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
       background-color: var(--color-bg, rgb(255 255 255));
       border-radius: var(--radius-2, 0.25rem);
       overflow: hidden;
