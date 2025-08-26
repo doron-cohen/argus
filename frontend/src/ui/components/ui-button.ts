@@ -143,10 +143,7 @@ export class UiButton extends LitElement {
 
   render() {
     return html`
-      <button
-        ?disabled=${this.disabled}
-        part="button"
-      >
+      <button ?disabled=${this.disabled} part="button">
         <slot name="icon-start" part="icon"></slot>
         <slot part="label"></slot>
         <slot name="icon-end" part="icon"></slot>

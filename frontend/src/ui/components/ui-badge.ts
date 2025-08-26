@@ -139,14 +139,29 @@ export class UiBadge extends LitElement {
   private renderIcon(status: StatusVariant) {
     switch (status) {
       case "pass":
-        return html`<ui-icon class="icon" name="check" size="xs" part="icon"></ui-icon>`;
+        return html`<ui-icon
+          class="icon"
+          name="check"
+          size="xs"
+          part="icon"
+        ></ui-icon>`;
       case "fail":
       case "error":
       case "unknown":
-        return html`<ui-icon class="icon" name="x" size="xs" part="icon"></ui-icon>`;
+        return html`<ui-icon
+          class="icon"
+          name="x"
+          size="xs"
+          part="icon"
+        ></ui-icon>`;
       case "disabled":
       case "skipped":
-        return html`<ui-icon class="icon" name="warning" size="xs" part="icon"></ui-icon>`;
+        return html`<ui-icon
+          class="icon"
+          name="warning"
+          size="xs"
+          part="icon"
+        ></ui-icon>`;
       case "completed":
         return html`<ui-icon
           class="icon"

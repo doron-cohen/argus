@@ -90,7 +90,10 @@ export class ComponentList extends LitElement {
     return html`
       <tr>
         <td colspan="5" class="text-center">
-          <div class="u-text-sm u-text-muted" data-testid="no-components-message">
+          <div
+            class="u-text-sm u-text-muted"
+            data-testid="no-components-message"
+          >
             No components found
           </div>
         </td>
@@ -119,7 +122,10 @@ export class ComponentList extends LitElement {
           </div>
         </td>
         <td>
-          <div class="u-text-sm u-text-primary" data-testid="component-description">
+          <div
+            class="u-text-sm u-text-primary"
+            data-testid="component-description"
+          >
             ${comp.description || ""}
           </div>
         </td>
@@ -129,7 +135,10 @@ export class ComponentList extends LitElement {
           </div>
         </td>
         <td class="whitespace-nowrap">
-          <div class="u-text-sm u-text-muted" data-testid="component-maintainers">
+          <div
+            class="u-text-sm u-text-muted"
+            data-testid="component-maintainers"
+          >
             ${comp.owners?.maintainers?.join(", ") || ""}
           </div>
         </td>

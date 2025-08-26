@@ -18,9 +18,15 @@ describe("ui-button", () => {
   });
 
   it("applies different variants", async () => {
-    const primaryBtn = await fixture<UiButton>(html`<ui-button variant="primary">Primary</ui-button>`);
-    const secondaryBtn = await fixture<UiButton>(html`<ui-button variant="secondary">Secondary</ui-button>`);
-    const ghostBtn = await fixture<UiButton>(html`<ui-button variant="ghost">Ghost</ui-button>`);
+    const primaryBtn = await fixture<UiButton>(
+      html`<ui-button variant="primary">Primary</ui-button>`,
+    );
+    const secondaryBtn = await fixture<UiButton>(
+      html`<ui-button variant="secondary">Secondary</ui-button>`,
+    );
+    const ghostBtn = await fixture<UiButton>(
+      html`<ui-button variant="ghost">Ghost</ui-button>`,
+    );
 
     expect(primaryBtn.variant).to.equal("primary");
     expect(secondaryBtn.variant).to.equal("secondary");
@@ -28,9 +34,15 @@ describe("ui-button", () => {
   });
 
   it("applies different sizes", async () => {
-    const smBtn = await fixture<UiButton>(html`<ui-button size="sm">Small</ui-button>`);
-    const mdBtn = await fixture<UiButton>(html`<ui-button size="md">Medium</ui-button>`);
-    const lgBtn = await fixture<UiButton>(html`<ui-button size="lg">Large</ui-button>`);
+    const smBtn = await fixture<UiButton>(
+      html`<ui-button size="sm">Small</ui-button>`,
+    );
+    const mdBtn = await fixture<UiButton>(
+      html`<ui-button size="md">Medium</ui-button>`,
+    );
+    const lgBtn = await fixture<UiButton>(
+      html`<ui-button size="lg">Large</ui-button>`,
+    );
 
     expect(smBtn.size).to.equal("sm");
     expect(mdBtn.size).to.equal("md");
@@ -38,7 +50,9 @@ describe("ui-button", () => {
   });
 
   it("handles disabled state", async () => {
-    const el = await fixture<UiButton>(html`<ui-button disabled>Disabled</ui-button>`);
+    const el = await fixture<UiButton>(
+      html`<ui-button disabled>Disabled</ui-button>`,
+    );
 
     const button = el.shadowRoot?.querySelector("button");
     expect(el.disabled).to.be.true;
@@ -74,7 +88,9 @@ describe("ui-button", () => {
   });
 
   it("has proper accessibility attributes", async () => {
-    const el = await fixture<UiButton>(html`<ui-button>Accessible Button</ui-button>`);
+    const el = await fixture<UiButton>(
+      html`<ui-button>Accessible Button</ui-button>`,
+    );
 
     const button = el.shadowRoot?.querySelector("button");
     expect(button?.getAttribute("part")).to.equal("button");
