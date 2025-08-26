@@ -8,3 +8,6 @@
 @import "./ui/tokens/semantic.css";
 @import "./ui/tokens/themes/light.css";
 @import "./ui/tokens/themes/dark.css";
+
+/* Token-backed utilities */
+@import "./ui/utilities.css";

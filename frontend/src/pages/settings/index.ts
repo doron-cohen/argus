@@ -5,7 +5,10 @@ import { resetSettings } from "./store";
 import "../../ui/primitives/page-container.js";
 import "../../ui/components/ui-page-header.js";
 import "../../ui/components/ui-card.js";
-import "../../ui/components/ui-badge.js";
+import "../../ui/components/ui-empty-state.js";
+import "../../ui/components/ui-loading-indicator.js";
+import "../../ui/components/ui-description-list.js";
+import "../../components/sync-status-card/index.js";
 import {
   syncSources,
   sourceStatuses,
@@ -20,6 +23,7 @@ import type {
   GitSourceConfig,
   FilesystemSourceConfig,
 } from "../../api/services/sync/client";
+import type { DescriptionItem } from "../../ui/components/ui-description-list";
 
 @customElement("settings-page")
 export class SettingsPage extends LitElement {
@@ -102,199 +106,79 @@ export class SettingsPage extends LitElement {
     await loadSyncSources();
   }
 
-  formatTimestamp(timestamp?: string): string {
-    if (!timestamp) return "Never";
-    return new Date(timestamp).toLocaleString();
-  }
-
-  formatDuration(duration?: string): string {
-    if (!duration) return "N/A";
-    return duration;
-  }
-
-  getStatusBadgeStatus(status: string): string {
-    switch (status) {
-      case "idle":
-        return "default";
-      case "running":
-        return "default";
-      case "completed":
-        return "pass";
-      case "failed":
-        return "fail";
-      default:
-        return "default";
-    }
-  }
-
   private renderSourceConfig(source: SyncSource) {
     if (source.type === "git" && source.config) {
       const config = source.config as GitSourceConfig;
-      return html`
-        <div class="space-y-2">
-          <div>
-            <span class="font-medium text-gray-700">Repository:</span>
-            <span class="text-gray-900">${config.url || "N/A"}</span>
-          </div>
-          <div>
-            <span class="font-medium text-gray-700">Branch:</span>
-            <span class="text-gray-900">${config.branch || "N/A"}</span>
-          </div>
-          ${config.basePath
-            ? html`
-                <div>
-                  <span class="font-medium text-gray-700">Base Path:</span>
-                  <span class="text-gray-900">${config.basePath}</span>
-                </div>
-              `
-            : nothing}
-        </div>
-      `;
+      const items = [
+        { label: "Repository", value: config.url || "N/A" },
+        { label: "Branch", value: config.branch || "N/A" },
+        ...(config.basePath
+          ? [{ label: "Base Path", value: config.basePath }]
+          : []),
+      ];
+      return html`<ui-description-list .items=${items}></ui-description-list>`;
     } else if (source.config) {
       const config = source.config as FilesystemSourceConfig;
-      return html`
-        <div class="space-y-2">
-          <div>
-            <span class="font-medium text-gray-700">Path:</span>
-            <span class="text-gray-900">${config.path}</span>
-          </div>
-          ${config.basePath
-            ? html`
-                <div>
-                  <span class="font-medium text-gray-700">Base Path:</span>
-                  <span class="text-gray-900">${config.basePath}</span>
-                </div>
-              `
-            : nothing}
-        </div>
-      `;
+      const items = [
+        { label: "Path", value: config.path },
+        ...(config.basePath
+          ? [{ label: "Base Path", value: config.basePath }]
+          : []),
+      ];
+      return html`<ui-description-list .items=${items}></ui-description-list>`;
     }
-  }
-
-  private renderSourceStatus(source: SyncSource) {
-    const sourceId = source.id;
-    if (sourceId === undefined) {
-      return html`
-        <div class="text-gray-500 text-sm">No source ID available</div>
-      `;
-    }
-
-    const status = this.statuses[sourceId];
-    const isLoading = this.statusLoading[sourceId];
-    const error = this.statusErrors[sourceId];
-
-    if (isLoading) {
-      return html`
-        <div class="flex items-center space-x-2">
-          <div
-            class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"
-          ></div>
-          <span class="text-gray-500">Loading...</span>
-        </div>
-      `;
-    }
-
-    if (error) {
-      return html`
-        <div class="text-red-600 text-sm">
-          <span class="font-medium">Error:</span> ${error}
-        </div>
-      `;
-    }
-
-    if (!status) {
-      return html`
-        <div class="text-gray-500 text-sm">No status available</div>
-      `;
-    }
-
-    return html`
-      <div class="space-y-3">
-        <div class="flex items-center space-x-2">
-          <ui-badge
-            status=${this.getStatusBadgeStatus(status.status || "unknown")}
-          >
-            ${status.status || "unknown"}
-          </ui-badge>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="font-medium text-gray-700">Last Sync:</span>
-            <div class="text-gray-900">
-              ${this.formatTimestamp(status.lastSync || undefined)}
-            </div>
-          </div>
-          <div>
-            <span class="font-medium text-gray-700">Components:</span>
-            <div class="text-gray-900">${status.componentsCount}</div>
-          </div>
-          <div>
-            <span class="font-medium text-gray-700">Duration:</span>
-            <div class="text-gray-900">
-              ${this.formatDuration(status.duration || undefined)}
-            </div>
-          </div>
-        </div>
-
-        ${status.lastError
-          ? html`
-              <div class="mt-2">
-                <span class="font-medium text-red-700">Last Error:</span>
-                <div class="text-red-600 text-sm mt-1">${status.lastError}</div>
-              </div>
-            `
-          : nothing}
-      </div>
-    `;
+    return html``;
   }
 
   private renderSources() {
     if (this.sources.length === 0) {
       return html`
-        <div class="text-center py-8">
-          <div class="text-gray-500 text-lg">No sync sources configured</div>
-          <div class="text-gray-400 text-sm mt-2">
-            Configure sync sources to see them here
-          </div>
-        </div>
+        <ui-empty-state
+          title="No sync sources configured"
+          description="Configure sync sources to see them here"
+        ></ui-empty-state>
       `;
     }
 
     return html`
-      <div class="space-y-6">
+      <div class="u-stack-6">
         ${this.sources.map(
           (source) => html`
             <ui-card
               variant="default"
-              padding="none"
+              padding="md"
               data-testid="sync-source-${source.id || "unknown"}"
             >
-              <div slot="header" class="px-6 py-4">
+              <div slot="header">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h3 class="text-lg font-medium text-gray-900">
+                    <h3 class="text-lg u-font-medium u-text-primary">
                       ${source.type === "git" ? "Git Repository" : "Filesystem"}
                       #${source.id || "unknown"}
                     </h3>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm u-text-muted">
                       Sync interval: ${source.interval}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div class="px-6 py-4">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <div
+                  class="grid grid-cols-1 lg:grid-cols-2 u-gap-6"
+                  style="max-width: 100%"
+                >
                   <div>
-                    <h4 class="font-medium text-gray-900 mb-3">
-                      Configuration
-                    </h4>
+                    <h4 class="u-section-title">Configuration</h4>
                     ${this.renderSourceConfig(source)}
                   </div>
                   <div>
-                    <h4 class="font-medium text-gray-900 mb-3">Status</h4>
-                    ${this.renderSourceStatus(source)}
+                    <h4 class="u-section-title">Status</h4>
+                    <sync-status-card
+                      .status=${this.statuses[source.id!] || null}
+                      .isLoading=${this.statusLoading[source.id!] || false}
+                      .error=${this.statusErrors[source.id!] || null}
+                    ></sync-status-card>
                   </div>
                 </div>
               </div>
@@ -316,15 +200,15 @@ export class SettingsPage extends LitElement {
 
         ${this.isLoading
           ? html`
-              <div class="flex justify-center items-center py-8">
-                <div class="text-gray-500">Loading settings...</div>
-              </div>
+              <ui-loading-indicator
+                message="Loading settings..."
+              ></ui-loading-indicator>
             `
           : this.error
             ? html`
                 <ui-card variant="outlined" padding="md">
-                  <div class="text-red-600">
-                    <h2 class="text-red-800 font-semibold mb-2">
+                  <div class="u-text-danger">
+                    <h2 class="u-text-danger u-font-semibold mb-2">
                       Error loading settings
                     </h2>
                     <p>${this.error}</p>
@@ -341,4 +225,9 @@ declare global {
   interface HTMLElementTagNameMap {
     "settings-page": SettingsPage;
   }
+}
+
+// Only define if not already defined (handles hot reload scenarios)
+if (!customElements.get("settings-page")) {
+  customElements.define("settings-page", SettingsPage);
 }

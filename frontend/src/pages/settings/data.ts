@@ -38,6 +38,13 @@ export async function loadSyncSources(): Promise<void> {
 
     setSyncSources(sourcesData);
 
+    // Set loading state for all sources before starting to load statuses
+    for (const source of sourcesData) {
+      if (source.id !== undefined) {
+        setStatusLoading(source.id, true);
+      }
+    }
+
     // Load status for each source
     for (const source of sourcesData) {
       if (source.id !== undefined) {
@@ -61,7 +68,6 @@ export async function loadSourceStatus(
     return;
   }
   try {
-    setStatusLoading(sourceId, true);
     setStatusError(sourceId, null);
 
     const response = await getSyncSourceStatus(sourceId);

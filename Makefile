@@ -158,7 +158,7 @@ frontend/validate-build:
 	@echo "Frontend build validation passed"
 
 # Pre-commit checks (quick validation)
-pre-commit: backend/go-mod-tidy frontend/format frontend/lint
+pre-commit: backend/go-mod-tidy frontend/format-check frontend/lint
 	@echo "✅ Pre-commit checks completed successfully"
 
 # Combined tasks
