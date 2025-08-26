@@ -1,0 +1,72 @@
+/* Token-backed utility classes to replace Tailwind */
+
+/* Typography */
+.u-text-primary {
+  color: var(--color-fg);
+}
+
+.u-text-secondary {
+  color: var(--palette-gray-700);
+}
+
+.u-text-muted {
+  color: var(--color-fg-muted);
+}
+
+.u-text-danger {
+  color: var(--color-danger-fg);
+}
+
+.u-font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.u-font-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Spacing */
+.u-stack-2 > * + * {
+  margin-top: var(--space-2);
+}
+
+.u-stack-3 > * + * {
+  margin-top: var(--space-3);
+}
+
+.u-stack-6 > * + * {
+  margin-top: var(--space-4);
+}
+
+/* Layout */
+.u-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.u-gap-4 {
+  gap: var(--space-4);
+}
+
+.u-gap-6 {
+  gap: var(--space-4);
+}
+
+/* Section titles */
+.u-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fg);
+  margin-bottom: var(--space-3);
+}
+
+/* Labels and values for description lists */
+.u-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--palette-gray-700);
+}
+
+.u-value {
+  color: var(--color-fg);
+}

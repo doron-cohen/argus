@@ -7,6 +7,12 @@ import {
   settingsError,
 } from "./store";
 
+// Import UI components needed for the page
+import "../../ui/primitives/page-container.js";
+import "../../ui/components/ui-page-header.js";
+import "../../ui/components/ui-card.js";
+import "../../ui/components/ui-badge.js";
+
 describe("SettingsPage", () => {
   let element: SettingsPage;
 
@@ -18,6 +24,12 @@ describe("SettingsPage", () => {
     settingsError.set(null);
 
     element = await fixture(html`<settings-page></settings-page>`);
+    await element.updateComplete;
+  });
+
+  it("can be created", async () => {
+    expect(element).to.exist;
+    expect(element.tagName.toLowerCase()).to.equal("settings-page");
   });
 
   it("renders with page title and description", () => {
@@ -39,16 +51,18 @@ describe("SettingsPage", () => {
   it("shows loading state when loading", async () => {
     settingsLoading.set(true);
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
-    const loadingText = element.shadowRoot?.querySelector(".text-gray-600");
+    const loadingText = element.shadowRoot?.querySelector(".u-text-muted");
     expect(loadingText?.textContent?.trim()).to.include("Loading settings");
   });
 
   it("shows error state when there's an error", async () => {
     settingsError.set("Failed to load settings");
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
-    const errorElement = element.shadowRoot?.querySelector(".text-red-700");
+    const errorElement = element.shadowRoot?.querySelector(".u-text-danger");
     expect(errorElement?.textContent?.trim()).to.include(
       "Failed to load settings",
     );
@@ -57,8 +71,9 @@ describe("SettingsPage", () => {
   it("shows empty state when no sources configured", async () => {
     syncSources.set([]);
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
-    const emptyText = element.shadowRoot?.querySelector(".text-gray-500");
+    const emptyText = element.shadowRoot?.querySelector(".u-text-muted");
     expect(emptyText?.textContent?.trim()).to.include(
       "No sync sources configured",
     );
@@ -78,6 +93,7 @@ describe("SettingsPage", () => {
 
     syncSources.set([gitSource]);
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
       '[data-testid="sync-source-1"]',
@@ -87,7 +103,7 @@ describe("SettingsPage", () => {
     const sourceTitle = sourceElement?.querySelector("h3");
     expect(sourceTitle?.textContent?.trim()).to.include("Git Repository #1");
 
-    const intervalText = sourceElement?.querySelector(".text-sm.text-gray-500");
+    const intervalText = sourceElement?.querySelector(".text-sm.u-text-muted");
     expect(intervalText?.textContent?.trim()).to.include("Sync interval: 5m");
 
     const urlText = sourceElement?.textContent;
@@ -109,6 +125,7 @@ describe("SettingsPage", () => {
 
     syncSources.set([fsSource]);
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
       '[data-testid="sync-source-2"]',
@@ -142,6 +159,7 @@ describe("SettingsPage", () => {
     syncSources.set([source]);
     sourceStatuses.set({ 1: status });
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
       '[data-testid="sync-source-1"]',
@@ -164,6 +182,7 @@ describe("SettingsPage", () => {
     syncSources.set([source]);
     sourceStatuses.set({});
     await element.updateComplete;
+    await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
       '[data-testid="sync-source-1"]',

@@ -192,3 +192,5 @@ declare global {
     "component-details-page": ComponentDetailsPage;
   }
 }
+
+customElements.define("component-details-page", ComponentDetailsPage);
