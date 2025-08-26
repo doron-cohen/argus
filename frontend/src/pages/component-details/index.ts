@@ -146,12 +146,12 @@ export class ComponentDetailsPage extends LitElement {
         <div class="flex items-center justify-between">
           <div>
             <h1
-              class="text-3xl font-bold text-gray-900 mb-2"
+              class="text-3xl u-font-semibold u-text-primary mb-2"
               data-testid="page-title"
             >
               Component Details
             </h1>
-            <p class="text-gray-600" data-testid="page-description">
+            <p class="u-text-muted" data-testid="page-description">
               View detailed information about the component
             </p>
           </div>
@@ -165,7 +165,7 @@ export class ComponentDetailsPage extends LitElement {
     return html`
       <a
         href="/components"
-        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm u-font-medium u-text-secondary bg-white hover:bg-gray-50"
         data-testid="back-to-components"
       >
         ← Back to Components
