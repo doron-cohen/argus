@@ -5,46 +5,46 @@
  * API for managing and discovering components from various sources
  * OpenAPI spec version: 0.1.0
  */
-import { apiFetch } from "../../fetcher";
-export type GetComponentReportsStatus =
-  (typeof GetComponentReportsStatus)[keyof typeof GetComponentReportsStatus];
+import { apiFetch } from '../../fetcher';
+export type GetComponentReportsStatus = typeof GetComponentReportsStatus[keyof typeof GetComponentReportsStatus];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetComponentReportsStatus = {
-  pass: "pass",
-  fail: "fail",
-  disabled: "disabled",
-  skipped: "skipped",
-  unknown: "unknown",
-  error: "error",
-  completed: "completed",
+  pass: 'pass',
+  fail: 'fail',
+  disabled: 'disabled',
+  skipped: 'skipped',
+  unknown: 'unknown',
+  error: 'error',
+  completed: 'completed',
 } as const;
 
 export type GetComponentReportsParams = {
-  /**
-   * Filter by check status
-   */
-  status?: GetComponentReportsStatus;
-  /**
-   * Filter by specific check type
-   */
-  check_slug?: string;
-  /**
-   * Filter reports since timestamp (ISO 8601)
-   */
-  since?: string;
-  /**
-   * Number of reports to return
-   */
-  limit?: number;
-  /**
-   * Pagination offset
-   */
-  offset?: number;
-  /**
-   * Return only the latest report for each check type
-   */
-  latest_per_check?: boolean;
+/**
+ * Filter by check status
+ */
+status?: GetComponentReportsStatus;
+/**
+ * Filter by specific check type
+ */
+check_slug?: string;
+/**
+ * Filter reports since timestamp (ISO 8601)
+ */
+since?: string;
+/**
+ * Number of reports to return
+ */
+limit?: number;
+/**
+ * Pagination offset
+ */
+offset?: number;
+/**
+ * Return only the latest report for each check type
+ */
+latest_per_check?: boolean;
 };
 
 /**
@@ -60,12 +60,13 @@ export interface Error {
 /**
  * Health status
  */
-export type HealthStatus = (typeof HealthStatus)[keyof typeof HealthStatus];
+export type HealthStatus = typeof HealthStatus[keyof typeof HealthStatus];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const HealthStatus = {
-  healthy: "healthy",
-  unhealthy: "unhealthy",
+  healthy: 'healthy',
+  unhealthy: 'unhealthy',
 } as const;
 
 /**
@@ -81,18 +82,18 @@ export interface Health {
 /**
  * Status of the check execution
  */
-export type CheckReportStatus =
-  (typeof CheckReportStatus)[keyof typeof CheckReportStatus];
+export type CheckReportStatus = typeof CheckReportStatus[keyof typeof CheckReportStatus];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CheckReportStatus = {
-  pass: "pass",
-  fail: "fail",
-  disabled: "disabled",
-  skipped: "skipped",
-  unknown: "unknown",
-  error: "error",
-  completed: "completed",
+  pass: 'pass',
+  fail: 'fail',
+  disabled: 'disabled',
+  skipped: 'skipped',
+  unknown: 'unknown',
+  error: 'error',
+  completed: 'completed',
 } as const;
 
 /**
@@ -155,6 +156,8 @@ export interface Component {
   owners?: Owners;
 }
 
+
+
 /**
  * Retrieve a list of all components discovered from configured sources
  * @summary Get all components
@@ -162,20 +165,23 @@ export interface Component {
 export type getComponentsResponse = {
   data: Component[];
   status: number;
-};
+}
 
 export const getGetComponentsUrl = () => {
-  return `/api/catalog/v1/components`;
-};
 
-export const getComponents = async (
-  options?: RequestInit,
-): Promise<getComponentsResponse> => {
-  return apiFetch<Promise<getComponentsResponse>>(getGetComponentsUrl(), {
+
+  return `/api/catalog/v1/components`
+}
+
+export const getComponents = async ( options?: RequestInit): Promise<getComponentsResponse> => {
+return apiFetch<Promise<getComponentsResponse>>(getGetComponentsUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+  }
+);}
+
 
 /**
  * Retrieve a specific component by its unique identifier
@@ -184,24 +190,23 @@ export const getComponents = async (
 export type getComponentByIdResponse = {
   data: Component;
   status: number;
-};
+}
 
-export const getGetComponentByIdUrl = (componentId: string) => {
-  return `/api/catalog/v1/components/${componentId}`;
-};
+export const getGetComponentByIdUrl = (componentId: string,) => {
 
-export const getComponentById = async (
-  componentId: string,
-  options?: RequestInit,
-): Promise<getComponentByIdResponse> => {
-  return apiFetch<Promise<getComponentByIdResponse>>(
-    getGetComponentByIdUrl(componentId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+
+  return `/api/catalog/v1/components/${componentId}`
+}
+
+export const getComponentById = async (componentId: string, options?: RequestInit): Promise<getComponentByIdResponse> => {
+return apiFetch<Promise<getComponentByIdResponse>>(getGetComponentByIdUrl(componentId),
+  {      
+    ...options,
+    method: 'GET'
+    
+  }
+);}
+
 
 /**
  * Retrieve quality check reports for a specific component
@@ -210,35 +215,32 @@ export const getComponentById = async (
 export type getComponentReportsResponse = {
   data: ComponentReportsResponse;
   status: number;
-};
+}
 
-export const getGetComponentReportsUrl = (
-  componentId: string,
-  params?: GetComponentReportsParams,
-) => {
+export const getGetComponentReportsUrl = (componentId: string,
+    params?: GetComponentReportsParams,) => {
+
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value === null) {
-      normalizedParams.append(key, "null");
+      normalizedParams.append(key, 'null');
     } else if (value !== undefined) {
       normalizedParams.append(key, value.toString());
     }
   });
 
-  return `/api/catalog/v1/components/${componentId}/reports?${normalizedParams.toString()}`;
-};
+  return `/api/catalog/v1/components/${componentId}/reports?${normalizedParams.toString()}`
+}
 
-export const getComponentReports = async (
-  componentId: string,
-  params?: GetComponentReportsParams,
-  options?: RequestInit,
-): Promise<getComponentReportsResponse> => {
-  return apiFetch<Promise<getComponentReportsResponse>>(
-    getGetComponentReportsUrl(componentId, params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+export const getComponentReports = async (componentId: string,
+    params?: GetComponentReportsParams, options?: RequestInit): Promise<getComponentReportsResponse> => {
+return apiFetch<Promise<getComponentReportsResponse>>(getGetComponentReportsUrl(componentId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+  }
+);}
+
+

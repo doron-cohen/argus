@@ -193,4 +193,7 @@ declare global {
   }
 }
 
-customElements.define("component-details-page", ComponentDetailsPage);
+// Only define if not already defined (handles hot reload scenarios)
+if (!customElements.get("component-details-page")) {
+  customElements.define("component-details-page", ComponentDetailsPage);
+}

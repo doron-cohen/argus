@@ -95,4 +95,7 @@ declare global {
   }
 }
 
-customElements.define("home-page", HomePage);
+// Only define if not already defined (handles hot reload scenarios)
+if (!customElements.get("home-page")) {
+  customElements.define("home-page", HomePage);
+}
