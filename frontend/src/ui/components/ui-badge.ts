@@ -46,10 +46,21 @@ export class UiBadge extends LitElement {
       color: var(--color-neutral-fg, rgb(55 65 81));
     }
 
+    /* CSS Parts for customization */
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1, 0.25rem);
+    }
+
     .icon {
       width: 0.75rem;
       height: 0.75rem;
-      margin-right: var(--space-1, 0.25rem);
+      flex-shrink: 0;
+    }
+
+    .label {
+      flex: 1;
     }
 
     /* Status-based styling */
@@ -117,25 +128,31 @@ export class UiBadge extends LitElement {
     const status = normalizeStatus(this.status);
     const label = escapeHtml(this.status || status);
 
-    return html` ${this.renderIcon(status)} ${label} `;
+    return html`
+      <div class="badge" part="badge">
+        ${this.renderIcon(status)}
+        <span class="label" part="label">${label}</span>
+      </div>
+    `;
   }
 
   private renderIcon(status: StatusVariant) {
     switch (status) {
       case "pass":
-        return html`<ui-icon class="icon" name="check" size="xs"></ui-icon>`;
+        return html`<ui-icon class="icon" name="check" size="xs" part="icon"></ui-icon>`;
       case "fail":
       case "error":
       case "unknown":
-        return html`<ui-icon class="icon" name="x" size="xs"></ui-icon>`;
+        return html`<ui-icon class="icon" name="x" size="xs" part="icon"></ui-icon>`;
       case "disabled":
       case "skipped":
-        return html`<ui-icon class="icon" name="warning" size="xs"></ui-icon>`;
+        return html`<ui-icon class="icon" name="warning" size="xs" part="icon"></ui-icon>`;
       case "completed":
         return html`<ui-icon
           class="icon"
           name="circle-check"
           size="xs"
+          part="icon"
         ></ui-icon>`;
       default:
         return "";
