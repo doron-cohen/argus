@@ -191,35 +191,4 @@ describe("SettingsPage", () => {
 
     expect(statusText).to.include("No status available");
   });
-
-  it("formats timestamps correctly", () => {
-    const timestamp = "2023-01-01T12:00:00Z";
-    const formatted = element.formatTimestamp(timestamp);
-    expect(formatted).to.not.equal("Never");
-    expect(formatted).to.include("2023");
-  });
-
-  it("handles missing timestamp", () => {
-    const formatted = element.formatTimestamp(undefined);
-    expect(formatted).to.equal("Never");
-  });
-
-  it("formats duration correctly", () => {
-    const duration = "30s";
-    const formatted = element.formatDuration(duration);
-    expect(formatted).to.equal("30s");
-  });
-
-  it("handles missing duration", () => {
-    const formatted = element.formatDuration(undefined);
-    expect(formatted).to.equal("N/A");
-  });
-
-  it("returns correct status badge status", () => {
-    expect(element.getStatusBadgeStatus("idle")).to.equal("default");
-    expect(element.getStatusBadgeStatus("running")).to.equal("default");
-    expect(element.getStatusBadgeStatus("completed")).to.equal("pass");
-    expect(element.getStatusBadgeStatus("failed")).to.equal("fail");
-    expect(element.getStatusBadgeStatus("unknown")).to.equal("default");
-  });
 });

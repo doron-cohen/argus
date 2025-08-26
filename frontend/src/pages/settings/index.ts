@@ -5,10 +5,10 @@ import { resetSettings } from "./store";
 import "../../ui/primitives/page-container.js";
 import "../../ui/components/ui-page-header.js";
 import "../../ui/components/ui-card.js";
-import "../../ui/components/ui-badge.js";
 import "../../ui/components/ui-empty-state.js";
 import "../../ui/components/ui-loading-indicator.js";
 import "../../ui/components/ui-description-list.js";
+import "../../components/sync-status-card/index.js";
 import {
   syncSources,
   sourceStatuses,
@@ -106,31 +106,6 @@ export class SettingsPage extends LitElement {
     await loadSyncSources();
   }
 
-  formatTimestamp(timestamp?: string): string {
-    if (!timestamp) return "Never";
-    return new Date(timestamp).toLocaleString();
-  }
-
-  formatDuration(duration?: string): string {
-    if (!duration) return "N/A";
-    return duration;
-  }
-
-  getStatusBadgeStatus(status: string): string {
-    switch (status) {
-      case "idle":
-        return "default";
-      case "running":
-        return "default";
-      case "completed":
-        return "pass";
-      case "failed":
-        return "fail";
-      default:
-        return "default";
-    }
-  }
-
   private renderSourceConfig(source: SyncSource) {
     if (source.type === "git" && source.config) {
       const config = source.config as GitSourceConfig;
@@ -153,84 +128,6 @@ export class SettingsPage extends LitElement {
       return html`<ui-description-list .items=${items}></ui-description-list>`;
     }
     return html``;
-  }
-
-  private renderSourceStatus(source: SyncSource) {
-    const sourceId = source.id;
-    if (sourceId === undefined) {
-      return html`
-        <div class="u-text-muted text-sm">No source ID available</div>
-      `;
-    }
-
-    const status = this.statuses[sourceId];
-    const isLoading = this.statusLoading[sourceId];
-    const error = this.statusErrors[sourceId];
-
-    if (isLoading) {
-      return html`
-        <ui-loading-indicator
-          message="Loading..."
-          size="sm"
-        ></ui-loading-indicator>
-      `;
-    }
-
-    if (error) {
-      return html`
-        <div class="u-text-danger text-sm">
-          <span class="u-font-medium">Error:</span> ${error}
-        </div>
-      `;
-    }
-
-    if (!status) {
-      return html`
-        <div class="u-text-muted text-sm">No status available</div>
-      `;
-    }
-
-    return html`
-      <div class="u-stack-3">
-        <div class="flex items-center space-x-2">
-          <ui-badge
-            status=${this.getStatusBadgeStatus(status.status || "unknown")}
-          >
-            ${status.status || "unknown"}
-          </ui-badge>
-        </div>
-
-        <div class="u-grid-2 text-sm">
-          <div>
-            <span class="u-font-medium u-text-secondary">Last Sync:</span>
-            <div class="u-text-primary">
-              ${this.formatTimestamp(status.lastSync || undefined)}
-            </div>
-          </div>
-          <div>
-            <span class="u-font-medium u-text-secondary">Components:</span>
-            <div class="u-text-primary">${status.componentsCount}</div>
-          </div>
-          <div>
-            <span class="u-font-medium u-text-secondary">Duration:</span>
-            <div class="u-text-primary">
-              ${this.formatDuration(status.duration || undefined)}
-            </div>
-          </div>
-        </div>
-
-        ${status.lastError
-          ? html`
-              <div class="mt-2">
-                <span class="u-font-medium u-text-secondary">Last Error:</span>
-                <div class="u-text-danger text-sm mt-1">
-                  ${status.lastError}
-                </div>
-              </div>
-            `
-          : nothing}
-      </div>
-    `;
   }
 
   private renderSources() {
@@ -277,7 +174,11 @@ export class SettingsPage extends LitElement {
                   </div>
                   <div>
                     <h4 class="u-section-title">Status</h4>
-                    ${this.renderSourceStatus(source)}
+                    <sync-status-card
+                      .status=${this.statuses[source.id!] || null}
+                      .isLoading=${this.statusLoading[source.id!] || false}
+                      .error=${this.statusErrors[source.id!] || null}
+                    ></sync-status-card>
                   </div>
                 </div>
               </div>
