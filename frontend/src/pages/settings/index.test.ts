@@ -34,17 +34,17 @@ describe("SettingsPage", () => {
 
   it("renders with page title and description", () => {
     const title = element.shadowRoot?.querySelector(
-      '[data-testid="page-title"]',
+      '[data-testid="page-title"]'
     );
     const description = element.shadowRoot?.querySelector(
-      '[data-testid="page-description"]',
+      '[data-testid="page-description"]'
     );
 
     expect(title).to.exist;
     expect(title?.textContent?.trim()).to.equal("Settings");
     expect(description).to.exist;
     expect(description?.textContent?.trim()).to.equal(
-      "Sync source configuration and status information",
+      "Sync source configuration and status information"
     );
   });
 
@@ -64,7 +64,7 @@ describe("SettingsPage", () => {
 
     const errorElement = element.shadowRoot?.querySelector(".u-text-danger");
     expect(errorElement?.textContent?.trim()).to.include(
-      "Failed to load settings",
+      "Failed to load settings"
     );
   });
 
@@ -75,7 +75,7 @@ describe("SettingsPage", () => {
 
     const emptyText = element.shadowRoot?.querySelector(".u-text-muted");
     expect(emptyText?.textContent?.trim()).to.include(
-      "No sync sources configured",
+      "No sync sources configured"
     );
   });
 
@@ -96,7 +96,7 @@ describe("SettingsPage", () => {
     await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
-      '[data-testid="sync-source-1"]',
+      '[data-testid="sync-source-1"]'
     );
     expect(sourceElement).to.exist;
 
@@ -128,7 +128,7 @@ describe("SettingsPage", () => {
     await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
-      '[data-testid="sync-source-2"]',
+      '[data-testid="sync-source-2"]'
     );
     expect(sourceElement).to.exist;
 
@@ -162,7 +162,7 @@ describe("SettingsPage", () => {
     await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
-      '[data-testid="sync-source-1"]',
+      '[data-testid="sync-source-1"]'
     );
     const statusText = sourceElement?.textContent;
 
@@ -185,7 +185,7 @@ describe("SettingsPage", () => {
     await element.updateComplete; // Wait for store changes to propagate
 
     const sourceElement = element.shadowRoot?.querySelector(
-      '[data-testid="sync-source-1"]',
+      '[data-testid="sync-source-1"]'
     );
     const statusText = sourceElement?.textContent;
 

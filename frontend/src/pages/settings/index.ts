@@ -6,6 +6,9 @@ import "../../ui/primitives/page-container.js";
 import "../../ui/components/ui-page-header.js";
 import "../../ui/components/ui-card.js";
 import "../../ui/components/ui-badge.js";
+import "../../ui/components/ui-empty-state.js";
+import "../../ui/components/ui-loading-indicator.js";
+import "../../ui/components/ui-description-list.js";
 import {
   syncSources,
   sourceStatuses,
@@ -20,6 +23,7 @@ import type {
   GitSourceConfig,
   FilesystemSourceConfig,
 } from "../../api/services/sync/client";
+import type { DescriptionItem } from "../../ui/components/ui-description-list";
 
 @customElement("settings-page")
 export class SettingsPage extends LitElement {
@@ -51,42 +55,42 @@ export class SettingsPage extends LitElement {
       syncSources.subscribe((value) => {
         this.sources = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       sourceStatuses.subscribe((value) => {
         this.statuses = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       settingsLoading.subscribe((value) => {
         this.isLoading = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       settingsError.subscribe((value) => {
         this.error = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       statusesLoading.subscribe((value) => {
         this.statusLoading = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     this.unsubscribers.push(
       statusesError.subscribe((value) => {
         this.statusErrors = value;
         this.requestUpdate();
-      }),
+      })
     );
 
     await this.load();
@@ -130,45 +134,21 @@ export class SettingsPage extends LitElement {
   private renderSourceConfig(source: SyncSource) {
     if (source.type === "git" && source.config) {
       const config = source.config as GitSourceConfig;
-      return html`
-        <div class="u-stack-2">
-          <div>
-            <span class="u-font-medium u-text-secondary">Repository:</span>
-            <span class="u-text-primary">${config.url || "N/A"}</span>
-          </div>
-          <div>
-            <span class="u-font-medium u-text-secondary">Branch:</span>
-            <span class="u-text-primary">${config.branch || "N/A"}</span>
-          </div>
-          ${config.basePath
-            ? html`
-                <div>
-                  <span class="u-font-medium u-text-secondary">Base Path:</span>
-                  <span class="u-text-primary">${config.basePath}</span>
-                </div>
-              `
-            : nothing}
-        </div>
-      `;
+      const items = [
+        { label: "Repository", value: config.url || "N/A" },
+        { label: "Branch", value: config.branch || "N/A" },
+        ...(config.basePath ? [{ label: "Base Path", value: config.basePath }] : [])
+      ];
+      return html`<ui-description-list .items=${items}></ui-description-list>`;
     } else if (source.config) {
       const config = source.config as FilesystemSourceConfig;
-      return html`
-        <div class="u-stack-2">
-          <div>
-            <span class="u-font-medium u-text-secondary">Path:</span>
-            <span class="u-text-primary">${config.path}</span>
-          </div>
-          ${config.basePath
-            ? html`
-                <div>
-                  <span class="u-font-medium u-text-secondary">Base Path:</span>
-                  <span class="u-text-primary">${config.basePath}</span>
-                </div>
-              `
-            : nothing}
-        </div>
-      `;
+      const items = [
+        { label: "Path", value: config.path },
+        ...(config.basePath ? [{ label: "Base Path", value: config.basePath }] : [])
+      ];
+      return html`<ui-description-list .items=${items}></ui-description-list>`;
     }
+    return html``;
   }
 
   private renderSourceStatus(source: SyncSource) {
@@ -185,12 +165,7 @@ export class SettingsPage extends LitElement {
 
     if (isLoading) {
       return html`
-        <div class="flex items-center space-x-2">
-          <div
-            class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"
-          ></div>
-          <span class="u-text-muted">Loading...</span>
-        </div>
+        <ui-loading-indicator message="Loading..." size="sm"></ui-loading-indicator>
       `;
     }
 
@@ -254,12 +229,10 @@ export class SettingsPage extends LitElement {
   private renderSources() {
     if (this.sources.length === 0) {
       return html`
-        <div class="text-center py-8">
-          <div class="u-text-muted text-lg">No sync sources configured</div>
-          <div class="u-text-muted text-sm mt-2">
-            Configure sync sources to see them here
-          </div>
-        </div>
+        <ui-empty-state
+          title="No sync sources configured"
+          description="Configure sync sources to see them here"
+        ></ui-empty-state>
       `;
     }
 
@@ -299,7 +272,7 @@ export class SettingsPage extends LitElement {
                 </div>
               </div>
             </ui-card>
-          `,
+          `
         )}
       </div>
     `;
@@ -316,9 +289,7 @@ export class SettingsPage extends LitElement {
 
         ${this.isLoading
           ? html`
-              <div class="flex justify-center items-center py-8">
-                <div class="u-text-muted">Loading settings...</div>
-              </div>
+              <ui-loading-indicator message="Loading settings..."></ui-loading-indicator>
             `
           : this.error
             ? html`

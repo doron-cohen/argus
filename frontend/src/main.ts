@@ -11,5 +11,10 @@ import "./pages/home";
 import "./pages/settings";
 import "./router/outlet";
 
+// Import new UI components
+import "./ui/components/ui-empty-state";
+import "./ui/components/ui-loading-indicator";
+import "./ui/components/ui-description-list";
+
 // Initialize the app last
 import "./app";
