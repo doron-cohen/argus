@@ -1,7 +1,5 @@
 import { LitElement, html, type TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import "../tokens/core.css";
-import "../tokens/semantic.css";
 
 export interface DescriptionItem {
   label: string;

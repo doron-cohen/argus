@@ -3,6 +3,12 @@ import { customElement, property } from "lit/decorators.js";
 import type { Component } from "../../api/services/components/client";
 import type { CheckReport } from "../../api/services/components/client";
 import "../../ui/components/ui-badge.js";
+import "../../ui/components/ui-card.js";
+import "../../ui/components/ui-card-header.js";
+import "../../ui/components/ui-info-row.js";
+import "../../ui/components/ui-spinner.js";
+import "../../ui/components/ui-alert.js";
+
 import { nothing } from "lit";
 
 @customElement("component-details")
@@ -49,60 +55,31 @@ export class ComponentDetails extends LitElement {
   private renderLoadingState() {
     return html`
       <div
-        class="flex justify-center items-center py-8"
+        class="u-flex u-justify-center u-items-center u-py-8"
         data-testid="component-details-loading"
       >
-        <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-        ></div>
-        <span class="ml-2 text-gray-600">Loading component details...</span>
+        <ui-spinner size="lg" color="primary"></ui-spinner>
+        <span class="u-ml-2 u-text-muted">Loading component details...</span>
       </div>
     `;
   }
 
   private renderErrorState() {
     return html`
-      <div
-        class="bg-white shadow overflow-hidden sm:rounded-lg"
-        data-testid="component-details-error"
-      >
-        <div class="px-4 py-5 sm:px-6">
-          <div class="rounded-md bg-red-50 p-4">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg
-                  class="h-5 w-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3
-                  class="text-sm font-medium text-red-800"
-                  data-testid="error-title"
-                >
-                  Error loading component
-                </h3>
-                <div class="mt-2 text-sm text-red-700">
-                  <p>${this.errorMessage}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ui-card data-testid="component-details-error">
+        <ui-alert
+          variant="error"
+          title="Error loading component"
+          message="${this.errorMessage || ""}"
+        >
+        </ui-alert>
+      </ui-card>
     `;
   }
 
   private renderEmptyState() {
     return html`
-      <div class="text-center py-8 text-gray-500">
+      <div class="u-text-center u-py-8 u-text-gray-500">
         No component data available
       </div>
     `;
@@ -119,46 +96,34 @@ export class ComponentDetails extends LitElement {
 
   private renderComponentHeader() {
     return html`
-      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-          <h3
-            class="text-lg leading-6 font-medium text-gray-900"
-            data-testid="component-name"
-          >
-            ${this.component!.name}
-          </h3>
-          <p
-            class="mt-1 max-w-2xl text-sm text-gray-500"
-            data-testid="component-id"
-          >
-            ID: ${this.component!.id || this.component!.name}
-          </p>
-        </div>
-      </div>
+      <ui-card>
+        <ui-card-header
+          title="${this.component!.name}"
+          subtitle="ID: ${this.component!.id || this.component!.name}"
+          title-data-testid="component-name"
+          subtitle-data-testid="component-id"
+        ></ui-card-header>
+      </ui-card>
     `;
   }
 
   private renderComponentInfo() {
     return html`
-      <div class="bg-white shadow overflow-hidden sm:rounded-lg mt-4">
-        <div class="border-t border-gray-200">
-          <dl>
-            ${this.renderInfoRow(
-              "Description",
-              "description-label",
-              "component-description",
-              this.component!.description || "No description available",
-            )}
-            ${this.renderInfoRow(
-              "Team",
-              "team-label",
-              "component-team",
-              this.component!.owners?.team || "No team assigned",
-            )}
-            ${this.renderMaintainersRow()}
-          </dl>
-        </div>
-      </div>
+      <ui-card class="u-mt-4">
+        ${this.renderInfoRow(
+          "Description",
+          "description-label",
+          "component-description",
+          this.component!.description || "No description available",
+        )}
+        ${this.renderInfoRow(
+          "Team",
+          "team-label",
+          "component-team",
+          this.component!.owners?.team || "No team assigned",
+        )}
+        ${this.renderMaintainersRow()}
+      </ui-card>
     `;
   }
 
@@ -169,20 +134,12 @@ export class ComponentDetails extends LitElement {
     value: string,
   ) {
     return html`
-      <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-        <dt
-          class="text-sm font-medium text-gray-500"
-          data-testid="${labelTestId}"
-        >
-          ${label}
-        </dt>
-        <dd
-          class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"
-          data-testid="${valueTestId}"
-        >
-          ${value}
-        </dd>
-      </div>
+      <ui-info-row
+        label="${label}"
+        value="${value}"
+        label-data-testid="${labelTestId}"
+        value-data-testid="${valueTestId}"
+      ></ui-info-row>
     `;
   }
 
@@ -198,20 +155,12 @@ export class ComponentDetails extends LitElement {
     }
 
     return html`
-      <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-        <dt
-          class="text-sm font-medium text-gray-500"
-          data-testid="maintainers-label"
-        >
-          Maintainers
-        </dt>
-        <dd
-          class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2"
-          data-testid="component-maintainers"
-        >
-          ${maintainers.join(", ")}
-        </dd>
-      </div>
+      <ui-info-row
+        label="Maintainers"
+        value="${maintainers.join(", ")}"
+        label-data-testid="maintainers-label"
+        value-data-testid="component-maintainers"
+      ></ui-info-row>
     `;
   }
 
@@ -233,15 +182,13 @@ export class ComponentDetails extends LitElement {
 
   private renderReportsLoadingState() {
     return html`
-      <div class="mt-8">
+      <div class="u-mt-8">
         <div
-          class="flex justify-center items-center py-4"
+          class="u-flex u-justify-center u-items-center u-py-4"
           data-testid="reports-loading"
         >
-          <div
-            class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"
-          ></div>
-          <span class="ml-2 text-gray-600">Loading reports...</span>
+          <ui-spinner size="md" color="primary"></ui-spinner>
+          <span class="u-ml-2 u-text-muted">Loading reports...</span>
         </div>
       </div>
     `;
@@ -249,39 +196,23 @@ export class ComponentDetails extends LitElement {
 
   private renderReportsErrorState() {
     return html`
-      <div class="mt-8">
-        <div class="rounded-md bg-red-50 p-4" data-testid="reports-error">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg
-                class="h-5 w-5 text-red-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">
-                Error loading reports
-              </h3>
-              <div class="mt-2 text-sm text-red-700">
-                <p>${this.reportsErrorMessage}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="u-mt-8" data-testid="reports-error">
+        <ui-alert
+          variant="error"
+          title="Error loading reports"
+          message="${this.reportsErrorMessage || ""}"
+        >
+        </ui-alert>
       </div>
     `;
   }
 
   private renderReportsEmptyState() {
     return html`
-      <div class="mt-8 text-center text-gray-500" data-testid="no-reports">
+      <div
+        class="u-mt-8 u-text-center u-text-gray-500"
+        data-testid="no-reports"
+      >
         No reports available for this component
       </div>
     `;
@@ -289,14 +220,14 @@ export class ComponentDetails extends LitElement {
 
   private renderReportsList() {
     return html`
-      <div class="mt-8">
+      <div class="u-mt-8">
         <h3
-          class="text-lg font-semibold text-gray-900 mb-4"
+          class="u-text-lg u-font-semibold u-text-gray-900 u-mb-4"
           data-testid="reports-label"
         >
           Latest Quality Checks
         </h3>
-        <div class="space-y-4" data-testid="reports-list">
+        <div class="u-space-y-4" data-testid="reports-list">
           ${this.reports.map((report) => this.renderReportItem(report))}
         </div>
       </div>
@@ -305,14 +236,11 @@ export class ComponentDetails extends LitElement {
 
   private renderReportItem(report: CheckReport) {
     return html`
-      <div
-        class="bg-white border border-gray-200 rounded-lg p-4"
-        data-testid="report-item"
-      >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
+      <ui-card data-testid="report-item">
+        <div class="u-flex u-items-center u-justify-between">
+          <div class="u-flex u-items-center u-gap-3">
             <span
-              class="text-sm font-medium text-gray-900"
+              class="u-text-sm u-font-medium u-text-gray-900"
               data-testid="check-name"
             >
               ${report.check_slug}
@@ -322,11 +250,11 @@ export class ComponentDetails extends LitElement {
               data-testid="check-status"
             ></ui-badge>
           </div>
-          <span class="text-sm text-gray-500" data-testid="check-timestamp">
+          <span class="u-text-sm u-text-gray-500" data-testid="check-timestamp">
             ${this.formatTimestamp(report.timestamp)}
           </span>
         </div>
-      </div>
+      </ui-card>
     `;
   }
 }

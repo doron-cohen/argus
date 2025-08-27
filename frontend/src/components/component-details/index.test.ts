@@ -1,6 +1,14 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./index";
 
+// Import UI components used by component-details
+import "../../ui/components/ui-badge.js";
+import "../../ui/components/ui-card.js";
+import "../../ui/components/ui-card-header.js";
+import "../../ui/components/ui-info-row.js";
+import "../../ui/components/ui-spinner.js";
+import "../../ui/components/ui-alert.js";
+
 type Component = {
   id?: string;
   name: string;

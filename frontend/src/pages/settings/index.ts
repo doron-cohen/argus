@@ -155,7 +155,7 @@ export class SettingsPage extends LitElement {
               <div slot="header">
                 <ui-cluster justify="between">
                   <div>
-                    <h3 class="u-font-medium u-text-primary">
+                    <h3 class="u-font-medium u-text-primary u-mb-1">
                       ${source.type === "git" ? "Git Repository" : "Filesystem"}
                       #${source.id || "unknown"}
                     </h3>
@@ -208,7 +208,7 @@ export class SettingsPage extends LitElement {
             ? html`
                 <ui-card variant="outlined" padding="md">
                   <div class="u-text-danger">
-                    <h2 class="u-text-danger u-font-semibold mb-2">
+                    <h2 class="u-text-danger u-font-semibold u-mb-2">
                       Error loading settings
                     </h2>
                     <p>${this.error}</p>

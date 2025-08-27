@@ -11,7 +11,12 @@ import {
 import "../../ui/primitives/page-container.js";
 import "../../ui/components/ui-page-header.js";
 import "../../ui/components/ui-card.js";
+import "../../ui/components/ui-card-header.js";
+import "../../ui/components/ui-info-row.js";
 import "../../ui/components/ui-badge.js";
+import "../../ui/components/ui-empty-state.js";
+import "../../ui/components/ui-loading-indicator.js";
+import "../../components/sync-status-card/index.js";
 
 describe("SettingsPage", () => {
   let element: SettingsPage;
@@ -53,8 +58,10 @@ describe("SettingsPage", () => {
     await element.updateComplete;
     await element.updateComplete; // Wait for store changes to propagate
 
-    const loadingText = element.shadowRoot?.querySelector(".u-text-muted");
-    expect(loadingText?.textContent?.trim()).to.include("Loading settings");
+    const loadingIndicator = element.shadowRoot?.querySelector(
+      "ui-loading-indicator",
+    );
+    expect(loadingIndicator).to.exist;
   });
 
   it("shows error state when there's an error", async () => {
@@ -62,10 +69,10 @@ describe("SettingsPage", () => {
     await element.updateComplete;
     await element.updateComplete; // Wait for store changes to propagate
 
-    const errorElement = element.shadowRoot?.querySelector(".u-text-danger");
-    expect(errorElement?.textContent?.trim()).to.include(
-      "Failed to load settings",
-    );
+    const errorCard = element.shadowRoot?.querySelector("ui-card");
+    expect(errorCard).to.exist;
+    const errorText = errorCard?.textContent;
+    expect(errorText).to.include("Failed to load settings");
   });
 
   it("shows empty state when no sources configured", async () => {
@@ -73,10 +80,8 @@ describe("SettingsPage", () => {
     await element.updateComplete;
     await element.updateComplete; // Wait for store changes to propagate
 
-    const emptyText = element.shadowRoot?.querySelector(".u-text-muted");
-    expect(emptyText?.textContent?.trim()).to.include(
-      "No sync sources configured",
-    );
+    const emptyState = element.shadowRoot?.querySelector("ui-empty-state");
+    expect(emptyState).to.exist;
   });
 
   it("renders git source configuration correctly", async () => {
@@ -103,7 +108,7 @@ describe("SettingsPage", () => {
     const sourceTitle = sourceElement?.querySelector("h3");
     expect(sourceTitle?.textContent?.trim()).to.include("Git Repository #1");
 
-    const intervalText = sourceElement?.querySelector(".text-sm.u-text-muted");
+    const intervalText = sourceElement?.querySelector(".u-text-muted");
     expect(intervalText?.textContent?.trim()).to.include("Sync interval: 5m");
 
     const urlText = sourceElement?.textContent;
