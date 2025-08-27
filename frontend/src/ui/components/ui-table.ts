@@ -9,6 +9,24 @@ export class UiTable extends LitElement {
   @property({ type: String, reflect: true })
   size: "sm" | "md" = "md";
 
+  @property({ type: Boolean, reflect: true })
+  loading = false;
+
+  @property({ type: String, attribute: "loading-message" })
+  loadingMessage = "Loading...";
+
+  @property({ type: String, attribute: "error-message" })
+  errorMessage: string | null = null;
+
+  @property({ type: Boolean, reflect: true })
+  empty = false;
+
+  @property({ type: String, attribute: "empty-message" })
+  emptyMessage = "No data found";
+
+  @property({ type: Number, attribute: "col-span" })
+  colSpan = 1;
+
   static styles = css`
     :host {
       display: block;
@@ -78,9 +96,83 @@ export class UiTable extends LitElement {
       outline: 2px solid var(--color-info-bg, rgb(219 234 254));
       outline-offset: -2px;
     }
+
+    /* State message styles */
+    .state-message {
+      padding: var(--space-4, 1rem);
+      text-align: center;
+      color: var(--color-fg-muted, rgb(107 114 128));
+      font-size: var(--font-size-sm, 0.875rem);
+    }
+
+    .state-message.error {
+      color: var(--color-danger-fg, rgb(220 38 38));
+    }
   `;
 
   render() {
+    // If any state is active, show state message instead of table content
+    if (this.loading) {
+      return html`
+        <div class="table-container">
+          <table class="table">
+            <tbody>
+              <tr>
+                <td
+                  colspan=${this.colSpan}
+                  class="state-message"
+                  data-testid="loading-message"
+                >
+                  ${this.loadingMessage}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    if (this.errorMessage) {
+      return html`
+        <div class="table-container">
+          <table class="table">
+            <tbody>
+              <tr>
+                <td
+                  colspan=${this.colSpan}
+                  class="state-message error"
+                  data-testid="error-message"
+                >
+                  ${this.errorMessage}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    if (this.empty) {
+      return html`
+        <div class="table-container">
+          <table class="table">
+            <tbody>
+              <tr>
+                <td
+                  colspan=${this.colSpan}
+                  class="state-message"
+                  data-testid="empty-message"
+                >
+                  ${this.emptyMessage}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // Default: show the slot content (thead, tbody)
     return html`
       <div class="table-container">
         <table class="table">

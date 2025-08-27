@@ -114,4 +114,27 @@ describe("ui-table", () => {
     expect(el.getAttribute("data-testid")).to.equal("test-table");
     expect(el.tagName.toLowerCase()).to.equal("ui-table");
   });
+
+  it("renders with loading state", async () => {
+    const el = await fixture<UiTable>(html`<ui-table loading></ui-table>`);
+    expect(el.loading).to.be.true;
+    expect(el.shadowRoot?.querySelector('[data-testid="loading-message"]')).to
+      .exist;
+  });
+
+  it("renders with error state", async () => {
+    const el = await fixture<UiTable>(
+      html`<ui-table error-message="Test error"></ui-table>`,
+    );
+    expect(el.errorMessage).to.equal("Test error");
+    expect(el.shadowRoot?.querySelector('[data-testid="error-message"]')).to
+      .exist;
+  });
+
+  it("renders with empty state", async () => {
+    const el = await fixture<UiTable>(html`<ui-table empty></ui-table>`);
+    expect(el.empty).to.be.true;
+    expect(el.shadowRoot?.querySelector('[data-testid="empty-message"]')).to
+      .exist;
+  });
 });

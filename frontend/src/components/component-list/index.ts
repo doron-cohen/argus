@@ -18,7 +18,15 @@ export class ComponentList extends LitElement {
 
   render() {
     return html`
-      <ui-table data-testid="components-table">
+      <ui-table
+        data-testid="components-table"
+        ?loading=${this.isLoading}
+        loading-message="Loading components..."
+        ?empty=${!this.isLoading && !this.error && this.components.length === 0}
+        empty-message="No components found"
+        error-message=${this.error || ""}
+        col-span="5"
+      >
         ${this.renderTableHeader()} ${this.renderTableBody()}
       </ui-table>
     `;
@@ -47,58 +55,7 @@ export class ComponentList extends LitElement {
   }
 
   private renderTableContent() {
-    if (this.isLoading) {
-      return this.renderLoadingRow();
-    }
-
-    if (this.error) {
-      return this.renderErrorRow();
-    }
-
-    if (this.components.length === 0) {
-      return this.renderEmptyRow();
-    }
-
     return this.components.map((comp) => this.renderComponentRow(comp));
-  }
-
-  private renderLoadingRow() {
-    return html`
-      <tr>
-        <td colspan="5" class="text-center">
-          <div class="u-text-sm u-text-muted" data-testid="loading-message">
-            Loading components...
-          </div>
-        </td>
-      </tr>
-    `;
-  }
-
-  private renderErrorRow() {
-    return html`
-      <tr>
-        <td colspan="5" class="text-center">
-          <div class="u-text-sm u-text-danger" data-testid="error-message">
-            Error: ${escapeHtml(this.error!)}
-          </div>
-        </td>
-      </tr>
-    `;
-  }
-
-  private renderEmptyRow() {
-    return html`
-      <tr>
-        <td colspan="5" class="text-center">
-          <div
-            class="u-text-sm u-text-muted"
-            data-testid="no-components-message"
-          >
-            No components found
-          </div>
-        </td>
-      </tr>
-    `;
   }
 
   private renderComponentRow(comp: Component) {
