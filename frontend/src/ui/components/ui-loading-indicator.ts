@@ -1,7 +1,5 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import "../tokens/core.css";
-import "../tokens/semantic.css";
 
 @customElement("ui-loading-indicator")
 export class UiLoadingIndicator extends LitElement {
@@ -13,17 +11,11 @@ export class UiLoadingIndicator extends LitElement {
 
   render(): TemplateResult {
     const spinnerSize =
-      this.size === "sm"
-        ? "h-4 w-4"
-        : this.size === "lg"
-          ? "h-8 w-8"
-          : "h-6 w-6";
+      this.size === "sm" ? "xs" : this.size === "lg" ? "lg" : "md";
 
     return html`
-      <div class="flex items-center justify-center space-x-2 py-8">
-        <div
-          class="animate-spin rounded-full border-b-2 border-blue-600 ${spinnerSize}"
-        ></div>
+      <div class="u-flex u-items-center u-justify-center u-gap-2 u-py-8">
+        <ui-spinner size="${spinnerSize}" color="primary"></ui-spinner>
         <span class="u-text-muted">${this.message}</span>
       </div>
     `;

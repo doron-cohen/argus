@@ -12,6 +12,12 @@ export class UiPageHeader extends LitElement {
   @property({ type: String, reflect: true })
   size: "sm" | "md" | "lg" = "md";
 
+  @property({ type: String })
+  titleTestId = "page-title";
+
+  @property({ type: String })
+  descriptionTestId = "page-description";
+
   constructor() {
     super();
     this.title = "";
@@ -88,9 +94,18 @@ export class UiPageHeader extends LitElement {
     return html`
       <div class="header">
         <div class="content">
-          ${this.title ? html`<h1 class="title">${this.title}</h1>` : ""}
+          ${this.title
+            ? html`<h1 class="title" data-testid="${this.titleTestId}">
+                ${this.title}
+              </h1>`
+            : ""}
           ${this.description
-            ? html`<p class="description">${this.description}</p>`
+            ? html`<p
+                class="description"
+                data-testid="${this.descriptionTestId}"
+              >
+                ${this.description}
+              </p>`
             : ""}
         </div>
         <div class="actions">

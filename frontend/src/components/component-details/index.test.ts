@@ -1,6 +1,14 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./index";
 
+// Import UI components used by component-details
+import "../../ui/components/ui-badge.js";
+import "../../ui/components/ui-card.js";
+import "../../ui/components/ui-card-header.js";
+import "../../ui/components/ui-info-row.js";
+import "../../ui/components/ui-spinner.js";
+import "../../ui/components/ui-alert.js";
+
 type Component = {
   id?: string;
   name: string;
@@ -64,7 +72,7 @@ describe("component-details", () => {
     `);
 
     const loading = el.shadowRoot?.querySelector(
-      '[data-testid="component-details-loading"]',
+      '[data-testid="component-details-loading"]'
     );
     expect(loading).to.exist;
     expect(loading?.textContent).to.include("Loading component details");
@@ -76,7 +84,7 @@ describe("component-details", () => {
     `);
 
     const error = el.shadowRoot?.querySelector(
-      '[data-testid="component-details-error"]',
+      '[data-testid="component-details-error"]'
     );
     expect(error).to.exist;
     expect(error?.textContent).to.include("Test error");
@@ -86,7 +94,7 @@ describe("component-details", () => {
     const el = await fixture(html` <component-details></component-details> `);
 
     expect(el.shadowRoot?.textContent).to.include(
-      "No component data available",
+      "No component data available"
     );
   });
 
@@ -100,11 +108,11 @@ describe("component-details", () => {
     expect(name?.textContent?.trim()).to.equal("Test Component");
 
     const description = el.shadowRoot?.querySelector(
-      '[data-testid="component-description"]',
+      '[data-testid="component-description"]'
     );
     expect(description).to.exist;
     expect(description?.textContent?.trim()).to.equal(
-      "This is a test component",
+      "This is a test component"
     );
   });
 
@@ -117,7 +125,7 @@ describe("component-details", () => {
     `);
 
     const reports = el.shadowRoot?.querySelectorAll(
-      '[data-testid="report-item"]',
+      '[data-testid="report-item"]'
     );
     expect(reports).to.have.length(3);
   });
@@ -133,7 +141,7 @@ describe("component-details", () => {
     const passBadge = el.shadowRoot?.querySelector('ui-badge[status="pass"]');
     const failBadge = el.shadowRoot?.querySelector('ui-badge[status="fail"]');
     const disabledBadge = el.shadowRoot?.querySelector(
-      'ui-badge[status="disabled"]',
+      'ui-badge[status="disabled"]'
     );
 
     expect(passBadge).to.exist;

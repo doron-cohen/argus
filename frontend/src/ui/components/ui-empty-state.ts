@@ -1,7 +1,5 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import "../tokens/core.css";
-import "../tokens/semantic.css";
 
 @customElement("ui-empty-state")
 export class UiEmptyState extends LitElement {
@@ -16,16 +14,16 @@ export class UiEmptyState extends LitElement {
 
   render(): TemplateResult {
     return html`
-      <div class="text-center py-8">
+      <div class="u-text-center u-py-8">
         ${this.icon
           ? html`<ui-icon
               name=${this.icon}
-              class="mx-auto h-12 w-12 text-gray-400 mb-4"
+              class="u-block u-mx-auto u-h-12 u-w-12 u-text-muted u-mb-4"
             ></ui-icon>`
           : nothing}
-        <div class="u-text-muted text-lg">${this.title}</div>
+        <div class="u-text-muted u-text-lg">${this.title}</div>
         ${this.description
-          ? html`<div class="u-text-muted text-sm mt-2">
+          ? html`<div class="u-text-muted u-text-sm u-mt-2">
               ${this.description}
             </div>`
           : nothing}

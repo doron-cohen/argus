@@ -59,7 +59,7 @@ export class SyncStatusCard extends LitElement {
 
     if (this.error) {
       return html`
-        <div class="u-text-danger text-sm">
+        <div class="u-text-danger u-text-sm">
           <span class="u-font-medium">Error:</span> ${this.error}
         </div>
       `;
@@ -67,7 +67,7 @@ export class SyncStatusCard extends LitElement {
 
     if (!this.status) {
       return html`
-        <div class="u-text-muted text-sm">No status available</div>
+        <div class="u-text-muted u-text-sm">No status available</div>
       `;
     }
 
@@ -80,13 +80,13 @@ export class SyncStatusCard extends LitElement {
       !this.status.componentsCount
     ) {
       return html`
-        <div class="u-text-muted text-sm">Status data loading...</div>
+        <div class="u-text-muted u-text-sm">Status data loading...</div>
       `;
     }
 
     return html`
       <div class="u-stack-3">
-        <div class="flex items-center space-x-2">
+        <div class="u-flex u-items-center u-gap-2">
           <ui-badge
             status=${this.getStatusBadgeStatus(this.status.status || "unknown")}
           >
@@ -94,7 +94,7 @@ export class SyncStatusCard extends LitElement {
           </ui-badge>
         </div>
 
-        <div class="u-grid-2 text-sm">
+        <div class="u-grid-2 u-text-sm">
           <div>
             <span class="u-font-medium u-text-secondary">Last Sync:</span>
             <div class="u-text-primary">
@@ -115,9 +115,9 @@ export class SyncStatusCard extends LitElement {
 
         ${this.status.lastError
           ? html`
-              <div class="mt-2">
+              <div class="u-mt-2">
                 <span class="u-font-medium u-text-secondary">Last Error:</span>
-                <div class="u-text-danger text-sm mt-1">
+                <div class="u-text-danger u-text-sm u-mt-1">
                   ${this.status.lastError}
                 </div>
               </div>
