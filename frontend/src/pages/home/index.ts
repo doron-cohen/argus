@@ -5,6 +5,9 @@ import {
   type Component,
 } from "../../api/services/components/client";
 import "../../components/component-list/index";
+import "../../ui/primitives/page-container.js";
+import "../../ui/components/ui-page-header.js";
+import "../../ui/primitives/ui-stack.js";
 
 @customElement("home-page")
 export class HomePage extends LitElement {
@@ -53,38 +56,29 @@ export class HomePage extends LitElement {
 
   render() {
     return html`
-      <div class="container mx-auto px-4 py-8">
-        <div class="mb-8">
-          <h1
-            class="text-3xl u-font-semibold u-text-primary mb-2"
-            data-testid="page-title"
-          >
-            Component Catalog
-          </h1>
-          <p class="u-text-muted" data-testid="page-description">
-            Browse and search components in the Argus catalog
-          </p>
-        </div>
+      <ui-page-container max-width="xl" padding="lg">
+        <ui-page-header
+          title="Component Catalog"
+          description="Browse and search components in the Argus catalog"
+          size="lg"
+        ></ui-page-header>
 
-        <div data-testid="components-container">
-          <div class="px-4 py-5 sm:px-6">
-            <h3
-              class="text-lg leading-6 u-font-medium u-text-primary"
-              data-testid="components-header"
-            >
+        <ui-stack gap="lg">
+          <div data-testid="components-container">
+            <h3 class="u-section-title" data-testid="components-header">
               Components${this.isLoading || this.error
                 ? ""
                 : ` (${this.components.length})`}
             </h3>
+            <component-list
+              .components=${this.components}
+              .isLoading=${this.isLoading}
+              .error=${this.error}
+              id="component-list"
+            ></component-list>
           </div>
-          <component-list
-            .components=${this.components}
-            .isLoading=${this.isLoading}
-            .error=${this.error}
-            id="component-list"
-          ></component-list>
-        </div>
-      </div>
+        </ui-stack>
+      </ui-page-container>
     `;
   }
 }
