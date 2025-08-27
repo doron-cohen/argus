@@ -8,7 +8,7 @@ describe("UiCardHeader", () => {
       html`<ui-card-header
         title="Test Title"
         subtitle="Test Subtitle"
-      ></ui-card-header>`
+      ></ui-card-header>`,
     );
 
     expect(el.title).to.equal("Test Title");
@@ -17,7 +17,7 @@ describe("UiCardHeader", () => {
 
   it("renders with only title", async () => {
     const el = await fixture<UiCardHeader>(
-      html`<ui-card-header title="Test Title"></ui-card-header>`
+      html`<ui-card-header title="Test Title"></ui-card-header>`,
     );
 
     expect(el.title).to.equal("Test Title");
@@ -26,7 +26,7 @@ describe("UiCardHeader", () => {
 
   it("has correct structure", async () => {
     const el = await fixture<UiCardHeader>(
-      html`<ui-card-header title="Title" subtitle="Subtitle"></ui-card-header>`
+      html`<ui-card-header title="Title" subtitle="Subtitle"></ui-card-header>`,
     );
 
     const title = el.shadowRoot!.querySelector(".title");

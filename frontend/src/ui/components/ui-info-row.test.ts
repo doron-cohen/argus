@@ -5,7 +5,7 @@ import type { UiInfoRow } from "./ui-info-row";
 describe("UiInfoRow", () => {
   it("renders with label and value", async () => {
     const el = await fixture<UiInfoRow>(
-      html`<ui-info-row label="Test Label" value="Test Value"></ui-info-row>`
+      html`<ui-info-row label="Test Label" value="Test Value"></ui-info-row>`,
     );
 
     expect(el.label).to.equal("Test Label");
@@ -14,7 +14,7 @@ describe("UiInfoRow", () => {
 
   it("has correct structure", async () => {
     const el = await fixture<UiInfoRow>(
-      html`<ui-info-row label="Label" value="Value"></ui-info-row>`
+      html`<ui-info-row label="Label" value="Value"></ui-info-row>`,
     );
 
     const infoRow = el.shadowRoot!.querySelector(".info-row");

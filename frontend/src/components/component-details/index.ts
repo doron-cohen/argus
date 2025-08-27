@@ -114,13 +114,13 @@ export class ComponentDetails extends LitElement {
           "Description",
           "description-label",
           "component-description",
-          this.component!.description || "No description available"
+          this.component!.description || "No description available",
         )}
         ${this.renderInfoRow(
           "Team",
           "team-label",
           "component-team",
-          this.component!.owners?.team || "No team assigned"
+          this.component!.owners?.team || "No team assigned",
         )}
         ${this.renderMaintainersRow()}
       </ui-card>
@@ -131,7 +131,7 @@ export class ComponentDetails extends LitElement {
     label: string,
     labelTestId: string,
     valueTestId: string,
-    value: string
+    value: string,
   ) {
     return html`
       <ui-info-row
@@ -150,7 +150,7 @@ export class ComponentDetails extends LitElement {
         "Maintainers",
         "maintainers-label",
         "component-maintainers",
-        "No maintainers assigned"
+        "No maintainers assigned",
       );
     }
 

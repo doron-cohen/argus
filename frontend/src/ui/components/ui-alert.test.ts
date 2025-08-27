@@ -11,7 +11,7 @@ describe("UiAlert", () => {
 
   it("renders with title and message", async () => {
     const el = await fixture<UiAlert>(
-      html`<ui-alert title="Test Title" message="Test message"></ui-alert>`
+      html`<ui-alert title="Test Title" message="Test message"></ui-alert>`,
     );
 
     expect(el.title).to.equal("Test Title");
@@ -20,7 +20,7 @@ describe("UiAlert", () => {
 
   it("renders with error variant", async () => {
     const el = await fixture<UiAlert>(
-      html`<ui-alert variant="error"></ui-alert>`
+      html`<ui-alert variant="error"></ui-alert>`,
     );
 
     expect(el).to.have.attribute("variant", "error");
@@ -35,7 +35,7 @@ describe("UiAlert", () => {
 
   it("has correct structure", async () => {
     const el = await fixture<UiAlert>(
-      html`<ui-alert title="Title" message="Message"></ui-alert>`
+      html`<ui-alert title="Title" message="Message"></ui-alert>`,
     );
 
     const alertContent = el.shadowRoot!.querySelector(".alert-content");

@@ -12,7 +12,7 @@ describe("UiSpinner", () => {
 
   it("renders with custom size", async () => {
     const el = await fixture<UiSpinner>(
-      html`<ui-spinner size="lg"></ui-spinner>`
+      html`<ui-spinner size="lg"></ui-spinner>`,
     );
 
     expect(el).to.have.attribute("size", "lg");
@@ -20,7 +20,7 @@ describe("UiSpinner", () => {
 
   it("renders with custom color", async () => {
     const el = await fixture<UiSpinner>(
-      html`<ui-spinner color="secondary"></ui-spinner>`
+      html`<ui-spinner color="secondary"></ui-spinner>`,
     );
 
     expect(el).to.have.attribute("color", "secondary");

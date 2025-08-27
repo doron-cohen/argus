@@ -27,8 +27,7 @@
     "test:all": "bun run test:unit && bun run test:ui && bun run test:e2e",
     "format": "prettier -w \"src/**/*.{ts,tsx,js,jsx,css,html,json,md}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
     "format:check": "prettier -c \"src/**/*.{ts,tsx,js,jsx,css,html,json,md}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
-    "analyze": "bun build src/main.ts --outdir dist --analyze",
-    "prepare": "husky"
+    "analyze": "bun build src/main.ts --outdir dist --analyze"
   },
   "type": "module",
   "devDependencies": {
@@ -49,15 +48,6 @@
   },
   "volta": {
     "node": "20.19.4"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "prettier --write",
-      "npm run type-check"
-    ],
-    "*.{css,html,json,md}": [
-      "prettier --write"
-    ]
   },
   "dependencies": {
     "@nanostores/lit": "^0.2.2",
