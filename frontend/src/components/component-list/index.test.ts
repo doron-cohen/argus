@@ -30,7 +30,8 @@ describe("component-list", () => {
       ></component-list>
     `);
 
-    const loading = el.shadowRoot?.querySelector(
+    const uiTable = el.shadowRoot?.querySelector("ui-table");
+    const loading = uiTable?.shadowRoot?.querySelector(
       '[data-testid="loading-message"]',
     );
     expect(loading).to.exist;
@@ -46,8 +47,9 @@ describe("component-list", () => {
       ></component-list>
     `);
 
-    const empty = el.shadowRoot?.querySelector(
-      '[data-testid="no-components-message"]',
+    const uiTable = el.shadowRoot?.querySelector("ui-table");
+    const empty = uiTable?.shadowRoot?.querySelector(
+      '[data-testid="empty-message"]',
     );
     expect(empty).to.exist;
     expect(empty?.textContent?.trim()).to.equal("No components found");
@@ -62,12 +64,12 @@ describe("component-list", () => {
       ></component-list>
     `);
 
-    const errorEl = el.shadowRoot?.querySelector(
+    const uiTable = el.shadowRoot?.querySelector("ui-table");
+    const errorEl = uiTable?.shadowRoot?.querySelector(
       '[data-testid="error-message"]',
     );
     expect(errorEl).to.exist;
-    expect(errorEl?.textContent || "").to.include("Error:");
-    expect(errorEl?.textContent || "").to.include("HTTP 500");
+    expect(errorEl?.textContent?.trim()).to.equal("HTTP 500");
   });
 
   it("renders component rows when components are provided", async () => {

@@ -3,6 +3,7 @@
 :root {
   /* Content/base roles */
   --color-bg: var(--palette-white);
+  --color-bg-subtle: var(--palette-gray-50);
   --color-fg: var(--palette-gray-900);
   --color-fg-muted: var(--palette-gray-500);
   --color-border: var(--palette-gray-200);
