@@ -3,6 +3,11 @@ import { customElement, property, state } from "lit/decorators.js";
 import { loadComponentDetails, loadComponentReports } from "./data";
 import { resetComponentDetails, resetReports } from "./store";
 import "../../components/component-details";
+import "../../ui/primitives/page-container.js";
+import "../../ui/components/ui-page-header.js";
+import "../../ui/primitives/ui-stack.js";
+import "../../ui/primitives/ui-cluster.js";
+import "../../ui/components/ui-button.js";
 import {
   componentDetails,
   loading,
@@ -134,42 +139,28 @@ export class ComponentDetailsPage extends LitElement {
 
   render() {
     return html`
-      <div class="container mx-auto px-4 py-8">
+      <ui-page-container max-width="xl" padding="lg">
         ${this.renderPageHeader()} ${this.renderComponentDetails()}
-      </div>
+      </ui-page-container>
     `;
   }
 
   private renderPageHeader() {
     return html`
-      <div class="mb-8">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1
-              class="text-3xl u-font-semibold u-text-primary mb-2"
-              data-testid="page-title"
-            >
-              Component Details
-            </h1>
-            <p class="u-text-muted" data-testid="page-description">
-              View detailed information about the component
-            </p>
-          </div>
-          ${this.renderBackButton()}
-        </div>
-      </div>
-    `;
-  }
-
-  private renderBackButton() {
-    return html`
-      <a
-        href="/components"
-        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm u-font-medium u-text-secondary bg-white hover:bg-gray-50"
-        data-testid="back-to-components"
+      <ui-page-header
+        title="Component Details"
+        description="View detailed information about the component"
+        size="lg"
       >
-        ← Back to Components
-      </a>
+        <a
+          slot="actions"
+          href="/components"
+          class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          data-testid="back-to-components"
+        >
+          ← Back to Components
+        </a>
+      </ui-page-header>
     `;
   }
 

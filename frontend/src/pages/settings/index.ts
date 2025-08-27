@@ -9,6 +9,9 @@ import "../../ui/components/ui-empty-state.js";
 import "../../ui/components/ui-loading-indicator.js";
 import "../../ui/components/ui-description-list.js";
 import "../../components/sync-status-card/index.js";
+import "../../ui/primitives/ui-stack.js";
+import "../../ui/primitives/ui-cluster.js";
+import "../../ui/primitives/ui-grid.js";
 import {
   syncSources,
   sourceStatuses,
@@ -141,7 +144,7 @@ export class SettingsPage extends LitElement {
     }
 
     return html`
-      <div class="u-stack-6">
+      <ui-stack gap="lg">
         ${this.sources.map(
           (source) => html`
             <ui-card
@@ -150,24 +153,21 @@ export class SettingsPage extends LitElement {
               data-testid="sync-source-${source.id || "unknown"}"
             >
               <div slot="header">
-                <div class="flex items-center justify-between">
+                <ui-cluster justify="between">
                   <div>
-                    <h3 class="text-lg u-font-medium u-text-primary">
+                    <h3 class="u-font-medium u-text-primary">
                       ${source.type === "git" ? "Git Repository" : "Filesystem"}
                       #${source.id || "unknown"}
                     </h3>
-                    <p class="text-sm u-text-muted">
+                    <p class="u-text-muted">
                       Sync interval: ${source.interval}
                     </p>
                   </div>
-                </div>
+                </ui-cluster>
               </div>
 
               <div>
-                <div
-                  class="grid grid-cols-1 lg:grid-cols-2 u-gap-6"
-                  style="max-width: 100%"
-                >
+                <ui-grid cols="2" breakpoint="lg" gap="lg">
                   <div>
                     <h4 class="u-section-title">Configuration</h4>
                     ${this.renderSourceConfig(source)}
@@ -180,12 +180,12 @@ export class SettingsPage extends LitElement {
                       .error=${this.statusErrors[source.id!] || null}
                     ></sync-status-card>
                   </div>
-                </div>
+                </ui-grid>
               </div>
             </ui-card>
           `,
         )}
-      </div>
+      </ui-stack>
     `;
   }
 
