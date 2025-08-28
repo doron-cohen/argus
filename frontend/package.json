@@ -34,6 +34,7 @@
     "@web/dev-server-esbuild": "^1.0.4",
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-playwright": "^0.11.1",
+    "axe-core": "^4.10.0",
     "bun-types": "^1.2.19",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",

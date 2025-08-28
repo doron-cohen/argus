@@ -12,7 +12,23 @@
   margin: 0;
 }
 
-/* 3. Allow keyword animations when user prefers motion */
+/* 3. Respect prefers-reduced-motion for all animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable transform animations specifically */
+  :root * {
+    transform: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     interpolate-size: allow-keywords;
@@ -131,6 +147,48 @@ textarea:focus-visible,
 select:focus-visible {
   outline: 2px solid var(--color-info-fg);
   outline-offset: 2px;
+}
+
+/* Enhanced focus styles for all focusable elements */
+*:focus-visible {
+  outline: 2px solid var(--color-info-fg);
+  outline-offset: 2px;
+  border-radius: var(--radius-1);
+}
+
+/* Custom element focus styles */
+ui-button:focus-visible,
+ui-card:focus-visible,
+ui-alert:focus-visible,
+ui-badge:focus-visible,
+ui-description-list:focus-visible,
+ui-empty-state:focus-visible,
+ui-icon:focus-visible,
+ui-info-row:focus-visible,
+ui-loading-indicator:focus-visible,
+ui-page-header:focus-visible,
+ui-spinner:focus-visible,
+ui-table:focus-visible {
+  outline: 2px solid var(--color-info-fg);
+  outline-offset: 2px;
+  border-radius: var(--radius-2);
+}
+
+/* Focus styles that respect theme contrast */
+:root[data-theme="dark"] *:focus-visible {
+  outline-color: var(--palette-blue-300);
+}
+
+:root[data-theme="light"] *:focus-visible {
+  outline-color: var(--palette-blue-700);
+}
+
+/* High contrast focus for better accessibility */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline-width: 3px;
+    outline-style: solid;
+  }
 }
 
 /* 11. Code styling */
