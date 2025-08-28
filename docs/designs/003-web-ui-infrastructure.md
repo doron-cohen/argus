@@ -24,7 +24,7 @@
 ### Technology Stack
 - **Bun**: Fast, all-in-one JavaScript runtime and package manager (replaces npm/yarn)
 - **TypeScript**: Type-safe JavaScript with plain web components approach
-- **Tailwind CSS**: Utility-first CSS framework for minimal styling
+- **CSS Custom Properties + Token-based Utility Classes**: Semantic design system with theme support (replaced Tailwind)
 - **Playwright**: End-to-end testing framework with comprehensive test coverage
 
 ### Package Management Strategy
@@ -55,7 +55,6 @@ frontend/
 │   └── styles.css
 ├── index.html
 ├── package.json
-├── tailwind.config.js
 ├── playwright.config.ts
 └── bun.lockb
 ```
@@ -141,8 +140,10 @@ function renderComponents(): void {
 ```
 
 ### Styling Approach
-**Tailwind CSS with minimal custom styles:**
-- Use Tailwind utility classes for layout and basic styling
+**CSS Custom Properties + Token-based Utility Classes:**
+- Use semantic CSS custom properties for theming (light/dark modes)
+- Token-backed utility classes (`u-*`) for consistent styling
+- Lit CSS-in-JS for component encapsulation
 - Minimal custom CSS for component-specific needs
 - Focus on readability and usability over aesthetics
 - Responsive design for different screen sizes
@@ -329,10 +330,10 @@ ci: backend/ci frontend/ci
 - [TypeScript Best Practices](https://www.typescriptlang.org/docs/handbook/intro.html)
 - [Web Components with TypeScript](https://developer.mozilla.org/en-US/docs/Web/Web_Components)
 
-### Tailwind CSS
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Tailwind CSS Best Practices](https://tailwindcss.com/docs/best-practices)
-- [Optimizing for Production](https://tailwindcss.com/docs/optimizing-for-production)
+### CSS Design System
+- [CSS Custom Properties](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
+- [CSS Design Tokens](https://css-tricks.com/what-are-design-tokens/)
+- [Lit CSS-in-JS](https://lit.dev/docs/components/styles/)
 
 ### Playwright Testing
 - [Playwright Documentation](https://playwright.dev/docs/intro)

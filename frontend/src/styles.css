@@ -1,6 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Global Styles - Clean imports with organized CSS reset */
+
+/* Font loading */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* CSS Reset - Must be first */
+@import "./ui/tokens/reset.css";
 
 /* Design tokens and themes */
 @import "./ui/tokens/core.css";
