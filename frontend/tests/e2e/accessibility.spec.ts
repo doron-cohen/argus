@@ -19,22 +19,24 @@ const axeConfig = {
   },
   runOnly: {
     type: "tag",
-    values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]
-  }
+    values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"],
+  },
 };
 
 test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
   test.beforeEach(async ({ page }) => {
-  // Inject axe-core from CDN
-  await page.addScriptTag({
-    url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.0/axe.min.js"
-  });
+    // Inject axe-core from CDN
+    await page.addScriptTag({
+      url: "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.0/axe.min.js",
+    });
 
-  // Wait for axe to be available
-  await page.waitForFunction(() => {
-    return typeof (window as any).axe !== 'undefined' && (window as any).axe.run;
+    // Wait for axe to be available
+    await page.waitForFunction(() => {
+      return (
+        typeof (window as any).axe !== "undefined" && (window as any).axe.run
+      );
+    });
   });
-});
 
   for (const theme of themes) {
     test.describe(`Theme: ${theme}`, () => {
@@ -46,13 +48,17 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
       });
 
       for (const pageInfo of keyPages) {
-        test(`should pass axe-core accessibility audit on ${pageInfo.name} page`, async ({ page }) => {
+        test(`should pass axe-core accessibility audit on ${pageInfo.name} page`, async ({
+          page,
+        }) => {
           await page.goto(pageInfo.path);
           await page.waitForLoadState("load");
 
           // Wait for dynamic content
           if (pageInfo.path === "/settings") {
-            await page.waitForSelector('[data-testid="page-title"]', { timeout: 10000 });
+            await page.waitForSelector('[data-testid="page-title"]', {
+              timeout: 10000,
+            });
           }
 
           // Run axe-core audit
@@ -62,7 +68,9 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
 
           // Check for violations
           if (results.violations.length > 0) {
-            console.log(`Accessibility violations found on ${pageInfo.name} page (${theme} theme):`);
+            console.log(
+              `Accessibility violations found on ${pageInfo.name} page (${theme} theme):`,
+            );
             results.violations.forEach((violation: any) => {
               console.log(`- ${violation.id}: ${violation.description}`);
               console.log(`  Impact: ${violation.impact}`);
@@ -71,8 +79,8 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
           }
 
           // Assert no critical or serious violations
-          const criticalViolations = results.violations.filter((v: any) =>
-            v.impact === "critical" || v.impact === "serious"
+          const criticalViolations = results.violations.filter(
+            (v: any) => v.impact === "critical" || v.impact === "serious",
           );
 
           expect(criticalViolations).toHaveLength(0);
@@ -110,7 +118,10 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
           if (!active) return false;
 
           const styles = window.getComputedStyle(active);
-          return styles.outlineWidth !== "0px" || active.hasAttribute("focus-visible");
+          return (
+            styles.outlineWidth !== "0px" ||
+            active.hasAttribute("focus-visible")
+          );
         });
 
         if (focusVisible) {
@@ -124,7 +135,9 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
         if (!active) return false;
 
         const styles = window.getComputedStyle(active);
-        return styles.outlineWidth !== "0px" || active.hasAttribute("focus-visible");
+        return (
+          styles.outlineWidth !== "0px" || active.hasAttribute("focus-visible")
+        );
       });
 
       expect(hasVisibleFocus).toBe(true);
@@ -136,7 +149,7 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
 
       // Check that animations are disabled
       const hasAnimations = await page.evaluate(() => {
-        const elements = document.querySelectorAll("*");
+        const elements = Array.from(document.querySelectorAll("*"));
         for (const el of elements) {
           const styles = window.getComputedStyle(el);
           if (styles.animationName !== "none" && styles.animationName !== "") {
@@ -151,7 +164,9 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
   });
 
   test.describe("Color and Contrast", () => {
-    test("should maintain sufficient color contrast in both themes", async ({ page }) => {
+    test("should maintain sufficient color contrast in both themes", async ({
+      page,
+    }) => {
       // Test light theme
       await page.addInitScript(() => {
         document.documentElement.setAttribute("data-theme", "light");
@@ -162,7 +177,8 @@ test.describe("Accessibility Tests - WCAG 2.1 AA Compliance", () => {
 
       // Basic contrast check - ensure text is readable
       const textElements = await page.$$("p, h1, h2, h3, h4, h5, h6, span");
-      for (const element of textElements.slice(0, 5)) { // Test first 5 text elements
+      for (const element of textElements.slice(0, 5)) {
+        // Test first 5 text elements
         const isVisible = await element.isVisible();
         expect(isVisible).toBe(true);
       }
