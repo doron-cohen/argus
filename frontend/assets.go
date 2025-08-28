@@ -2,7 +2,7 @@ package frontend
 
 import (
 	"embed"
-    "errors"
+	"errors"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-//go:embed index.html dist/*
+//go:embed dist/*
 var assets embed.FS
 
 // Assets returns the embedded filesystem containing the frontend assets
@@ -24,6 +24,9 @@ func Assets() fs.FS {
 func applyCacheHeaders(w http.ResponseWriter, path string) {
 	ext := filepath.Ext(path)
 	switch ext {
+	case ".html":
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
 	case ".css":
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Header().Set("Cache-Control", "public, max-age=31536000")
@@ -38,83 +41,48 @@ func applyCacheHeaders(w http.ResponseWriter, path string) {
 	}
 }
 
-func serveIndex(w http.ResponseWriter, r *http.Request) {
-    file, err := assets.Open("index.html")
-    if err != nil {
-        slog.Error("failed to open index.html", "path", r.URL.Path, "error", err)
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
-	var responseWritten bool
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil {
-			slog.Error("Failed to close file", "error", closeErr)
-			if !responseWritten {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-			}
+func serveFile(w http.ResponseWriter, r *http.Request, filePath string) {
+	file, err := assets.Open(filePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.NotFound(w, r)
+			return
 		}
-	}()
-    readSeeker, ok := file.(io.ReadSeeker)
-    if !ok {
-        slog.Error("index.html does not implement io.ReadSeeker", "path", r.URL.Path)
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        responseWritten = true
-        return
-    }
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=300")
-	http.ServeContent(w, r, "index.html", time.Now(), readSeeker)
-	responseWritten = true
-}
-
-func serveDistFile(w http.ResponseWriter, r *http.Request, path string) {
-    // Create a sub-filesystem for dist files
-    distFS, err := fs.Sub(assets, "dist")
-    if err != nil {
-        slog.Error("failed to create dist filesystem", "path", path, "error", err)
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
-	filePath := strings.TrimPrefix(path, "/dist/")
-	if filePath == "" || strings.HasSuffix(path, "/") {
-        http.NotFound(w, r)
+		slog.Error("failed to open file", "path", filePath, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-    file, err := distFS.Open(filePath)
-    if err != nil {
-        // Return 404 if not found; otherwise 500
-        if errors.Is(err, fs.ErrNotExist) {
-            http.NotFound(w, r)
-            return
-        }
-        slog.Error("failed to open dist file", "path", path, "error", err)
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
 			slog.Error("Failed to close file", "error", closeErr)
 		}
 	}()
-    readSeeker, ok := file.(io.ReadSeeker)
-    if !ok {
-        slog.Error("dist file does not implement io.ReadSeeker", "path", path)
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
-	applyCacheHeaders(w, path)
+
+	readSeeker, ok := file.(io.ReadSeeker)
+	if !ok {
+		slog.Error("file does not implement io.ReadSeeker", "path", filePath)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	applyCacheHeaders(w, filePath)
 	http.ServeContent(w, r, filepath.Base(filePath), time.Now(), readSeeker)
 }
 
-// Handler serves /dist/* as static assets and serves index.html for any other path
+// Handler serves files from dist directory and serves index.html for any other path
 func Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/dist/") {
-			serveDistFile(w, r, r.URL.Path)
+		path := r.URL.Path
+
+		// If path is root or doesn't start with /assets/, serve index.html
+		if path == "/" || path == "" || !strings.HasPrefix(path, "/assets/") {
+			serveFile(w, r, "dist/index.html")
 			return
 		}
-		// Everything else is a client route (SPA)
-		serveIndex(w, r)
+
+		// Serve the requested asset file (convert /assets/ to dist/assets/)
+		filePath := strings.Replace(path, "/assets/", "dist/assets/", 1)
+		serveFile(w, r, filePath)
 	})
 }
 
@@ -129,20 +97,17 @@ func HandlerWithPrefix(prefix string) http.Handler {
 			return
 		}
 		stripped := strings.TrimPrefix(r.URL.Path, prefix)
-		if stripped == "" || stripped == "/" || stripped == "index.html" || stripped == "/index.html" {
-			serveIndex(w, r)
+		if stripped == "" || stripped == "/" || stripped == "index.html" {
+			serveFile(w, r, "dist/index.html")
 			return
 		}
-		if strings.HasPrefix(stripped, "dist/") || strings.HasPrefix(stripped, "/dist/") {
-			// Reconstruct a path starting with /dist/
-			path := stripped
-			if !strings.HasPrefix(path, "/") {
-				path = "/" + path
-			}
-			serveDistFile(w, r, path)
-			return
+		// Serve the requested asset file
+		filePath := stripped
+		if strings.HasPrefix(filePath, "assets/") {
+			filePath = "dist/" + filePath
+		} else if !strings.HasPrefix(filePath, "dist/") {
+			filePath = "dist/" + filePath
 		}
-		// Any other path under the prefix is treated as client route
-		serveIndex(w, r)
+		serveFile(w, r, filePath)
 	})
 }

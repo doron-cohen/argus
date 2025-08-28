@@ -26,7 +26,6 @@ COPY frontend/ ./frontend/
 
 # Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
-COPY frontend/index.html ./frontend/
 
 # Copy frontend Go files
 COPY frontend/go.mod ./frontend/

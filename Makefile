@@ -98,40 +98,54 @@ frontend/test-unit:
 
 # E2E tests against backend-served frontend (backend serves built frontend)
 frontend/test-e2e-backend: frontend/install
+	@echo "🚀 Starting backend services..."
 	docker compose up -d --wait
-	cd frontend && bun run test:e2e --reporter=list; test_exit_code=$$?; docker compose down; exit $$test_exit_code
+	@echo "🧪 Running E2E tests against backend-served frontend..."
+	cd frontend && bun run test:e2e --reporter=list; \
+	test_exit_code=$$?; \
+	echo "🛑 Stopping backend services..."; \
+	docker compose down; \
+	exit $$test_exit_code
 
 # E2E tests against frontend dev server (separate frontend server on :3000)
 frontend/test-e2e-dev: frontend/install
+	@echo "🚀 Starting backend services..."
 	docker compose up -d --wait
-	cd frontend && bun run serve & \
-	sleep 5 && \
-	cd frontend && BASE_URL=http://localhost:3000 bun run test:e2e --reporter=list; test_exit_code=$$?; \
+	@echo "🧪 Starting frontend dev server..."
+	cd frontend && bun run dev &
+	VITE_PID=$$!
+	@echo "⏳ Waiting for frontend server to start (PID: $$VITE_PID)..."
+	sleep 5
+	@echo "🧪 Running E2E tests..."
+	cd frontend && BASE_URL=http://localhost:3000 bun run test:e2e --reporter=list; \
+	test_exit_code=$$?; \
+	echo "🛑 Stopping backend services..."; \
 	docker compose down; \
-	pkill -f "bun run serve" || true; \
+	echo "🛑 Stopping frontend dev server (PID: $$VITE_PID)..."; \
+	kill $$VITE_PID 2>/dev/null || echo "⚠️  Frontend server already stopped"; \
 	exit $$test_exit_code
 
 # Run backend in Docker and serve frontend in dev mode
 .PHONY: dev/full-stack
 dev/full-stack: frontend/install
 	docker compose up -d --wait
-	cd frontend && VITE_API_HOST=http://localhost:8080 bun run serve
+	cd frontend && VITE_API_HOST=http://localhost:8080 bun run dev
 
 # Start frontend dev server (assumes backend is running)
 .PHONY: frontend/dev-server
 frontend/dev-server:
-	cd frontend && bun server.js
+	cd frontend && bun run dev
 
 # Build frontend and start dev server
 .PHONY: frontend/dev-build
 frontend/dev-build:
 	cd frontend && bun run build:dev
-	cd frontend && bun server.js
+	cd frontend && bun run serve
 
 # Start frontend with watch mode (rebuilds on file changes)
 .PHONY: frontend/dev-watch
 frontend/dev-watch:
-	cd frontend && bun run dev:css & cd frontend && bun server.js
+	cd frontend && bun run dev
 
 frontend/test-all: frontend/test frontend/test-unit frontend/test-e2e-backend
 

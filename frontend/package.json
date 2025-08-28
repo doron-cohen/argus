@@ -4,13 +4,11 @@
   "description": "Argus Component Catalog Web UI",
   "scripts": {
     "generate:api": "orval --config orval.config.ts",
-    "build": "bun run generate:api || echo 'API generation skipped' && bun build src/main.ts --outdir dist --minify --define __ARGUS_API_HOST__=http://localhost:8080 && bun run build:css",
-    "build:dev": "bun run generate:api || echo 'API generation skipped' && bun build src/main.ts --outdir dist --define __ARGUS_API_HOST__=http://localhost:8080 && bun run build:css",
-    "build:prod": "bun run generate:api || echo 'API generation skipped' && bun build src/main.ts --outdir dist --minify --define __ARGUS_API_HOST__= && bun run build:css",
-    "build:css": "mkdir -p dist/ui/tokens/themes && cp src/styles.css dist/ && cp -r src/ui/tokens dist/ui/ && cp src/ui/utilities.css dist/ui/",
-    "dev": "bun build src/main.ts --outdir dist --watch",
-    "serve": "bun server.js",
-    "dev:serve": "VITE_API_HOST=http://localhost:8080 bun server.js",
+    "build": "bun run generate:api && vite build --mode production",
+    "build:dev": "bun run generate:api && vite build --mode development",
+    "build:prod": "bun run generate:api && vite build --mode production",
+    "dev": "bun run generate:api && vite",
+    "serve": "vite preview",
     "type-check": "tsc --noEmit",
     "test:unit": "bun test tests/unit/ --reporter=spec",
     "test:unit:quiet": "bun test tests/unit/ src/components/ --reporter=minimal",
@@ -41,7 +39,8 @@
     "lint-staged": "^16.1.5",
     "orval": "^6.31.0",
     "prettier": "^3.3.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vite": "^5.4.10"
   },
   "volta": {
     "node": "20.19.4"

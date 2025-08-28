@@ -14,9 +14,9 @@ func TestAssets(t *testing.T) {
 	}
 
 	// Test that we can read the index.html file from dist
-	file, err := fs.Open("index.html")
+	file, err := fs.Open("dist/index.html")
 	if err != nil {
-		t.Fatalf("Failed to open index.html: %v", err)
+		t.Fatalf("Failed to open dist/index.html: %v", err)
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
@@ -260,10 +260,10 @@ func TestDistFilesServed(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	// Test that dist/app.js is served
-	resp, err := http.Get(server.URL + "/dist/main.js")
+	// Test that we can access assets
+	resp, err := http.Get(server.URL + "/assets/main-Ds0_e5M7.css")
 	if err != nil {
-		t.Fatalf("Failed to GET /dist/main.js: %v", err)
+		t.Fatalf("Failed to GET /assets/main-Ds0_e5M7.css: %v", err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -272,11 +272,13 @@ func TestDistFilesServed(t *testing.T) {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200 for /dist/main.js, got %d", resp.StatusCode)
+		t.Errorf("Expected status 200 for /assets/main-Ds0_e5M7.css, got %d", resp.StatusCode)
 	}
 
-	// Test that dist files are served (generic test, not specific filenames)
-	// Note: We don't test specific CSS filenames as they change with content hashes
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "text/css; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/css; charset=utf-8', got '%s'", contentType)
+	}
 }
 
 // Helper function to check if a string contains a substring
