@@ -117,7 +117,11 @@ func TestSyncStatusComponentsCountEdgeCases(t *testing.T) {
 		// Create temporary empty directory
 		emptyDir, err := os.MkdirTemp("", "empty-sync-test")
 		require.NoError(t, err)
-		defer os.RemoveAll(emptyDir)
+		defer func() {
+			if err := os.RemoveAll(emptyDir); err != nil {
+				t.Logf("Failed to clean up temp directory %s: %v", emptyDir, err)
+			}
+		}()
 
 		// Create config with filesystem source pointing to empty directory
 		testConfig := TestConfig

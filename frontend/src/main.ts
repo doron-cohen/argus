@@ -1,3 +1,6 @@
+// Import global styles first
+import "./styles.css";
+
 // Initialize API configuration first
 import "./config/api";
 // Initialize theme provider (sets data-theme if absent)

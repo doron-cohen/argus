@@ -2,11 +2,11 @@
 
 This guide outlines how to gradually evolve your current setup into a maintainable, testable, and scalable SPA architecture using:
 
-- ✅ Lit for Web Components  
-- ✅ Tailwind CSS for styling  
-- ✅ Nanostores for state  
-- ✅ Navigo for routing  
-- ✅ Orval for OpenAPI-based API clients  
+- ✅ Lit for Web Components
+- ✅ CSS Custom Properties + Token-based Utility Classes (replaced Tailwind)
+- ✅ Nanostores for state
+- ✅ Navigo for routing
+- ✅ Orval for OpenAPI-based API clients
 - ✅ Bun as runtime, bundler, and test runner
 
 ---
