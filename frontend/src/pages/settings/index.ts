@@ -153,17 +153,13 @@ export class SettingsPage extends LitElement {
               data-testid="sync-source-${source.id || "unknown"}"
             >
               <div slot="header">
-                <ui-cluster justify="between">
-                  <div>
-                    <h3 class="u-font-medium u-text-primary u-mb-1">
-                      ${source.type === "git" ? "Git Repository" : "Filesystem"}
-                      #${source.id || "unknown"}
-                    </h3>
-                    <p class="u-text-muted">
-                      Sync interval: ${source.interval}
-                    </p>
-                  </div>
-                </ui-cluster>
+                <div>
+                  <h3 class="u-font-medium u-text-primary u-mb-1">
+                    ${source.type === "git" ? "Git Repository" : "Filesystem"}
+                    #${source.id || "unknown"}
+                  </h3>
+                  <p class="u-text-muted">Sync interval: ${source.interval}</p>
+                </div>
               </div>
 
               <div>

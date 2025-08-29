@@ -1,8 +1,11 @@
+import { themeStore } from "./theme-store";
+
 export type Theme = "light" | "dark";
 
 export function setTheme(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("theme", theme);
+  themeStore.set(theme);
 }
 
 export function getStoredTheme(): Theme | null {
@@ -28,10 +31,11 @@ if (!document.documentElement.getAttribute("data-theme")) {
 
 // Listen for system theme changes when no stored preference exists
 if (!getStoredTheme()) {
-  window
-    .matchMedia("(prefers-color-scheme: dark)")
-    .addEventListener("change", (e) => {
-      const newTheme: Theme = e.matches ? "dark" : "light";
-      setTheme(newTheme);
-    });
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener("change", (e) => setTheme(e.matches ? "dark" : "light"));
 }
+
+// Cross-tab sync
+window.addEventListener("storage", (e) => {
+  if (e.key === "theme" && e.newValue) setTheme(e.newValue as Theme);
+});
