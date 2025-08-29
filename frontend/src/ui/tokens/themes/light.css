@@ -5,8 +5,8 @@
   --color-fg: var(--palette-gray-900);
   --color-border: var(--palette-gray-200);
 
-  --color-success-bg: var(--palette-green-100);
-  --color-success-fg: var(--palette-green-600);
+  --color-success-bg: var(--palette-green-50);
+  --color-success-fg: var(--palette-green-800);
 
   --color-danger-bg: var(--palette-red-100);
   --color-danger-fg: var(--palette-red-600);

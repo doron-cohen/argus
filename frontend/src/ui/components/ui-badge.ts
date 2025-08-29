@@ -65,8 +65,8 @@ export class UiBadge extends LitElement {
 
     /* Status-based styling */
     :host(.pass) {
-      background-color: var(--color-success-bg, rgb(220 252 231));
-      color: var(--color-success-fg, rgb(22 163 74));
+      background-color: var(--color-success-bg, rgb(236 253 245));
+      color: var(--color-success-fg, rgb(22 101 52));
     }
 
     :host(.fail),

@@ -31,15 +31,25 @@ function getContrastRatio(color1: string, color2: string): number {
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
 }
 
-function getLuminance({ r, g, b }: { r: number; g: number; b: number }): number {
-  const [rs, gs, bs] = [r, g, b].map(c => {
+function getLuminance({
+  r,
+  g,
+  b,
+}: {
+  r: number;
+  g: number;
+  b: number;
+}): number {
+  const [rs, gs, bs] = [r, g, b].map((c) => {
     c = c / 255;
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   });
@@ -56,16 +66,18 @@ test.describe("Contrast Ratio Validation", () => {
         }, theme);
       });
 
-      test("should meet WCAG AA contrast requirements for key UI elements", async ({ page }) => {
+      test("should meet WCAG AA contrast requirements for key UI elements", async ({
+        page,
+      }) => {
         await page.goto("/");
         await page.waitForLoadState("load");
 
         // Test main heading
         const heading = page.locator("h1").first();
-        const headingColor = await heading.evaluate(el => {
+        const headingColor = await heading.evaluate((el) => {
           return window.getComputedStyle(el).color;
         });
-        const headingBg = await heading.evaluate(el => {
+        const headingBg = await heading.evaluate((el) => {
           return window.getComputedStyle(el).backgroundColor;
         });
 
@@ -79,13 +91,13 @@ test.describe("Contrast Ratio Validation", () => {
 
         // Test interactive elements
         const buttons = page.locator("ui-button");
-        if (await buttons.count() > 0) {
+        if ((await buttons.count()) > 0) {
           await expect(buttons.first()).toBeVisible();
         }
 
         // Test links
         const links = page.locator("a");
-        if (await links.count() > 0) {
+        if ((await links.count()) > 0) {
           await expect(links.first()).toBeVisible();
         }
       });
@@ -95,7 +107,9 @@ test.describe("Contrast Ratio Validation", () => {
         await page.waitForLoadState("load");
 
         // Wait for content to load
-        await page.waitForSelector('[data-testid="page-title"]', { timeout: 10000 });
+        await page.waitForSelector('[data-testid="page-title"]', {
+          timeout: 10000,
+        });
 
         // Test page title
         const pageTitle = page.getByTestId("page-title");
@@ -107,7 +121,7 @@ test.describe("Contrast Ratio Validation", () => {
 
         // Test cards and their content
         const cards = page.locator("ui-card");
-        if (await cards.count() > 0) {
+        if ((await cards.count()) > 0) {
           await expect(cards.first()).toBeVisible();
         }
       });
@@ -122,7 +136,7 @@ test.describe("Contrast Ratio Validation", () => {
         @media (prefers-contrast: high) {
           * { outline-width: 3px !important; }
         }
-      `
+      `,
     });
 
     await page.goto("/");

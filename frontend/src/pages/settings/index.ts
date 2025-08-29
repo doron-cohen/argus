@@ -198,24 +198,26 @@ export class SettingsPage extends LitElement {
           size="lg"
         ></ui-page-header>
 
-        ${this.isLoading
-          ? html`
-              <ui-loading-indicator
-                message="Loading settings..."
-              ></ui-loading-indicator>
-            `
-          : this.error
+        <main>
+          ${this.isLoading
             ? html`
-                <ui-card variant="outlined" padding="md">
-                  <div class="u-text-danger">
-                    <h2 class="u-text-danger u-font-semibold u-mb-2">
-                      Error loading settings
-                    </h2>
-                    <p>${this.error}</p>
-                  </div>
-                </ui-card>
+                <ui-loading-indicator
+                  message="Loading settings..."
+                ></ui-loading-indicator>
               `
-            : this.renderSources()}
+            : this.error
+              ? html`
+                  <ui-card variant="outlined" padding="md">
+                    <div class="u-text-danger">
+                      <h2 class="u-text-danger u-font-semibold u-mb-2">
+                        Error loading settings
+                      </h2>
+                      <p>${this.error}</p>
+                    </div>
+                  </ui-card>
+                `
+              : this.renderSources()}
+        </main>
       </ui-page-container>
     `;
   }

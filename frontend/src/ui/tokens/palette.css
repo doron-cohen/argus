@@ -14,9 +14,11 @@
   --palette-gray-900: rgb(17 24 39);
 
   /* Green */
+  --palette-green-50: rgb(236 253 245);
   --palette-green-100: rgb(220 252 231);
   --palette-green-300: rgb(134 239 172);
   --palette-green-600: rgb(22 163 74);
+  --palette-green-800: rgb(22 101 52);
   --palette-green-900: rgb(20 83 45);
 
   /* Red */

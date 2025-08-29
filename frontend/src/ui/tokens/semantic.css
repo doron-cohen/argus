@@ -9,9 +9,9 @@
   --color-border: var(--palette-gray-200);
 
   /* Status roles used by ui-badge */
-  --color-success-bg: var(--palette-green-100);
-  --color-success-fg: var(--palette-green-600);
-  --color-success-hover: var(--palette-green-300);
+  --color-success-bg: var(--palette-green-50);
+  --color-success-fg: var(--palette-green-800);
+  --color-success-hover: var(--palette-green-100);
 
   --color-danger-bg: var(--palette-red-100);
   --color-danger-fg: var(--palette-red-600);

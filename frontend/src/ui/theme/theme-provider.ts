@@ -10,7 +10,9 @@ export function getStoredTheme(): Theme | null {
 }
 
 export function getSystemTheme(): Theme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 export function initializeTheme(): void {
@@ -26,8 +28,10 @@ if (!document.documentElement.getAttribute("data-theme")) {
 
 // Listen for system theme changes when no stored preference exists
 if (!getStoredTheme()) {
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-    const newTheme: Theme = e.matches ? "dark" : "light";
-    setTheme(newTheme);
-  });
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (e) => {
+      const newTheme: Theme = e.matches ? "dark" : "light";
+      setTheme(newTheme);
+    });
 }

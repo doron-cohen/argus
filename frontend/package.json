@@ -27,6 +27,7 @@
   },
   "type": "module",
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@open-wc/testing": "^4.0.0",
     "@playwright/test": "^1.54.1",
     "@types/mocha": "^10.0.10",
