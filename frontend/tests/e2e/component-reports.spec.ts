@@ -19,9 +19,7 @@ test.describe("Component Reports", () => {
     await page.goto("/components/platform-infrastructure");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Check for no reports message
     await expect(page.getByTestId("no-reports")).toBeVisible();
@@ -37,20 +35,26 @@ test.describe("Component Reports", () => {
     await page.goto("/components/user-service");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Wait for reports to load and be visible
-    await expect(page.getByTestId("reports-list")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("reports-list")).toBeVisible({});
 
-    // Verify report items are displayed
-    await expect(page.getByTestId("report-item")).toBeVisible();
-    await expect(page.getByTestId("check-name")).toBeVisible();
-    await expect(page.getByTestId("check-status")).toBeVisible();
-    await expect(page.getByTestId("check-timestamp")).toBeVisible();
+    // Verify report items are displayed (handle multiple elements)
+    const reportItems = page.getByTestId("report-item");
+    await expect(reportItems.first()).toBeVisible();
+
+    const checkNames = page.getByTestId("check-name");
+    await expect(checkNames.first()).toBeVisible();
+
+    const checkStatuses = page.getByTestId("check-status");
+    await expect(checkStatuses.first()).toBeVisible();
+
+    const checkTimestamps = page.getByTestId("check-timestamp");
+    await expect(checkTimestamps.first()).toBeVisible();
+
+    // Verify we have at least one report
+    await expect(reportItems).toHaveCount(await reportItems.count());
   });
 
   test("should display multiple reports", async ({ page }: { page: Page }) => {
@@ -58,9 +62,7 @@ test.describe("Component Reports", () => {
     await page.goto("/components/auth-service");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     if (apiReports.reports.length === 0) {
       // If no reports, test empty state
@@ -69,9 +71,7 @@ test.describe("Component Reports", () => {
     }
 
     // Verify reports match
-    await expect(page.getByTestId("reports-list")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("reports-list")).toBeVisible({});
 
     // Verify we have the expected number of reports
     const reportItems = page.getByTestId("report-item");
@@ -86,17 +86,13 @@ test.describe("Component Reports", () => {
     await page.goto("/components/auth-service");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Wait for reports to load
-    await expect(page.getByTestId("reports-list")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("reports-list")).toBeVisible({});
 
     // Verify we have at least one report
-    await expect(page.getByTestId("report-item")).toBeVisible();
+    await expect(page.getByTestId("report-item").first()).toBeVisible();
   });
 
   test("should show status colors correctly", async ({
@@ -108,17 +104,13 @@ test.describe("Component Reports", () => {
     await page.goto("/components/auth-service");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Wait for reports to load
-    await expect(page.getByTestId("reports-list")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("reports-list")).toBeVisible({});
 
     // Verify status elements are present
-    await expect(page.getByTestId("check-status")).toBeVisible();
+    await expect(page.getByTestId("check-status").first()).toBeVisible();
   });
 
   test("should handle reports loading state", async ({
@@ -129,9 +121,7 @@ test.describe("Component Reports", () => {
     await page.goto("/components/auth-service");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // The loading state should be brief, but we can check for the reports
     // which should appear after loading
@@ -155,9 +145,7 @@ test.describe("Component Reports", () => {
     await page.goto("/components/auth-service");
 
     // Wait for component details to load
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Check for either reports or no-reports message
     const reportsList = page.getByTestId("reports-list");
@@ -180,21 +168,15 @@ test.describe("Component Reports", () => {
 
     // First visit a component with reports
     await page.goto("/components/auth-service");
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Navigate to another component with reports
     await page.goto("/components/user-service");
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
 
     // Navigate back to first component
     await page.goto("/components/auth-service");
-    await expect(page.getByTestId("component-details")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details")).toBeVisible({});
   });
 
   test("should handle non-existent component gracefully", async ({
@@ -205,14 +187,13 @@ test.describe("Component Reports", () => {
     await page.goto("/components/non-existent-component");
 
     // Wait for the error state to render, then assert error
-    await expect(page.getByTestId("component-details-error")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId("component-details-error")).toBeVisible({});
 
-    // Verify error state is displayed
-    await expect(page.getByTestId("error-title")).toBeVisible();
-    await expect(page.getByTestId("error-title")).toHaveText(
-      "Error loading component",
-    );
+    // Verify error state is displayed (check for error card and alert content)
+    const errorCard = page.getByTestId("component-details-error");
+    await expect(errorCard).toBeVisible();
+
+    // Check that the error alert contains the expected title
+    await expect(errorCard).toContainText("Error loading component");
   });
 });

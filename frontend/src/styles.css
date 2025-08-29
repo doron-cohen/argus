@@ -15,3 +15,48 @@
 
 /* Token-backed utilities */
 @import "./ui/utilities.css";
+
+/* CSS baseline for no-JS theme detection */
+:root {
+  color-scheme: light dark;
+}
+
+/* Auto-apply dark theme based on system preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Base colors */
+    --color-bg: var(--palette-gray-900);
+    --color-bg-subtle: var(--palette-gray-800);
+    --color-fg: var(--palette-gray-200);
+    --color-fg-muted: var(--palette-gray-400);
+    --color-border: var(--palette-gray-700);
+
+    /* Status colors */
+    --color-success-bg: var(--palette-green-900);
+    --color-success-fg: var(--palette-green-300);
+    --color-success-hover: var(--palette-green-800);
+
+    --color-danger-bg: var(--palette-red-900);
+    --color-danger-fg: var(--palette-red-300);
+    --color-danger-hover: var(--palette-red-800);
+
+    --color-warning-bg: var(--palette-amber-900);
+    --color-warning-fg: var(--palette-yellow-200);
+    --color-warning-hover: var(--palette-amber-800);
+
+    --color-info-bg: var(--palette-blue-900);
+    --color-info-fg: var(--palette-blue-300);
+    --color-info-hover: var(--palette-blue-800);
+
+    --color-neutral-bg: var(--palette-gray-800);
+    --color-neutral-fg: var(--palette-gray-200);
+  }
+}
+
+/* Explicit overrides keep working */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}

@@ -69,7 +69,8 @@ export class UiCard extends LitElement {
       background-color: var(--color-bg-subtle, rgb(249 250 251));
     }
 
-    .header:empty {
+    .header:empty,
+    .header:has(slot[name="header"]:only-child:empty) {
       display: none;
     }
 
@@ -83,7 +84,8 @@ export class UiCard extends LitElement {
       background-color: var(--color-bg-subtle, rgb(249 250 251));
     }
 
-    .footer:empty {
+    .footer:empty,
+    .footer:has(slot[name="footer"]:only-child:empty) {
       display: none;
     }
 

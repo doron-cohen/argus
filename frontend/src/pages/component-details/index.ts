@@ -140,7 +140,8 @@ export class ComponentDetailsPage extends LitElement {
   render() {
     return html`
       <ui-page-container max-width="xl" padding="lg">
-        ${this.renderPageHeader()} ${this.renderComponentDetails()}
+        ${this.renderPageHeader()}
+        <main>${this.renderComponentDetails()}</main>
       </ui-page-container>
     `;
   }

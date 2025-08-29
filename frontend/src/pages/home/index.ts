@@ -63,21 +63,23 @@ export class HomePage extends LitElement {
           size="lg"
         ></ui-page-header>
 
-        <ui-stack gap="lg">
-          <div data-testid="components-container">
-            <h3 class="u-section-title" data-testid="components-header">
-              Components${this.isLoading || this.error
-                ? ""
-                : ` (${this.components.length})`}
-            </h3>
-            <component-list
-              .components=${this.components}
-              .isLoading=${this.isLoading}
-              .error=${this.error}
-              id="component-list"
-            ></component-list>
-          </div>
-        </ui-stack>
+        <main>
+          <ui-stack gap="lg">
+            <div data-testid="components-container">
+              <h2 class="u-section-title" data-testid="components-header">
+                Components${this.isLoading || this.error
+                  ? ""
+                  : ` (${this.components.length})`}
+              </h2>
+              <component-list
+                .components=${this.components}
+                .isLoading=${this.isLoading}
+                .error=${this.error}
+                id="component-list"
+              ></component-list>
+            </div>
+          </ui-stack>
+        </main>
       </ui-page-container>
     `;
   }

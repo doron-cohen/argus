@@ -153,17 +153,13 @@ export class SettingsPage extends LitElement {
               data-testid="sync-source-${source.id || "unknown"}"
             >
               <div slot="header">
-                <ui-cluster justify="between">
-                  <div>
-                    <h3 class="u-font-medium u-text-primary u-mb-1">
-                      ${source.type === "git" ? "Git Repository" : "Filesystem"}
-                      #${source.id || "unknown"}
-                    </h3>
-                    <p class="u-text-muted">
-                      Sync interval: ${source.interval}
-                    </p>
-                  </div>
-                </ui-cluster>
+                <div>
+                  <h3 class="u-font-medium u-text-primary u-mb-1">
+                    ${source.type === "git" ? "Git Repository" : "Filesystem"}
+                    #${source.id || "unknown"}
+                  </h3>
+                  <p class="u-text-muted">Sync interval: ${source.interval}</p>
+                </div>
               </div>
 
               <div>
@@ -198,24 +194,26 @@ export class SettingsPage extends LitElement {
           size="lg"
         ></ui-page-header>
 
-        ${this.isLoading
-          ? html`
-              <ui-loading-indicator
-                message="Loading settings..."
-              ></ui-loading-indicator>
-            `
-          : this.error
+        <main>
+          ${this.isLoading
             ? html`
-                <ui-card variant="outlined" padding="md">
-                  <div class="u-text-danger">
-                    <h2 class="u-text-danger u-font-semibold u-mb-2">
-                      Error loading settings
-                    </h2>
-                    <p>${this.error}</p>
-                  </div>
-                </ui-card>
+                <ui-loading-indicator
+                  message="Loading settings..."
+                ></ui-loading-indicator>
               `
-            : this.renderSources()}
+            : this.error
+              ? html`
+                  <ui-card variant="outlined" padding="md">
+                    <div class="u-text-danger">
+                      <h2 class="u-text-danger u-font-semibold u-mb-2">
+                        Error loading settings
+                      </h2>
+                      <p>${this.error}</p>
+                    </div>
+                  </ui-card>
+                `
+              : this.renderSources()}
+        </main>
       </ui-page-container>
     `;
   }
