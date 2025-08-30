@@ -1,13 +1,15 @@
 import { expect, fixture, html } from "@open-wc/testing";
 import "./index";
 
+// Import subcomponents for testing
+import "./metadata.js";
+import "./reports.js";
+
 // Import UI components used by component-details
-import "../../ui/components/ui-badge.js";
-import "../../ui/components/ui-card.js";
-import "../../ui/components/ui-card-header.js";
-import "../../ui/components/ui-info-row.js";
 import "../../ui/components/ui-spinner.js";
 import "../../ui/components/ui-alert.js";
+
+import type { ComponentDetails } from "./index";
 
 type Component = {
   id?: string;
@@ -54,12 +56,6 @@ describe("component-details", () => {
       status: "fail",
       timestamp: "2024-01-15T10:35:00Z",
     },
-    {
-      id: "r3",
-      check_slug: "code-quality",
-      status: "disabled",
-      timestamp: "2024-01-15T10:40:00Z",
-    },
   ];
 
   it("component is defined", () => {
@@ -87,7 +83,15 @@ describe("component-details", () => {
       '[data-testid="component-details-error"]',
     );
     expect(error).to.exist;
-    expect(error?.textContent).to.include("Test error");
+
+    // Check that the ui-alert component contains the error message
+    const uiAlert = error?.querySelector("ui-alert");
+    expect(uiAlert).to.exist;
+
+    // Access the alert message within the ui-alert component's shadow root
+    const alertMessage = uiAlert?.shadowRoot?.querySelector(".alert-message");
+    expect(alertMessage).to.exist;
+    expect(alertMessage?.textContent?.trim()).to.equal("Test error");
   });
 
   it("renders empty state when no component is provided", async () => {
@@ -98,54 +102,70 @@ describe("component-details", () => {
     );
   });
 
-  it("renders component details when component is provided", async () => {
-    const el = await fixture(html`
+  it("renders component details with subcomponents when component is provided", async () => {
+    const el = await fixture<ComponentDetails>(html`
       <component-details .component=${mockComponent}></component-details>
     `);
+    await el.updateComplete;
 
-    const name = el.shadowRoot?.querySelector('[data-testid="component-name"]');
-    expect(name).to.exist;
-    expect(name?.textContent?.trim()).to.equal("Test Component");
+    // Check that subcomponents are rendered
+    const metadataComponent =
+      el.shadowRoot?.querySelector("component-metadata");
+    expect(metadataComponent).to.exist;
 
-    const description = el.shadowRoot?.querySelector(
-      '[data-testid="component-description"]',
-    );
-    expect(description).to.exist;
-    expect(description?.textContent?.trim()).to.equal(
-      "This is a test component",
-    );
+    const reportsComponent = el.shadowRoot?.querySelector("component-reports");
+    expect(reportsComponent).to.exist;
+
+    // Check that component data is passed to metadata subcomponent
+    expect(metadataComponent?.component).to.equal(mockComponent);
   });
 
-  it("renders reports when provided", async () => {
-    const el = await fixture(html`
+  it("renders reports subcomponent with proper props when reports are provided", async () => {
+    const el = await fixture<ComponentDetails>(html`
       <component-details
         .component=${mockComponent}
         .reports=${mockReports}
+        .isReportsLoading=${false}
+        .reportsErrorMessage=${null}
       ></component-details>
     `);
+    await el.updateComplete;
 
-    const reports = el.shadowRoot?.querySelectorAll(
-      '[data-testid="report-item"]',
-    );
-    expect(reports).to.have.length(3);
+    const reportsComponent = el.shadowRoot?.querySelector("component-reports");
+    expect(reportsComponent).to.exist;
+
+    // Check that reports data is passed to reports subcomponent
+    expect(reportsComponent?.reports).to.equal(mockReports);
+    expect(reportsComponent?.isLoading).to.equal(false);
+    expect(reportsComponent?.errorMessage).to.equal(null);
   });
 
-  it("renders correct status badges for reports", async () => {
-    const el = await fixture(html`
+  it("passes reports loading state to reports subcomponent", async () => {
+    const el = await fixture<ComponentDetails>(html`
       <component-details
         .component=${mockComponent}
-        .reports=${mockReports}
+        .isReportsLoading=${true}
       ></component-details>
     `);
+    await el.updateComplete;
 
-    const passBadge = el.shadowRoot?.querySelector('ui-badge[status="pass"]');
-    const failBadge = el.shadowRoot?.querySelector('ui-badge[status="fail"]');
-    const disabledBadge = el.shadowRoot?.querySelector(
-      'ui-badge[status="disabled"]',
-    );
+    const reportsComponent = el.shadowRoot?.querySelector("component-reports");
+    expect(reportsComponent).to.exist;
+    expect(reportsComponent?.isLoading).to.equal(true);
+  });
 
-    expect(passBadge).to.exist;
-    expect(failBadge).to.exist;
-    expect(disabledBadge).to.exist;
+  it("passes reports error message to reports subcomponent", async () => {
+    const errorMsg = "Failed to load reports";
+    const el = await fixture<ComponentDetails>(html`
+      <component-details
+        .component=${mockComponent}
+        .reportsErrorMessage=${errorMsg}
+      ></component-details>
+    `);
+    await el.updateComplete;
+
+    const reportsComponent = el.shadowRoot?.querySelector("component-reports");
+    expect(reportsComponent).to.exist;
+    expect(reportsComponent?.errorMessage).to.equal(errorMsg);
   });
 });
