@@ -15,17 +15,21 @@ export class ComponentMetadata extends LitElement {
       return html`<div>No component data available</div>`;
     }
 
+    // Since component is validated as non-null, extract to local variable
+    const component = this.component;
+
     return html`
-      ${this.renderComponentHeader()} ${this.renderComponentInfo()}
+      ${this.renderComponentHeader(component)}
+      ${this.renderComponentInfo(component)}
     `;
   }
 
-  private renderComponentHeader() {
+  private renderComponentHeader(component: Component) {
     return html`
       <ui-card>
         <ui-card-header
-          title="${this.component!.name}"
-          subtitle="ID: ${this.component!.id || this.component!.name}"
+          title="${component.name}"
+          subtitle="ID: ${component.id || component.name}"
           title-data-testid="component-name"
           subtitle-data-testid="component-id"
         ></ui-card-header>
@@ -33,22 +37,22 @@ export class ComponentMetadata extends LitElement {
     `;
   }
 
-  private renderComponentInfo() {
+  private renderComponentInfo(component: Component) {
     return html`
       <ui-card class="u-mt-4">
         ${this.renderInfoRow(
           "Description",
           "description-label",
           "component-description",
-          this.component!.description || "No description available",
+          component.description || "No description available",
         )}
         ${this.renderInfoRow(
           "Team",
           "team-label",
           "component-team",
-          this.component!.owners?.team || "No team assigned",
+          component.owners?.team || "No team assigned",
         )}
-        ${this.renderMaintainersRow()}
+        ${this.renderMaintainersRow(component)}
       </ui-card>
     `;
   }
@@ -69,8 +73,8 @@ export class ComponentMetadata extends LitElement {
     `;
   }
 
-  private renderMaintainersRow() {
-    const maintainers = this.component!.owners?.maintainers;
+  private renderMaintainersRow(component: Component) {
+    const maintainers = component.owners?.maintainers;
     if (!maintainers?.length) {
       return this.renderInfoRow(
         "Maintainers",
