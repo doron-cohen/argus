@@ -149,10 +149,10 @@ describe("component-reports", () => {
     expect(timestamps).to.have.length(3);
 
     // Check that timestamps are formatted (they should be converted from ISO to locale string)
-    timestamps?.forEach((timestamp) => {
+    timestamps?.forEach((timestamp, index) => {
       expect(timestamp?.textContent?.trim()).to.not.equal("");
       expect(timestamp?.textContent?.trim()).to.not.equal(
-        mockReports[0].timestamp,
+        mockReports[index].timestamp,
       ); // Should be different from raw ISO
     });
   });
