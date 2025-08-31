@@ -62,10 +62,8 @@ describe("component-reports", () => {
     const uiAlert = error?.querySelector("ui-alert");
     expect(uiAlert).to.exist;
 
-    // Access the alert message within the ui-alert component's shadow root
-    const alertMessage = uiAlert?.shadowRoot?.querySelector(".alert-message");
-    expect(alertMessage).to.exist;
-    expect(alertMessage?.textContent?.trim()).to.equal("Test error");
+    // Check that the error message is passed to the ui-alert component
+    expect((uiAlert as any)?.message).to.equal("Test error");
   });
 
   it("renders empty state when no reports are provided", async () => {

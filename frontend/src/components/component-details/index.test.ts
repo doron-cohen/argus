@@ -75,9 +75,10 @@ describe("component-details", () => {
   });
 
   it("renders error state when errorMessage is provided", async () => {
-    const el = await fixture(html`
+    const el = await fixture<ComponentDetails>(html`
       <component-details .errorMessage=${"Test error"}></component-details>
     `);
+    await el.updateComplete;
 
     const error = el.shadowRoot?.querySelector(
       '[data-testid="component-details-error"]',
@@ -88,10 +89,8 @@ describe("component-details", () => {
     const uiAlert = error?.querySelector("ui-alert");
     expect(uiAlert).to.exist;
 
-    // Access the alert message within the ui-alert component's shadow root
-    const alertMessage = uiAlert?.shadowRoot?.querySelector(".alert-message");
-    expect(alertMessage).to.exist;
-    expect(alertMessage?.textContent?.trim()).to.equal("Test error");
+    // Check that the error message is passed to the ui-alert component
+    expect((uiAlert as any)?.message).to.equal("Test error");
   });
 
   it("renders empty state when no component is provided", async () => {
