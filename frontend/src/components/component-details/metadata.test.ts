@@ -6,13 +6,7 @@ import "../../ui/components/ui-card.js";
 import "../../ui/components/ui-card-header.js";
 import "../../ui/components/ui-info-row.js";
 
-type Component = {
-  id?: string;
-  name: string;
-  description?: string;
-  owners?: { maintainers?: string[]; team?: string };
-};
-
+import type { Component } from "../../api/services/components/client";
 import type { ComponentMetadata } from "./metadata";
 
 describe("component-metadata", () => {

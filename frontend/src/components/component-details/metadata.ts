@@ -29,7 +29,7 @@ export class ComponentMetadata extends LitElement {
       <ui-card>
         <ui-card-header
           title="${component.name}"
-          subtitle="ID: ${component.id || component.name}"
+          subtitle="ID: ${component.id ?? component.name}"
           title-data-testid="component-name"
           subtitle-data-testid="component-id"
         ></ui-card-header>

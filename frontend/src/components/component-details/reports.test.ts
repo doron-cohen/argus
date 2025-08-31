@@ -7,21 +7,8 @@ import "../../ui/components/ui-badge.js";
 import "../../ui/components/ui-spinner.js";
 import "../../ui/components/ui-alert.js";
 
+import type { CheckReport } from "../../api/services/components/client";
 import type { ComponentReports } from "./reports";
-
-type CheckReport = {
-  id: string;
-  check_slug: string;
-  status:
-    | "pass"
-    | "fail"
-    | "disabled"
-    | "skipped"
-    | "unknown"
-    | "error"
-    | "completed";
-  timestamp: string;
-};
 
 describe("component-reports", () => {
   const mockReports: CheckReport[] = [
